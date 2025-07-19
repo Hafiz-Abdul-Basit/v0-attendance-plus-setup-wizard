@@ -1,0 +1,19 @@
+StudentId 
+    Course
+    Period 
+    TeacherName 
+    Grade 
+    CampusName 
+    Absences 
+    ExcusedAbsences 
+    UnexcusedAbsences 
+    OwedTotal 
+    OwedToRecover 
+    MinutesOwedInTotal 
+    MinutesOwedToRecover 
+    HoursOwedTotal 
+    HoursOwedToRecover 
+    TotalPossibleDays 
+    TotalDaysPresent 
+    TotalDaysAbsent 
+    AttendancePercent

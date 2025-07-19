@@ -1,0 +1,31 @@
+# Abdul Basit Apps - Useful Web Tools
+
+## 🛠️ JSON Kit
+**URL:** https://jsonkit.vercel.app/
+**Description:** A comprehensive JSON toolkit for developers
+- JSON formatter and validator
+- JSON to various format converters
+- JSON schema generator
+- JSON path finder and more
+
+## 📋 AttendancePlus Setup Guide
+**URL:** https://attendance-plus-setup-guide.vercel.app/
+**Description:** Complete installation wizard for AttendancePlus System
+- Step-by-step installation guide
+- Configuration snippets
+- Troubleshooting tips
+- Progress tracking
+
+## 🕵️ Route JSON Detective
+**URL:** https://route-json-detective-abdul.lovable.app/
+**Description:** Advanced JSON analysis and debugging tool
+- Deep JSON structure analysis
+- Route mapping and visualization
+- JSON diff and comparison
+- API response debugging
+
+---
+
+## 🚀 Quick Access Links
+
+Copy and paste these URLs for quick access:
