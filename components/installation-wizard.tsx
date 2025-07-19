@@ -275,6 +275,8 @@ export function InstallationWizard() {
   const [snippetFilter, setSnippetFilter] = useState<string>("")
   const [filteredSnippetId, setFilteredSnippetId] = useState<string | null>(null)
 
+  const [selectedResultIndex, setSelectedResultIndex] = useState(0)
+
   const exportProgress = () => {
     const completedSections = sections.filter((s) => getSectionProgress(s.id).percentage === 100)
     const report = {
@@ -296,14 +298,36 @@ export function InstallationWizard() {
     toast.success("Progress exported successfully!")
   }
 
-  // Keyboard shortcuts
   const handleKeyDown = useCallback(
     (event: KeyboardEvent) => {
+      // Handle modern search modal navigation
+      if (showModernSearch) {
+        if (event.key === "ArrowDown") {
+          event.preventDefault()
+          setSelectedResultIndex((prev) => (prev < modernSearchResults.length - 1 ? prev + 1 : 0))
+        } else if (event.key === "ArrowUp") {
+          event.preventDefault()
+          setSelectedResultIndex((prev) => (prev > 0 ? prev - 1 : modernSearchResults.length - 1))
+        } else if (event.key === "Enter") {
+          event.preventDefault()
+          if (modernSearchResults[selectedResultIndex]) {
+            handleModernSearchResultClick(modernSearchResults[selectedResultIndex])
+          }
+        } else if (event.key === "Escape") {
+          setShowModernSearch(false)
+          setModernSearchQuery("")
+          setModernSearchResults([])
+          setSelectedResultIndex(0)
+        }
+        return
+      }
+
       // Ctrl/Cmd + K to toggle modern search popup
       if ((event.ctrlKey || event.metaKey) && event.key === "k") {
         event.preventDefault()
         setShowModernSearch(true)
         setModernSearchQuery("")
+        setSelectedResultIndex(0)
 
         // Show default snippets immediately
         const defaultSnippets = [
@@ -388,7 +412,12 @@ export function InstallationWizard() {
 
       // Escape to close modals and clear filters
       if (event.key === "Escape") {
-        if (showModernSearch) setShowModernSearch(false)
+        if (showModernSearch) {
+          setShowModernSearch(false)
+          setModernSearchQuery("")
+          setModernSearchResults([])
+          setSelectedResultIndex(0)
+        }
         if (showSnippets) {
           // Clear filter when escaping from snippets
           setFilteredSnippetId(null)
@@ -401,7 +430,7 @@ export function InstallationWizard() {
         }
       }
     },
-    [showSnippets, showHelp, showSearch, showModernSearch],
+    [showSnippets, showHelp, showSearch, showModernSearch, modernSearchResults, selectedResultIndex],
   )
 
   useEffect(() => {
@@ -515,6 +544,8 @@ export function InstallationWizard() {
 
   const handleModernSearch = (query: string) => {
     setModernSearchQuery(query)
+    setSelectedResultIndex(0) // Reset selection when search changes
+
     if (query.trim() === "") {
       // Show popular/default snippets when no search query
       const defaultSnippets = [
@@ -917,7 +948,11 @@ export function InstallationWizard() {
                     <button
                       key={index}
                       onClick={() => handleModernSearchResultClick(result)}
-                      className="w-full text-left p-4 hover:bg-gray-50 rounded-lg transition-colors group"
+                      className={`w-full text-left p-4 rounded-lg transition-colors group ${
+                        index === selectedResultIndex
+                          ? "bg-blue-50 border-2 border-blue-200"
+                          : "hover:bg-gray-50 border-2 border-transparent"
+                      }`}
                     >
                       <div className="flex items-center gap-4">
                         <div
@@ -934,7 +969,13 @@ export function InstallationWizard() {
                           )}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <div className="font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">
+                          <div
+                            className={`font-semibold transition-colors ${
+                              index === selectedResultIndex
+                                ? "text-blue-700"
+                                : "text-gray-900 group-hover:text-blue-600"
+                            }`}
+                          >
                             {result.title}
                           </div>
                           <div className="text-sm text-gray-500 mt-1">
@@ -944,7 +985,11 @@ export function InstallationWizard() {
                           </div>
                           <div className="text-xs text-gray-400 mt-1 line-clamp-2">{result.content}</div>
                         </div>
-                        <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-blue-500 transition-colors" />
+                        <ChevronRight
+                          className={`w-5 h-5 transition-colors ${
+                            index === selectedResultIndex ? "text-blue-500" : "text-gray-400 group-hover:text-blue-500"
+                          }`}
+                        />
                       </div>
                     </button>
                   ))}
