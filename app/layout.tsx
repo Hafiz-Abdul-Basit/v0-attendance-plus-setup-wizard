@@ -12,12 +12,12 @@ export const metadata: Metadata = {
   icons: {
     icon: [
       {
-        url: "/favicon.ico",
+        url: "/favicon.png",
         sizes: "any",
       },
       {
         url: "/icon.png",
-        type: "image/svg+xml",
+        type: "image/png",
       },
     ],
     apple: [
@@ -39,8 +39,8 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
-        <link rel="icon" href="/favicon.ico" sizes="any" />
-        <link rel="icon" href="/icon.png" type="image/svg+xml" />
+        <link rel="icon" href="/favicon.png" sizes="any" />
+        <link rel="icon" href="/icon.png" type="image/png" />
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
       </head>
       <body className={inter.className}>

@@ -304,7 +304,54 @@ export function InstallationWizard() {
         event.preventDefault()
         setShowModernSearch(true)
         setModernSearchQuery("")
-        setModernSearchResults([])
+
+        // Show default snippets immediately
+        const defaultSnippets = [
+          {
+            section: "snippets",
+            step: "frontend-webconfig",
+            title: "Frontend Web.config",
+            content: "Angular routing configuration for IIS",
+            type: "snippet" as const,
+          },
+          {
+            section: "snippets",
+            step: "backend-webconfig",
+            title: "Backend Web.config",
+            content: "ASP.NET Core API configuration for IIS",
+            type: "snippet" as const,
+          },
+          {
+            section: "snippets",
+            step: "mongodb-replica",
+            title: "MongoDB Replica Set",
+            content: "Essential MongoDB shell commands",
+            type: "snippet" as const,
+          },
+          {
+            section: "snippets",
+            step: "user-roles-setup",
+            title: "Setup User Roles",
+            content: "Initialize AspNetRoles for AttendancePlus system",
+            type: "snippet" as const,
+          },
+          {
+            section: "snippets",
+            step: "sql-server-common-queries",
+            title: "SQL Server Common Queries",
+            content: "Essential SQL commands for database operations",
+            type: "snippet" as const,
+          },
+          {
+            section: "snippets",
+            step: "abdul-basit-apps",
+            title: "Abdul Basit Apps",
+            content: "Collection of useful web applications and tools",
+            type: "snippet" as const,
+          },
+        ]
+        setModernSearchResults(defaultSnippets)
+
         // Focus search input after modal opens
         setTimeout(() => {
           const searchInput = document.getElementById("modern-search-input")
@@ -469,7 +516,52 @@ export function InstallationWizard() {
   const handleModernSearch = (query: string) => {
     setModernSearchQuery(query)
     if (query.trim() === "") {
-      setModernSearchResults([])
+      // Show popular/default snippets when no search query
+      const defaultSnippets = [
+        {
+          section: "snippets",
+          step: "frontend-webconfig",
+          title: "Frontend Web.config",
+          content: "Angular routing configuration for IIS",
+          type: "snippet" as const,
+        },
+        {
+          section: "snippets",
+          step: "backend-webconfig",
+          title: "Backend Web.config",
+          content: "ASP.NET Core API configuration for IIS",
+          type: "snippet" as const,
+        },
+        {
+          section: "snippets",
+          step: "mongodb-replica",
+          title: "MongoDB Replica Set",
+          content: "Essential MongoDB shell commands",
+          type: "snippet" as const,
+        },
+        {
+          section: "snippets",
+          step: "user-roles-setup",
+          title: "Setup User Roles",
+          content: "Initialize AspNetRoles for AttendancePlus system",
+          type: "snippet" as const,
+        },
+        {
+          section: "snippets",
+          step: "sql-server-common-queries",
+          title: "SQL Server Common Queries",
+          content: "Essential SQL commands for database operations",
+          type: "snippet" as const,
+        },
+        {
+          section: "snippets",
+          step: "abdul-basit-apps",
+          title: "Abdul Basit Apps",
+          content: "Collection of useful web applications and tools",
+          type: "snippet" as const,
+        },
+      ]
+      setModernSearchResults(defaultSnippets)
       return
     }
 
@@ -794,8 +886,8 @@ export function InstallationWizard() {
 
       {/* Modern Search Popup */}
       {showModernSearch && (
-        <div className="fixed inset-0 bg-black/50 flex items-start justify-center z-50 pt-20">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl mx-4 max-h-[70vh] overflow-hidden">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[80vh] overflow-hidden">
             {/* Search Header */}
             <div className="p-4 border-b border-gray-200">
               <div className="relative">
@@ -816,6 +908,11 @@ export function InstallationWizard() {
             <div className="max-h-96 overflow-y-auto">
               {modernSearchResults.length > 0 ? (
                 <div className="p-2">
+                  {!modernSearchQuery.trim() && (
+                    <div className="px-4 py-2 text-sm font-medium text-gray-500 border-b border-gray-100">
+                      Popular Snippets
+                    </div>
+                  )}
                   {modernSearchResults.map((result, index) => (
                     <button
                       key={index}
@@ -851,12 +948,6 @@ export function InstallationWizard() {
                       </div>
                     </button>
                   ))}
-                </div>
-              ) : modernSearchQuery.trim() !== "" ? (
-                <div className="p-8 text-center text-gray-500">
-                  <Search className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-                  <p>No results found for "{modernSearchQuery}"</p>
-                  <p className="text-sm mt-2">Try searching for installation steps or code snippets</p>
                 </div>
               ) : (
                 <div className="p-8 text-center text-gray-500">
