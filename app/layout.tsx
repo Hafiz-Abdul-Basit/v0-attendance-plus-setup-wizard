@@ -7,7 +7,7 @@ import { Toaster } from "sonner"
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "Snippets Gallery",
+  title: "Abdul Basit | Snippets Gallery",
   description: "Essential code snippets and configuration files for developers",
   icons: {
     icon: [
