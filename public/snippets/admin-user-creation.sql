@@ -1,3 +1,5 @@
+// Admin User Creation
+
 use [TDPS] 
 DECLARE @NewId UNIQUEIDENTIFIER = NEWID(); 
 
