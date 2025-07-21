@@ -1,21 +1,19 @@
-# Abdul Basit Apps - Useful Web Tools
+Abdul Basit Apps - Useful Web Tools
 
-## 🛠️ JSON Kit
+🛠️ JSON Kit
 **URL:** https://jsonkit.vercel.app/
 **Description:** A comprehensive JSON toolkit for developers
 
-
-## 📋 AttendancePlus Setup Guide
+📋 AttendancePlus Setup Guide
 **URL:** https://attendance-plus-setup-guide.vercel.app/
 **Description:** Complete installation wizard for AttendancePlus System
 
-
-## 🕵️ Route JSON Detective
+🕵️ Route JSON Detective
 **URL:** https://route-json-detective-abdul.lovable.app/
 **Description:** Advanced JSON analysis and debugging tool
 
-## 🚀 MongoDB Compass Tools
+🚀 MongoDB Compass Tools
 **URL:** https://github.com/Hafiz-Abdul-Basit/Mongo-Tool
  
-## 🚀 Aeries Data Extractor
+🚀 Aeries Data Extractor
 **URL:** https://github.com/Hafiz-Abdul-Basit/Aeries-Data-Extractor
