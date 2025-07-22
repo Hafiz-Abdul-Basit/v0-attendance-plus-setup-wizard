@@ -483,55 +483,6 @@ export function SnippetsContent({ filteredSnippetId, onClearFilter }: SnippetsCo
         return
       }
 
-      if (snippet.id === "abdul-basit-apps") {
-        const appsContent = `# Abdul Basit Apps - Useful Web Tools
-
-## 🛠️ JSON Kit
-**URL:** https://jsonkit.vercel.app/
-**Description:** A comprehensive JSON toolkit for developers
-- JSON formatter and validator
-- JSON to various format converters
-- JSON schema generator
-- JSON path finder and more
-
-## 📋 AttendancePlus Setup Guide
-**URL:** https://attendance-plus-setup-guide.vercel.app/
-**Description:** Complete installation wizard for AttendancePlus System
-- Step-by-step installation guide
-- Configuration snippets
-- Troubleshooting tips
-- Progress tracking
-
-## 🕵️ Route JSON Detective
-**URL:** https://route-json-detective-abdul.lovable.app/
-**Description:** Advanced JSON analysis and debugging tool
-- Deep JSON structure analysis
-- Route mapping and visualization
-- JSON diff and comparison
-- API response debugging
-
----
-
-## 🚀 Quick Access Links
-
-Copy and paste these URLs for quick access:
-
-\`\`\`
-https://jsonkit.vercel.app/
-https://attendance-plus-setup-guide.vercel.app/
-https://route-json-detective-abdul.lovable.app/
-\`\`\`
-
-## 💡 Tips
-- Bookmark these tools for daily development tasks
-- JSON Kit is perfect for API development and testing
-- Use the Setup Guide for enterprise deployments
-- Route Detective helps with complex JSON debugging
-
-**Developed by Abdul Basit** 🎯`
-        setSelectedSnippetCode(appsContent)
-        return
-      }
 
       const res = await fetch(snippet.filePath)
       if (!res.ok) throw new Error("Fetch failed")
