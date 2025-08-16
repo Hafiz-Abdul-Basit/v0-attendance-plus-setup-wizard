@@ -28,11 +28,13 @@ import {
   Edit,
   Trash2,
   Star,
+  AlertCircle,
 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 import { SnippetForm } from "@/components/snippet-form"
 import { type Snippet, defaultFolders } from "@/types/snippet"
 
@@ -54,6 +56,105 @@ const iconMap: Record<string, ReactElement> = {
   Star,
 }
 
+// Fallback static snippets (your original snippets)
+const staticSnippets = [
+  {
+    _id: "static-1",
+    id: "frontend-webconfig",
+    title: "Frontend Web.config",
+    description: "Angular routing configuration for IIS",
+    category: "IIS & Web Server",
+    icon: "FileText",
+    color: "bg-blue-500",
+    content: `<?xml version="1.0" encoding="utf-8"?>
+<configuration>
+  <system.webServer>
+    <rewrite>
+      <rules>
+        <rule name="Angular Routes" stopProcessing="true">
+          <match url=".*" />
+          <conditions logicalGrouping="MatchAll">
+            <add input="{REQUEST_FILENAME}" matchType="IsFile" negate="true" />
+            <add input="{REQUEST_FILENAME}" matchType="IsDirectory" negate="true" />
+            <add input="{REQUEST_URI}" pattern="^/(api)" negate="true" />
+          </conditions>
+          <action type="Rewrite" url="/" />
+        </rule>
+      </rules>
+    </rewrite>
+  </system.webServer>
+</configuration>`,
+    language: "xml",
+    tags: ["angular", "iis", "routing", "web.config"],
+    isPublic: true,
+    createdBy: "system",
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  },
+  {
+    _id: "static-2",
+    id: "backend-webconfig",
+    title: "Backend Web.config",
+    description: "ASP.NET Core API configuration for IIS",
+    category: "IIS & Web Server",
+    icon: "Settings",
+    color: "bg-green-500",
+    content: `<?xml version="1.0" encoding="utf-8"?>
+<configuration>
+  <location path="." inheritInChildApplications="false">
+    <system.webServer>
+      <handlers>
+        <add name="aspNetCore" path="*" verb="*" modules="AspNetCoreModuleV2" resourceType="Unspecified" />
+      </handlers>
+      <aspNetCore processPath=".\\RK12.AttPlus.APIGateway.exe" 
+                  stdoutLogEnabled="true" 
+                  stdoutLogFile=".\\logs\\stdout" 
+                  hostingModel="OutOfProcess" />
+    </system.webServer>
+  </location>
+</configuration>
+<!--ProjectGuid: 2089E993-1AEA-4A64-B581-DECAB43FCDCD-->`,
+    language: "xml",
+    tags: ["aspnet", "core", "api", "iis", "web.config"],
+    isPublic: true,
+    createdBy: "system",
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  },
+  {
+    _id: "static-3",
+    id: "mongodb-replica",
+    title: "MongoDB Replica Set",
+    description: "Essential MongoDB shell commands",
+    category: "MongoDB",
+    icon: "Database",
+    color: "bg-emerald-500",
+    content: `# Connect to MongoDB
+mongosh.exe
+
+# Initialize replica set
+rs.initiate()
+
+# Check replica set status
+rs.status()
+
+# Add replica set member (if needed)
+rs.add("localhost:27018")
+
+# Check replica set configuration
+rs.conf()
+
+# Force reconfigure (if needed)
+rs.reconfig(config, {force: true})`,
+    language: "bash",
+    tags: ["mongodb", "replica", "shell", "commands"],
+    isPublic: true,
+    createdBy: "system",
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  },
+]
+
 /** Props from the parent wizard */
 interface SnippetsContentProps {
   filteredSnippetId?: string | null
@@ -71,8 +172,9 @@ export function SnippetsContent({ filteredSnippetId, onClearFilter }: SnippetsCo
   const [isLoading, setIsLoading] = useState(true)
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [editingSnippet, setEditingSnippet] = useState<Snippet | null>(null)
+  const [isDatabaseAvailable, setIsDatabaseAvailable] = useState(true)
 
-  // Load snippets from MongoDB
+  // Load snippets from MongoDB or fallback to static
   const loadSnippets = async () => {
     try {
       setIsLoading(true)
@@ -81,13 +183,42 @@ export function SnippetsContent({ filteredSnippetId, onClearFilter }: SnippetsCo
       if (localSearchQuery.trim()) params.append("search", localSearchQuery.trim())
 
       const response = await fetch(`/api/snippets?${params}`)
+
+      if (response.status === 503) {
+        // Database not configured, use static snippets
+        setIsDatabaseAvailable(false)
+        let filtered = staticSnippets
+
+        if (selectedFolder) {
+          filtered = filtered.filter((s) => s.category === selectedFolder)
+        }
+
+        if (localSearchQuery.trim()) {
+          const query = localSearchQuery.toLowerCase()
+          filtered = filtered.filter(
+            (s) =>
+              s.title.toLowerCase().includes(query) ||
+              s.description.toLowerCase().includes(query) ||
+              s.content.toLowerCase().includes(query) ||
+              s.tags.some((tag) => tag.toLowerCase().includes(query)),
+          )
+        }
+
+        setSnippets(filtered)
+        return
+      }
+
       if (!response.ok) throw new Error("Failed to fetch snippets")
 
       const data = await response.json()
       setSnippets(data)
+      setIsDatabaseAvailable(true)
     } catch (error) {
       console.error("Error loading snippets:", error)
-      toast.error("Failed to load snippets")
+      // Fallback to static snippets
+      setIsDatabaseAvailable(false)
+      setSnippets(staticSnippets)
+      toast.error("Using offline snippets - database unavailable")
     } finally {
       setIsLoading(false)
     }
@@ -98,10 +229,17 @@ export function SnippetsContent({ filteredSnippetId, onClearFilter }: SnippetsCo
     loadSnippets()
   }, [selectedFolder, localSearchQuery])
 
-  // Migrate existing snippets (run once)
+  // Migrate existing snippets (run once) - only if database is available
   const migrateSnippets = async () => {
+    if (!isDatabaseAvailable) return
+
     try {
       const response = await fetch("/api/snippets/migrate", { method: "POST" })
+      if (response.status === 503) {
+        setIsDatabaseAvailable(false)
+        return
+      }
+
       const result = await response.json()
       if (result.count > 0) {
         toast.success(`Migrated ${result.count} snippets to database`)
@@ -109,6 +247,7 @@ export function SnippetsContent({ filteredSnippetId, onClearFilter }: SnippetsCo
       }
     } catch (error) {
       console.error("Migration error:", error)
+      setIsDatabaseAvailable(false)
     }
   }
 
@@ -142,8 +281,13 @@ export function SnippetsContent({ filteredSnippetId, onClearFilter }: SnippetsCo
     setIsSnippetModalOpen(true)
   }
 
-  /** Handle snippet creation/editing */
+  /** Handle snippet creation/editing - only if database is available */
   const handleSnippetSave = (savedSnippet: Snippet) => {
+    if (!isDatabaseAvailable) {
+      toast.error("Database not available - cannot save snippets")
+      return
+    }
+
     setSnippets((prev) => {
       const existing = prev.find((s) => s._id === savedSnippet._id)
       if (existing) {
@@ -156,8 +300,13 @@ export function SnippetsContent({ filteredSnippetId, onClearFilter }: SnippetsCo
     setEditingSnippet(null)
   }
 
-  /** Handle snippet deletion */
+  /** Handle snippet deletion - only if database is available */
   const handleDeleteSnippet = async (snippet: Snippet) => {
+    if (!isDatabaseAvailable) {
+      toast.error("Database not available - cannot delete snippets")
+      return
+    }
+
     if (!confirm(`Are you sure you want to delete "${snippet.title}"?`)) return
 
     try {
@@ -175,8 +324,13 @@ export function SnippetsContent({ filteredSnippetId, onClearFilter }: SnippetsCo
     }
   }
 
-  /** Open edit form */
+  /** Open edit form - only if database is available */
   const handleEditSnippet = (snippet: Snippet) => {
+    if (!isDatabaseAvailable) {
+      toast.error("Database not available - cannot edit snippets")
+      return
+    }
+
     setEditingSnippet(snippet)
     setIsFormOpen(true)
   }
@@ -191,6 +345,17 @@ export function SnippetsContent({ filteredSnippetId, onClearFilter }: SnippetsCo
    *  ------------------------------------------------------------ */
   return (
     <div>
+      {/* Database Status Alert */}
+      {!isDatabaseAvailable && (
+        <Alert className="mb-6 border-amber-200 bg-amber-50">
+          <AlertCircle className="h-4 w-4 text-amber-600" />
+          <AlertDescription className="text-amber-800">
+            <strong>Offline Mode:</strong> Database is not configured. You're viewing static snippets only. To enable
+            full functionality (create, edit, delete), please configure your MongoDB connection.
+          </AlertDescription>
+        </Alert>
+      )}
+
       {/* Shortcuts Note */}
       <div className="mb-6 bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-200 rounded-xl p-4">
         <div className="flex items-center gap-3">
@@ -198,21 +363,27 @@ export function SnippetsContent({ filteredSnippetId, onClearFilter }: SnippetsCo
             <span className="text-sm font-bold">⌨️</span>
           </div>
           <div className="flex-1">
-            <h3 className="font-semibold text-purple-900 mb-1">Dynamic Snippet Management</h3>
+            <h3 className="font-semibold text-purple-900 mb-1">
+              {isDatabaseAvailable ? "Dynamic Snippet Management" : "Static Snippet Gallery"}
+            </h3>
             <p className="text-sm text-purple-700">
-              Create, edit, and organize your snippets. All changes are saved to MongoDB Atlas.
+              {isDatabaseAvailable
+                ? "Create, edit, and organize your snippets. All changes are saved to MongoDB Atlas."
+                : "Browse and copy code snippets. Database features are disabled in offline mode."}
             </p>
           </div>
-          <Button
-            onClick={() => {
-              setEditingSnippet(null)
-              setIsFormOpen(true)
-            }}
-            className="gap-2 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white shadow-lg"
-          >
-            <Plus className="w-4 h-4" />
-            New Snippet
-          </Button>
+          {isDatabaseAvailable && (
+            <Button
+              onClick={() => {
+                setEditingSnippet(null)
+                setIsFormOpen(true)
+              }}
+              className="gap-2 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white shadow-lg"
+            >
+              <Plus className="w-4 h-4" />
+              New Snippet
+            </Button>
+          )}
         </div>
       </div>
 
@@ -342,31 +513,33 @@ export function SnippetsContent({ filteredSnippetId, onClearFilter }: SnippetsCo
                 key={snip._id}
                 className="group relative cursor-pointer rounded-xl border-2 border-gray-200 hover:border-purple-300 bg-white p-6 shadow-sm hover:shadow-xl transition-all duration-300 h-52 flex flex-col hover:scale-[1.02] transform"
               >
-                {/* Action Buttons */}
-                <div className="absolute top-3 right-3 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      handleEditSnippet(snip)
-                    }}
-                    className="h-8 w-8 hover:bg-blue-100 text-blue-600"
-                  >
-                    <Edit className="w-4 h-4" />
-                  </Button>
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      handleDeleteSnippet(snip)
-                    }}
-                    className="h-8 w-8 hover:bg-red-100 text-red-600"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                </div>
+                {/* Action Buttons - only show if database is available */}
+                {isDatabaseAvailable && (
+                  <div className="absolute top-3 right-3 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleEditSnippet(snip)
+                      }}
+                      className="h-8 w-8 hover:bg-blue-100 text-blue-600"
+                    >
+                      <Edit className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleDeleteSnippet(snip)
+                      }}
+                      className="h-8 w-8 hover:bg-red-100 text-red-600"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                )}
 
                 <div onClick={() => handleSnippetClick(snip)} className="flex-1">
                   <div className="flex items-start gap-4 mb-4">
@@ -410,29 +583,33 @@ export function SnippetsContent({ filteredSnippetId, onClearFilter }: SnippetsCo
               ? `No snippets found in ${selectedFolder} folder`
               : "Try adjusting your search terms or create a new snippet"}
           </p>
-          <Button
-            onClick={() => {
-              setEditingSnippet(null)
-              setIsFormOpen(true)
-            }}
-            className="mt-4 gap-2"
-          >
-            <Plus className="w-4 h-4" />
-            Create Your First Snippet
-          </Button>
+          {isDatabaseAvailable && (
+            <Button
+              onClick={() => {
+                setEditingSnippet(null)
+                setIsFormOpen(true)
+              }}
+              className="mt-4 gap-2"
+            >
+              <Plus className="w-4 h-4" />
+              Create Your First Snippet
+            </Button>
+          )}
         </div>
       ) : null}
 
-      {/* Snippet Form Modal */}
-      <SnippetForm
-        isOpen={isFormOpen}
-        onClose={() => {
-          setIsFormOpen(false)
-          setEditingSnippet(null)
-        }}
-        snippet={editingSnippet}
-        onSave={handleSnippetSave}
-      />
+      {/* Snippet Form Modal - only show if database is available */}
+      {isDatabaseAvailable && (
+        <SnippetForm
+          isOpen={isFormOpen}
+          onClose={() => {
+            setIsFormOpen(false)
+            setEditingSnippet(null)
+          }}
+          snippet={editingSnippet}
+          onSave={handleSnippetSave}
+        />
+      )}
 
       {/* Snippet View Modal */}
       {currentSnippet && (
@@ -453,15 +630,17 @@ export function SnippetsContent({ filteredSnippetId, onClearFilter }: SnippetsCo
                   <span className="px-2 py-1 bg-gray-100 text-gray-600 rounded-full text-xs font-medium">
                     {currentSnippet.category}
                   </span>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => handleEditSnippet(currentSnippet)}
-                    className="gap-1"
-                  >
-                    <Edit className="w-3 h-3" />
-                    Edit
-                  </Button>
+                  {isDatabaseAvailable && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleEditSnippet(currentSnippet)}
+                      className="gap-1"
+                    >
+                      <Edit className="w-3 h-3" />
+                      Edit
+                    </Button>
+                  )}
                 </div>
               </DialogTitle>
             </DialogHeader>

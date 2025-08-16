@@ -1,10 +1,14 @@
 import { NextResponse } from "next/server"
-import { getDatabase } from "@/lib/mongodb"
+import { getDatabase, isMongoDBAvailable } from "@/lib/mongodb"
 import type { Snippet } from "@/types/snippet"
 
 // This endpoint will migrate your existing snippets to MongoDB
 export async function POST() {
   try {
+    if (!isMongoDBAvailable()) {
+      return NextResponse.json({ error: "Database not configured" }, { status: 503 })
+    }
+
     const db = await getDatabase()
     const collection = db.collection<Snippet>("snippets")
 

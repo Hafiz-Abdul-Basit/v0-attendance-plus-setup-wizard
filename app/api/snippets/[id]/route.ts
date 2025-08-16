@@ -1,10 +1,14 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { getDatabase } from "@/lib/mongodb"
+import { getDatabase, isMongoDBAvailable } from "@/lib/mongodb"
 import { ObjectId } from "mongodb"
 import type { Snippet } from "@/types/snippet"
 
 export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
   try {
+    if (!isMongoDBAvailable()) {
+      return NextResponse.json({ error: "Database not configured" }, { status: 503 })
+    }
+
     const db = await getDatabase()
     const collection = db.collection<Snippet>("snippets")
 
@@ -25,6 +29,10 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
 
 export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
   try {
+    if (!isMongoDBAvailable()) {
+      return NextResponse.json({ error: "Database not configured" }, { status: 503 })
+    }
+
     const body = await request.json()
     const { title, description, category, content, language, tags, isPublic } = body
 
@@ -66,6 +74,10 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
 
 export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
   try {
+    if (!isMongoDBAvailable()) {
+      return NextResponse.json({ error: "Database not configured" }, { status: 503 })
+    }
+
     const db = await getDatabase()
     const collection = db.collection<Snippet>("snippets")
 
