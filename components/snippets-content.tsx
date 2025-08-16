@@ -384,6 +384,29 @@ export function SnippetsContent({ filteredSnippetId, onClearFilter }: SnippetsCo
               New Snippet
             </Button>
           )}
+          {isDatabaseAvailable && (
+            <Button
+              onClick={async () => {
+                try {
+                  const response = await fetch("/api/snippets/force-migrate", { method: "POST" })
+                  const result = await response.json()
+                  if (response.ok) {
+                    toast.success(`${result.message} - ${result.count} snippets migrated`)
+                    loadSnippets()
+                  } else {
+                    toast.error(result.error || "Migration failed")
+                  }
+                } catch (error) {
+                  toast.error("Migration failed")
+                }
+              }}
+              variant="outline"
+              className="gap-2 border-orange-200 text-orange-700 hover:bg-orange-50"
+            >
+              <Database className="w-4 h-4" />
+              Force Re-migrate
+            </Button>
+          )}
         </div>
       </div>
 
