@@ -1264,6 +1264,1038 @@ if (!process.env.DATABASE_URL) {
     isFavorite: false,
     lastUsed: new Date("2024-01-04"),
   },
+  // 5 NEW ADDITIONAL SNIPPETS
+  {
+    id: "typescript-utility-types",
+    title: "TypeScript Utility Types",
+    description: "Essential TypeScript utility types and advanced patterns",
+    category: "Development",
+    icon: "Code2",
+    color: "bg-blue-700",
+    content: `// Basic Utility Types
+interface User {
+  id: number;
+  name: string;
+  email: string;
+  age?: number;
+}
+
+// Partial - Make all properties optional
+type PartialUser = Partial<User>;
+// { id?: number; name?: string; email?: string; age?: number; }
+
+// Required - Make all properties required
+type RequiredUser = Required<User>;
+// { id: number; name: string; email: string; age: number; }
+
+// Pick - Select specific properties
+type UserBasic = Pick<User, 'id' | 'name'>;
+// { id: number; name: string; }
+
+// Omit - Exclude specific properties
+type UserWithoutId = Omit<User, 'id'>;
+// { name: string; email: string; age?: number; }
+
+// Record - Create object type with specific keys and values
+type UserRoles = Record<'admin' | 'user' | 'guest', boolean>;
+// { admin: boolean; user: boolean; guest: boolean; }
+
+// Advanced Patterns
+type NonNullable<T> = T extends null | undefined ? never : T;
+type ReturnType<T> = T extends (...args: any[]) => infer R ? R : any;
+type Parameters<T> = T extends (...args: infer P) => any ? P : never;
+
+// Conditional Types
+type ApiResponse<T> = T extends string 
+  ? { message: T } 
+  : { data: T };
+
+// Template Literal Types
+type EventName<T extends string> = \`on\${Capitalize<T>}\`;
+type ButtonEvents = EventName<'click' | 'hover' | 'focus'>;
+// 'onClick' | 'onHover' | 'onFocus'
+
+// Mapped Types
+type Readonly<T> = {
+  readonly [P in keyof T]: T[P];
+};
+
+type Optional<T, K extends keyof T> = Omit<T, K> & Partial<Pick<T, K>>;
+
+// Generic Constraints
+interface Lengthwise {
+  length: number;
+}
+
+function loggingIdentity<T extends Lengthwise>(arg: T): T {
+  console.log(arg.length);
+  return arg;
+}
+
+// Discriminated Unions
+type LoadingState = 
+  | { status: 'loading' }
+  | { status: 'success'; data: any }
+  | { status: 'error'; error: string };
+
+function handleState(state: LoadingState) {
+  switch (state.status) {
+    case 'loading':
+      return 'Loading...';
+    case 'success':
+      return state.data;
+    case 'error':
+      return state.error;
+  }
+}`,
+    language: "typescript",
+    tags: ["typescript", "types", "utility", "generics", "advanced"],
+    isFavorite: false,
+    lastUsed: new Date("2024-01-28"),
+  },
+  {
+    id: "nextjs-api-routes",
+    title: "Next.js API Routes Patterns",
+    description: "Complete Next.js API routes with error handling and middleware",
+    category: "Development",
+    icon: "Server",
+    color: "bg-black",
+    content: `// app/api/users/route.ts - App Router API Route
+import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
+
+// Validation schema
+const createUserSchema = z.object({
+  name: z.string().min(2).max(50),
+  email: z.string().email(),
+  age: z.number().min(18).max(120).optional(),
+});
+
+// GET /api/users
+export async function GET(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const page = parseInt(searchParams.get('page') || '1');
+    const limit = parseInt(searchParams.get('limit') || '10');
+    
+    // Simulate database query
+    const users = await getUsersFromDB({ page, limit });
+    
+    return NextResponse.json({
+      success: true,
+      data: users,
+      pagination: {
+        page,
+        limit,
+        total: users.length,
+      }
+    });
+  } catch (error) {
+    console.error('GET /api/users error:', error);
+    return NextResponse.json(
+      { success: false, error: 'Failed to fetch users' },
+      { status: 500 }
+    );
+  }
+}
+
+// POST /api/users
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json();
+    
+    // Validate request body
+    const validatedData = createUserSchema.parse(body);
+    
+    // Check if user already exists
+    const existingUser = await findUserByEmail(validatedData.email);
+    if (existingUser) {
+      return NextResponse.json(
+        { success: false, error: 'User already exists' },
+        { status: 409 }
+      );
+    }
+    
+    // Create user
+    const newUser = await createUser(validatedData);
+    
+    return NextResponse.json(
+      { success: true, data: newUser },
+      { status: 201 }
+    );
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        { success: false, error: 'Validation failed', details: error.errors },
+        { status: 400 }
+      );
+    }
+    
+    console.error('POST /api/users error:', error);
+    return NextResponse.json(
+      { success: false, error: 'Failed to create user' },
+      { status: 500 }
+    );
+  }
+}
+
+// app/api/users/[id]/route.ts - Dynamic Route
+export async function GET(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const userId = parseInt(params.id);
+    
+    if (isNaN(userId)) {
+      return NextResponse.json(
+        { success: false, error: 'Invalid user ID' },
+        { status: 400 }
+      );
+    }
+    
+    const user = await getUserById(userId);
+    
+    if (!user) {
+      return NextResponse.json(
+        { success: false, error: 'User not found' },
+        { status: 404 }
+      );
+    }
+    
+    return NextResponse.json({ success: true, data: user });
+  } catch (error) {
+    console.error(\`GET /api/users/\${params.id} error:\`, error);
+    return NextResponse.json(
+      { success: false, error: 'Failed to fetch user' },
+      { status: 500 }
+    );
+  }
+}
+
+// Middleware for authentication
+export async function middleware(request: NextRequest) {
+  const token = request.headers.get('authorization')?.replace('Bearer ', '');
+  
+  if (!token) {
+    return NextResponse.json(
+      { success: false, error: 'Authentication required' },
+      { status: 401 }
+    );
+  }
+  
+  try {
+    const decoded = verifyJWT(token);
+    // Add user info to request headers
+    const requestHeaders = new Headers(request.headers);
+    requestHeaders.set('x-user-id', decoded.userId);
+    
+    return NextResponse.next({
+      request: {
+        headers: requestHeaders,
+      },
+    });
+  } catch (error) {
+    return NextResponse.json(
+      { success: false, error: 'Invalid token' },
+      { status: 401 }
+    );
+  }
+}`,
+    language: "typescript",
+    tags: ["nextjs", "api", "routes", "validation", "middleware"],
+    isFavorite: true,
+    lastUsed: new Date("2024-01-29"),
+  },
+  {
+    id: "database-queries-advanced",
+    title: "Advanced Database Queries",
+    description: "Complex SQL queries for reporting and analytics",
+    category: "SQL Server",
+    icon: "Database",
+    color: "bg-indigo-600",
+    content: `-- Complex JOIN with Multiple Tables
+SELECT 
+    u.id,
+    u.name,
+    u.email,
+    p.title as profile_title,
+    COUNT(o.id) as total_orders,
+    SUM(o.total_amount) as total_spent,
+    AVG(o.total_amount) as avg_order_value,
+    MAX(o.created_at) as last_order_date
+FROM users u
+LEFT JOIN profiles p ON u.id = p.user_id
+LEFT JOIN orders o ON u.id = o.user_id
+WHERE u.created_at >= DATEADD(YEAR, -1, GETDATE())
+GROUP BY u.id, u.name, u.email, p.title
+HAVING COUNT(o.id) > 0
+ORDER BY total_spent DESC;
+
+-- Window Functions for Analytics
+SELECT 
+    product_name,
+    category,
+    price,
+    -- Ranking within category
+    ROW_NUMBER() OVER (PARTITION BY category ORDER BY price DESC) as price_rank,
+    RANK() OVER (PARTITION BY category ORDER BY price DESC) as price_rank_with_ties,
+    
+    -- Running totals
+    SUM(price) OVER (PARTITION BY category ORDER BY price) as running_total,
+    
+    -- Moving averages
+    AVG(price) OVER (
+        PARTITION BY category 
+        ORDER BY price 
+        ROWS BETWEEN 2 PRECEDING AND CURRENT ROW
+    ) as moving_avg_3,
+    
+    -- Percentiles
+    PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY price) 
+        OVER (PARTITION BY category) as median_price,
+    
+    -- Lead/Lag for comparisons
+    LAG(price, 1) OVER (PARTITION BY category ORDER BY price) as prev_price,
+    LEAD(price, 1) OVER (PARTITION BY category ORDER BY price) as next_price
+FROM products;
+
+-- Common Table Expressions (CTE) for Hierarchical Data
+WITH EmployeeHierarchy AS (
+    -- Anchor: Top-level managers
+    SELECT 
+        employee_id,
+        name,
+        manager_id,
+        0 as level,
+        CAST(name AS NVARCHAR(MAX)) as hierarchy_path
+    FROM employees 
+    WHERE manager_id IS NULL
+    
+    UNION ALL
+    
+    -- Recursive: All subordinates
+    SELECT 
+        e.employee_id,
+        e.name,
+        e.manager_id,
+        eh.level + 1,
+        CAST(eh.hierarchy_path + ' -> ' + e.name AS NVARCHAR(MAX))
+    FROM employees e
+    INNER JOIN EmployeeHierarchy eh ON e.manager_id = eh.employee_id
+)
+SELECT 
+    employee_id,
+    name,
+    level,
+    hierarchy_path,
+    REPLICATE('  ', level) + name as indented_name
+FROM EmployeeHierarchy
+ORDER BY hierarchy_path;
+
+-- Pivot Table for Cross-Tab Reports
+SELECT 
+    product_category,
+    [2023-01] as Jan_2023,
+    [2023-02] as Feb_2023,
+    [2023-03] as Mar_2023,
+    [2023-04] as Apr_2023,
+    [2023-05] as May_2023,
+    [2023-06] as Jun_2023
+FROM (
+    SELECT 
+        product_category,
+        FORMAT(order_date, 'yyyy-MM') as order_month,
+        total_amount
+    FROM orders o
+    JOIN products p ON o.product_id = p.id
+    WHERE order_date >= '2023-01-01'
+) as source_data
+PIVOT (
+    SUM(total_amount)
+    FOR order_month IN ([2023-01], [2023-02], [2023-03], [2023-04], [2023-05], [2023-06])
+) as pivot_table;
+
+-- Advanced Filtering with EXISTS and NOT EXISTS
+-- Find customers who have ordered in the last 30 days but not in the last 7 days
+SELECT DISTINCT c.customer_id, c.name, c.email
+FROM customers c
+WHERE EXISTS (
+    SELECT 1 FROM orders o 
+    WHERE o.customer_id = c.customer_id 
+    AND o.order_date >= DATEADD(DAY, -30, GETDATE())
+)
+AND NOT EXISTS (
+    SELECT 1 FROM orders o 
+    WHERE o.customer_id = c.customer_id 
+    AND o.order_date >= DATEADD(DAY, -7, GETDATE())
+);
+
+-- Performance Optimization with Indexes
+CREATE NONCLUSTERED INDEX IX_Orders_CustomerDate 
+ON orders (customer_id, order_date DESC)
+INCLUDE (total_amount, status);
+
+-- Stored Procedure with Error Handling
+CREATE PROCEDURE sp_ProcessOrder
+    @CustomerId INT,
+    @ProductId INT,
+    @Quantity INT,
+    @OrderId INT OUTPUT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    BEGIN TRY
+        BEGIN TRANSACTION;
+        
+        -- Check inventory
+        DECLARE @AvailableStock INT;
+        SELECT @AvailableStock = stock_quantity 
+        FROM products 
+        WHERE id = @ProductId;
+        
+        IF @AvailableStock < @Quantity
+        BEGIN
+            THROW 50001, 'Insufficient stock available', 1;
+        END
+        
+        -- Create order
+        INSERT INTO orders (customer_id, product_id, quantity, order_date, status)
+        VALUES (@CustomerId, @ProductId, @Quantity, GETDATE(), 'pending');
+        
+        SET @OrderId = SCOPE_IDENTITY();
+        
+        -- Update inventory
+        UPDATE products 
+        SET stock_quantity = stock_quantity - @Quantity
+        WHERE id = @ProductId;
+        
+        COMMIT TRANSACTION;
+        
+    END TRY
+    BEGIN CATCH
+        IF @@TRANCOUNT > 0
+            ROLLBACK TRANSACTION;
+            
+        DECLARE @ErrorMessage NVARCHAR(4000) = ERROR_MESSAGE();
+        DECLARE @ErrorSeverity INT = ERROR_SEVERITY();
+        DECLARE @ErrorState INT = ERROR_STATE();
+        
+        RAISERROR(@ErrorMessage, @ErrorSeverity, @ErrorState);
+    END CATCH
+END;`,
+    language: "sql",
+    tags: ["sql", "advanced", "analytics", "cte", "window-functions", "pivot"],
+    isFavorite: false,
+    lastUsed: new Date("2024-01-30"),
+  },
+  {
+    id: "react-performance-optimization",
+    title: "React Performance Optimization",
+    description: "Advanced React patterns for optimal performance",
+    category: "Development",
+    icon: "Zap",
+    color: "bg-yellow-600",
+    content: `import React, { memo, useMemo, useCallback, lazy, Suspense } from 'react';
+import { debounce } from 'lodash';
+
+// 1. React.memo for component memoization
+const ExpensiveComponent = memo(({ data, onUpdate }) => {
+  console.log('ExpensiveComponent rendered');
+  
+  return (
+    <div>
+      {data.map(item => (
+        <div key={item.id} onClick={() => onUpdate(item.id)}>
+          {item.name}
+        </div>
+      ))}
+    </div>
+  );
+}, (prevProps, nextProps) => {
+  // Custom comparison function
+  return (
+    prevProps.data.length === nextProps.data.length &&
+    prevProps.onUpdate === nextProps.onUpdate
+  );
+});
+
+// 2. useMemo for expensive calculations
+function DataProcessor({ items, filters }) {
+  const processedData = useMemo(() => {
+    console.log('Processing data...');
+    return items
+      .filter(item => filters.includes(item.category))
+      .map(item => ({
+        ...item,
+        processedValue: expensiveCalculation(item.value)
+      }))
+      .sort((a, b) => b.processedValue - a.processedValue);
+  }, [items, filters]);
+
+  return <div>{/* Render processed data */}</div>;
+}
+
+// 3. useCallback for stable function references
+function SearchComponent({ onSearch, placeholder }) {
+  const [query, setQuery] = useState('');
+
+  // Debounced search function
+  const debouncedSearch = useCallback(
+    debounce((searchQuery) => {
+      onSearch(searchQuery);
+    }, 300),
+    [onSearch]
+  );
+
+  const handleInputChange = useCallback((e) => {
+    const value = e.target.value;
+    setQuery(value);
+    debouncedSearch(value);
+  }, [debouncedSearch]);
+
+  return (
+    <input
+      type="text"
+      value={query}
+      onChange={handleInputChange}
+      placeholder={placeholder}
+    />
+  );
+}
+
+// 4. Code Splitting with React.lazy
+const HeavyComponent = lazy(() => import('./HeavyComponent'));
+const AdminPanel = lazy(() => 
+  import('./AdminPanel').then(module => ({
+    default: module.AdminPanel
+  }))
+);
+
+function App() {
+  return (
+    <div>
+      <Suspense fallback={<div>Loading heavy component...</div>}>
+        <HeavyComponent />
+      </Suspense>
+      
+      <Suspense fallback={<div>Loading admin panel...</div>}>
+        <AdminPanel />
+      </Suspense>
+    </div>
+  );
+}
+
+// 5. Virtual Scrolling for Large Lists
+import { FixedSizeList as List } from 'react-window';
+
+function VirtualizedList({ items }) {
+  const Row = ({ index, style }) => (
+    <div style={style}>
+      <div className="list-item">
+        {items[index].name}
+      </div>
+    </div>
+  );
+
+  return (
+    <List
+      height={600}
+      itemCount={items.length}
+      itemSize={50}
+      width="100%"
+    >
+      {Row}
+    </List>
+  );
+}
+
+// 6. Custom Hook for Optimized API Calls
+function useOptimizedFetch(url, dependencies = []) {
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  const fetchData = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    
+    try {
+      const response = await fetch(url);
+      if (!response.ok) throw new Error('Failed to fetch');
+      const result = await response.json();
+      setData(result);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }, [url]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData, ...dependencies]);
+
+  return { data, loading, error, refetch: fetchData };
+}
+
+// 7. Intersection Observer for Lazy Loading
+function useLazyLoad(threshold = 0.1) {
+  const [isVisible, setIsVisible] = useState(false);
+  const ref = useRef();
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsVisible(true);
+          observer.disconnect();
+        }
+      },
+      { threshold }
+    );
+
+    if (ref.current) {
+      observer.observe(ref.current);
+    }
+
+    return () => observer.disconnect();
+  }, [threshold]);
+
+  return [ref, isVisible];
+}
+
+function LazyImage({ src, alt, placeholder }) {
+  const [ref, isVisible] = useLazyLoad();
+
+  return (
+    <div ref={ref}>
+      {isVisible ? (
+        <img src={src || "/placeholder.svg"} alt={alt} />
+      ) : (
+        <div className="placeholder">{placeholder}</div>
+      )}
+    </div>
+  );
+}
+
+// 8. Error Boundary for Better UX
+class ErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error, errorInfo) {
+    console.error('Error caught by boundary:', error, errorInfo);
+    // Log to error reporting service
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="error-fallback">
+          <h2>Something went wrong</h2>
+          <button onClick={() => this.setState({ hasError: false, error: null })}>
+            Try again
+          </button>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
+
+// 9. Performance Monitoring Hook
+function usePerformanceMonitor(componentName) {
+  useEffect(() => {
+    const startTime = performance.now();
+    
+    return () => {
+      const endTime = performance.now();
+      console.log(\`\${componentName} render time: \${endTime - startTime}ms\`);
+    };
+  });
+}`,
+    language: "javascript",
+    tags: ["react", "performance", "optimization", "memoization", "lazy-loading"],
+    isFavorite: true,
+    lastUsed: new Date("2024-01-31"),
+  },
+  {
+    id: "security-best-practices",
+    title: "Web Security Best Practices",
+    description: "Essential security patterns for web applications",
+    category: "Documentation",
+    icon: "Shield",
+    color: "bg-red-700",
+    content: `# Web Security Best Practices Checklist
+
+## 1. Authentication & Authorization
+
+### JWT Security
+\`\`\`javascript
+// Secure JWT implementation
+const jwt = require('jsonwebtoken');
+const bcrypt = require('bcrypt');
+
+// Generate secure tokens
+function generateTokens(user) {
+  const accessToken = jwt.sign(
+    { userId: user.id, role: user.role },
+    process.env.JWT_ACCESS_SECRET,
+    { expiresIn: '15m' }
+  );
+  
+  const refreshToken = jwt.sign(
+    { userId: user.id },
+    process.env.JWT_REFRESH_SECRET,
+    { expiresIn: '7d' }
+  );
+  
+  return { accessToken, refreshToken };
+}
+
+// Secure password hashing
+async function hashPassword(password) {
+  const saltRounds = 12;
+  return await bcrypt.hash(password, saltRounds);
+}
+\`\`\`
+
+### Session Security
+\`\`\`javascript
+// Express session configuration
+app.use(session({
+  secret: process.env.SESSION_SECRET,
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    secure: process.env.NODE_ENV === 'production', // HTTPS only
+    httpOnly: true, // Prevent XSS
+    maxAge: 1000 * 60 * 60 * 24, // 24 hours
+    sameSite: 'strict' // CSRF protection
+  },
+  store: new RedisStore({ client: redisClient })
+}));
+\`\`\`
+
+## 2. Input Validation & Sanitization
+
+### Server-side Validation
+\`\`\`javascript
+const validator = require('validator');
+const xss = require('xss');
+
+function validateAndSanitizeInput(input) {
+  // Validate
+  if (!validator.isLength(input, { min: 1, max: 255 })) {
+    throw new Error('Invalid input length');
+  }
+  
+  // Sanitize
+  const sanitized = xss(input, {
+    whiteList: {}, // No HTML allowed
+    stripIgnoreTag: true,
+    stripIgnoreTagBody: ['script']
+  });
+  
+  return validator.escape(sanitized);
+}
+
+// SQL Injection Prevention
+const query = 'SELECT * FROM users WHERE email = ? AND status = ?';
+db.query(query, [email, status], callback);
+\`\`\`
+
+## 3. HTTPS & Security Headers
+
+### Security Headers Middleware
+\`\`\`javascript
+const helmet = require('helmet');
+
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+      fontSrc: ["'self'", "https://fonts.gstatic.com"],
+      imgSrc: ["'self'", "data:", "https:"],
+      scriptSrc: ["'self'"],
+      connectSrc: ["'self'", "https://api.example.com"]
+    }
+  },
+  hsts: {
+    maxAge: 31536000,
+    includeSubDomains: true,
+    preload: true
+  }
+}));
+
+// Additional security headers
+app.use((req, res, next) => {
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('Permissions-Policy', 'geolocation=(), microphone=(), camera=()');
+  next();
+});
+\`\`\`
+
+## 4. Rate Limiting & DDoS Protection
+
+### Rate Limiting
+\`\`\`javascript
+const rateLimit = require('express-rate-limit');
+
+// General rate limiting
+const generalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // limit each IP to 100 requests per windowMs
+  message: 'Too many requests from this IP',
+  standardHeaders: true,
+  legacyHeaders: false
+});
+
+// Strict rate limiting for auth endpoints
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  skipSuccessfulRequests: true
+});
+
+app.use('/api/', generalLimiter);
+app.use('/api/auth/', authLimiter);
+\`\`\`
+
+## 5. Data Protection
+
+### Encryption at Rest
+\`\`\`javascript
+const crypto = require('crypto');
+
+class DataEncryption {
+  constructor() {
+    this.algorithm = 'aes-256-gcm';
+    this.secretKey = crypto.scryptSync(process.env.ENCRYPTION_KEY, 'salt', 32);
+  }
+
+  encrypt(text) {
+    const iv = crypto.randomBytes(16);
+    const cipher = crypto.createCipher(this.algorithm, this.secretKey, iv);
+    
+    let encrypted = cipher.update(text, 'utf8', 'hex');
+    encrypted += cipher.final('hex');
+    
+    const authTag = cipher.getAuthTag();
+    
+    return {
+      encrypted,
+      iv: iv.toString('hex'),
+      authTag: authTag.toString('hex')
+    };
+  }
+
+  decrypt(encryptedData) {
+    const decipher = crypto.createDecipher(
+      this.algorithm, 
+      this.secretKey, 
+      Buffer.from(encryptedData.iv, 'hex')
+    );
+    
+    decipher.setAuthTag(Buffer.from(encryptedData.authTag, 'hex'));
+    
+    let decrypted = decipher.update(encryptedData.encrypted, 'hex', 'utf8');
+    decrypted += decipher.final('utf8');
+    
+    return decrypted;
+  }
+}
+\`\`\`
+
+## 6. API Security
+
+### API Key Management
+\`\`\`javascript
+// API key validation middleware
+function validateApiKey(req, res, next) {
+  const apiKey = req.headers['x-api-key'];
+  
+  if (!apiKey) {
+    return res.status(401).json({ error: 'API key required' });
+  }
+  
+  // Hash the provided key and compare with stored hash
+  const hashedKey = crypto.createHash('sha256').update(apiKey).digest('hex');
+  
+  if (!isValidApiKey(hashedKey)) {
+    return res.status(401).json({ error: 'Invalid API key' });
+  }
+  
+  next();
+}
+
+// CORS configuration
+const corsOptions = {
+  origin: function (origin, callback) {
+    const allowedOrigins = process.env.ALLOWED_ORIGINS.split(',');
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true,
+  optionsSuccessStatus: 200
+};
+
+app.use(cors(corsOptions));
+\`\`\`
+
+## 7. Logging & Monitoring
+
+### Security Event Logging
+\`\`\`javascript
+const winston = require('winston');
+
+const securityLogger = winston.createLogger({
+  level: 'info',
+  format: winston.format.combine(
+    winston.format.timestamp(),
+    winston.format.errors({ stack: true }),
+    winston.format.json()
+  ),
+  transports: [
+    new winston.transports.File({ filename: 'security.log' }),
+    new winston.transports.Console()
+  ]
+});
+
+// Log security events
+function logSecurityEvent(event, details) {
+  securityLogger.warn('Security Event', {
+    event,
+    details,
+    timestamp: new Date().toISOString(),
+    ip: details.ip,
+    userAgent: details.userAgent
+  });
+}
+
+// Failed login attempt
+logSecurityEvent('FAILED_LOGIN', {
+  email: 'user@example.com',
+  ip: req.ip,
+  userAgent: req.get('User-Agent')
+});
+\`\`\`
+
+## 8. Environment & Secrets Management
+
+### Environment Variables
+\`\`\`bash
+# .env.example
+NODE_ENV=production
+DATABASE_URL=postgresql://user:pass@localhost:5432/db
+JWT_ACCESS_SECRET=your-super-secret-jwt-access-key
+JWT_REFRESH_SECRET=your-super-secret-jwt-refresh-key
+ENCRYPTION_KEY=your-32-character-encryption-key
+SESSION_SECRET=your-session-secret
+API_RATE_LIMIT=100
+ALLOWED_ORIGINS=https://yourdomain.com,https://www.yourdomain.com
+\`\`\`
+
+### Secrets Validation
+\`\`\`javascript
+// Validate required environment variables on startup
+const requiredEnvVars = [
+  'DATABASE_URL',
+  'JWT_ACCESS_SECRET',
+  'JWT_REFRESH_SECRET',
+  'ENCRYPTION_KEY',
+  'SESSION_SECRET'
+];
+
+requiredEnvVars.forEach(envVar => {
+  if (!process.env[envVar]) {
+    console.error(\`Missing required environment variable: \${envVar}\`);
+    process.exit(1);
+  }
+});
+
+// Validate secret strength
+function validateSecretStrength(secret, minLength = 32) {
+  if (secret.length < minLength) {
+    throw new Error(\`Secret must be at least \${minLength} characters long\`);
+  }
+  
+  if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])/.test(secret)) {
+    throw new Error('Secret must contain uppercase, lowercase, number, and special character');
+  }
+}
+\`\`\`
+
+## 9. Security Testing
+
+### Automated Security Tests
+\`\`\`javascript
+// Security test examples
+describe('Security Tests', () => {
+  test('should reject requests without proper authentication', async () => {
+    const response = await request(app)
+      .get('/api/protected')
+      .expect(401);
+  });
+
+  test('should sanitize user input', async () => {
+    const maliciousInput = '<script>alert("xss")</script>';
+    const response = await request(app)
+      .post('/api/comments')
+      .send({ content: maliciousInput })
+      .expect(400);
+  });
+
+  test('should enforce rate limiting', async () => {
+    const requests = Array(10).fill().map(() => 
+      request(app).post('/api/auth/login')
+    );
+    
+    const responses = await Promise.all(requests);
+    const rateLimitedResponses = responses.filter(r => r.status === 429);
+    expect(rateLimitedResponses.length).toBeGreaterThan(0);
+  });
+});
+\`\`\`
+
+## 10. Security Checklist
+
+- [ ] Use HTTPS everywhere
+- [ ] Implement proper authentication & authorization
+- [ ] Validate and sanitize all inputs
+- [ ] Use parameterized queries to prevent SQL injection
+- [ ] Implement rate limiting
+- [ ] Set security headers (CSP, HSTS, etc.)
+- [ ] Keep dependencies updated
+- [ ] Use secure session management
+- [ ] Implement proper error handling (don't leak info)
+- [ ] Log security events
+- [ ] Regular security audits and penetration testing
+- [ ] Implement CSRF protection
+- [ ] Use secure password policies
+- [ ] Encrypt sensitive data at rest
+- [ ] Implement proper access controls
+- [ ] Regular backup and disaster recovery testing`,
+    language: "markdown",
+    tags: ["security", "authentication", "encryption", "best-practices", "web"],
+    isFavorite: true,
+    lastUsed: new Date("2024-02-01"),
+  },
 ]
 
 type SortOption = "name" | "category" | "recent" | "favorites"
@@ -1423,23 +2455,40 @@ export function SnippetsContent({ filteredSnippetId, onClearFilter }: SnippetsCo
   return (
     <div>
       {/* Top Search Bar */}
-      <div className="mb-8 bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-200 rounded-xl p-6">
-        <div className="flex items-center gap-4 mb-4">
-          <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-indigo-500 text-white rounded-lg flex items-center justify-center">
-            <Search className="w-5 h-5" />
+      <div className="mb-8 bg-gradient-to-br from-purple-50 via-indigo-50 to-blue-50 border-2 border-purple-200 rounded-2xl p-6 shadow-lg">
+        <div className="flex items-center gap-4 mb-6">
+          <div className="relative">
+            <div className="w-12 h-12 bg-gradient-to-r from-purple-600 via-indigo-600 to-blue-600 text-white rounded-xl flex items-center justify-center shadow-lg">
+              <Search className="w-6 h-6" />
+            </div>
+            <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-white animate-pulse"></div>
           </div>
           <div className="flex-1">
-            <h3 className="font-semibold text-purple-900 mb-1">Search Code Snippets</h3>
-            <p className="text-sm text-purple-700">
-              Find snippets by title, description, content, or tags. Use keyboard shortcuts for quick access.
+            <h3 className="text-xl font-bold text-gray-900 mb-2">🔍 Smart Code Search</h3>
+            <p className="text-sm text-gray-700 leading-relaxed">
+              Instantly find snippets by title, description, content, or tags. Use keyboard shortcuts for lightning-fast
+              access.
             </p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
+            {/* Stats Cards */}
+            <div className="bg-white/70 backdrop-blur-sm rounded-lg p-3 text-center border border-purple-200">
+              <div className="text-lg font-bold text-purple-600">{staticSnippets.length}</div>
+              <div className="text-xs text-gray-600">Snippets</div>
+            </div>
+            <div className="bg-white/70 backdrop-blur-sm rounded-lg p-3 text-center border border-indigo-200">
+              <div className="text-lg font-bold text-indigo-600">{Object.keys(folders).length}</div>
+              <div className="text-xs text-gray-600">Categories</div>
+            </div>
+            <div className="bg-white/70 backdrop-blur-sm rounded-lg p-3 text-center border border-blue-200">
+              <div className="text-lg font-bold text-blue-600">{favorites.size}</div>
+              <div className="text-xs text-gray-600">Favorites</div>
+            </div>
             <Button
               variant="outline"
               size="sm"
               onClick={exportSnippets}
-              className="gap-2 border-purple-200 text-purple-700 hover:bg-purple-50 bg-transparent"
+              className="gap-2 border-purple-300 text-purple-700 hover:bg-purple-100 bg-white/70 backdrop-blur-sm shadow-sm"
             >
               <Download className="w-4 h-4" />
               Export All
@@ -1447,38 +2496,50 @@ export function SnippetsContent({ filteredSnippetId, onClearFilter }: SnippetsCo
           </div>
         </div>
 
-        {/* Search Input */}
+        {/* Enhanced Search Input */}
         <div className="relative">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-purple-400" />
+          <div className="absolute left-4 top-1/2 -translate-y-1/2 flex items-center gap-2">
+            <Search className="w-5 h-5 text-purple-500" />
+            <div className="h-4 w-px bg-purple-300"></div>
+          </div>
           <Input
             value={localSearchQuery}
             onChange={(e) => handleSearch(e.target.value)}
-            placeholder="Search snippets by title, description, content, or tags..."
-            className="pl-12 pr-12 py-3 text-base border-2 border-purple-200 focus:border-purple-400 focus:ring-purple-200 bg-white rounded-xl shadow-sm hover:shadow-md transition-all duration-200"
+            placeholder="🚀 Search snippets by title, description, content, or tags..."
+            className="pl-16 pr-12 py-4 text-base border-2 border-purple-300 focus:border-purple-500 focus:ring-purple-300 bg-white/80 backdrop-blur-sm rounded-xl shadow-sm hover:shadow-md transition-all duration-200 placeholder:text-gray-500"
           />
           {localSearchQuery && (
             <Button
               size="icon"
               variant="ghost"
               onClick={() => setLocalSearchQuery("")}
-              className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 hover:bg-purple-100 text-purple-500"
+              className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 hover:bg-purple-100 text-purple-600 rounded-lg"
             >
               <X className="w-4 h-4" />
             </Button>
           )}
+
+          {/* Search shortcuts hint */}
+          <div className="absolute right-14 top-1/2 -translate-y-1/2 hidden md:flex items-center gap-1 text-xs text-gray-500">
+            <kbd className="px-1.5 py-0.5 bg-gray-100 rounded text-xs">Ctrl</kbd>
+            <span>+</span>
+            <kbd className="px-1.5 py-0.5 bg-gray-100 rounded text-xs">K</kbd>
+          </div>
         </div>
 
-        {/* Search History */}
+        {/* Search History with better styling */}
         {searchHistory.length > 0 && !localSearchQuery && (
-          <div className="mt-3 flex items-center gap-2">
-            <Clock className="w-4 h-4 text-purple-400" />
-            <span className="text-sm text-purple-600 font-medium">Recent:</span>
+          <div className="mt-4 flex items-center gap-3">
+            <div className="flex items-center gap-2 text-purple-600">
+              <Clock className="w-4 h-4" />
+              <span className="text-sm font-medium">Recent searches:</span>
+            </div>
             <div className="flex gap-2 flex-wrap">
               {searchHistory.map((term, index) => (
                 <button
                   key={index}
                   onClick={() => setLocalSearchQuery(term)}
-                  className="px-2 py-1 bg-purple-100 text-purple-700 rounded-md text-xs hover:bg-purple-200 transition-colors"
+                  className="px-3 py-1.5 bg-white/80 backdrop-blur-sm text-purple-700 rounded-lg text-xs hover:bg-purple-100 transition-all duration-200 border border-purple-200 shadow-sm hover:shadow-md"
                 >
                   {term}
                 </button>
@@ -1489,49 +2550,82 @@ export function SnippetsContent({ filteredSnippetId, onClearFilter }: SnippetsCo
       </div>
 
       {/* Controls Bar */}
-      <div className="flex items-center justify-between mb-6 bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
-        <div className="flex items-center gap-4">
-          {/* Sort Options */}
-          <div className="flex items-center gap-2">
-            <Filter className="w-4 h-4 text-gray-500" />
+      <div className="flex items-center justify-between mb-8 bg-white rounded-2xl border-2 border-gray-200 p-5 shadow-lg hover:shadow-xl transition-all duration-300">
+        <div className="flex items-center gap-6">
+          {/* Sort Options with better styling */}
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 text-gray-700">
+              <Filter className="w-5 h-5 text-indigo-500" />
+              <span className="font-medium">Sort by:</span>
+            </div>
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as SortOption)}
-              className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-purple-200"
+              className="text-sm border-2 border-gray-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-purple-300 focus:border-purple-400 bg-gray-50 hover:bg-white transition-all duration-200 font-medium"
             >
-              <option value="recent">Recently Used</option>
-              <option value="name">Name A-Z</option>
-              <option value="category">Category</option>
-              <option value="favorites">Favorites First</option>
+              <option value="recent">🕒 Recently Used</option>
+              <option value="name">🔤 Name A-Z</option>
+              <option value="category">📁 Category</option>
+              <option value="favorites">❤️ Favorites First</option>
             </select>
           </div>
 
-          {/* View Mode Toggle */}
-          <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden">
-            <button
-              onClick={() => setViewMode("grid")}
-              className={`p-2 ${viewMode === "grid" ? "bg-purple-100 text-purple-700" : "text-gray-500 hover:bg-gray-50"}`}
-            >
-              <Grid3X3 className="w-4 h-4" />
-            </button>
-            <button
-              onClick={() => setViewMode("list")}
-              className={`p-2 ${viewMode === "list" ? "bg-purple-100 text-purple-700" : "text-gray-500 hover:bg-gray-50"}`}
-            >
-              <List className="w-4 h-4" />
-            </button>
+          {/* View Mode Toggle with enhanced styling */}
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-medium text-gray-700">View:</span>
+            <div className="flex items-center border-2 border-gray-200 rounded-xl overflow-hidden bg-gray-50">
+              <button
+                onClick={() => setViewMode("grid")}
+                className={`p-2.5 transition-all duration-200 ${
+                  viewMode === "grid"
+                    ? "bg-gradient-to-r from-purple-500 to-indigo-500 text-white shadow-md"
+                    : "text-gray-500 hover:bg-gray-100 hover:text-gray-700"
+                }`}
+              >
+                <Grid3X3 className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => setViewMode("list")}
+                className={`p-2.5 transition-all duration-200 ${
+                  viewMode === "list"
+                    ? "bg-gradient-to-r from-purple-500 to-indigo-500 text-white shadow-md"
+                    : "text-gray-500 hover:bg-gray-100 hover:text-gray-700"
+                }`}
+              >
+                <List className="w-4 h-4" />
+              </button>
+            </div>
           </div>
         </div>
 
-        {/* Results Count */}
-        <div className="text-sm text-gray-600">
-          {filteredSnippetId
-            ? `Showing filtered snippet`
-            : selectedFolder
-              ? `${filteredSnippets.length} snippet${filteredSnippets.length !== 1 ? "s" : ""} in ${selectedFolder}`
-              : localSearchQuery.trim()
-                ? `${filteredSnippets.length} snippet${filteredSnippets.length !== 1 ? "s" : ""} found`
-                : `${staticSnippets.length} total snippets`}
+        {/* Enhanced Results Count */}
+        <div className="flex items-center gap-3">
+          <div className="text-sm text-gray-600 bg-gray-50 px-3 py-2 rounded-lg border">
+            {filteredSnippetId
+              ? `🎯 Showing filtered snippet`
+              : selectedFolder
+                ? `📂 ${filteredSnippets.length} snippet${filteredSnippets.length !== 1 ? "s" : ""} in ${selectedFolder}`
+                : localSearchQuery.trim()
+                  ? `🔍 ${filteredSnippets.length} snippet${filteredSnippets.length !== 1 ? "s" : ""} found`
+                  : `📚 ${staticSnippets.length} total snippets`}
+          </div>
+
+          {/* Quick actions */}
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setSelectedFolder(null)
+                setLocalSearchQuery("")
+              }}
+              className="gap-2 text-gray-600 hover:text-gray-800 border-gray-300 hover:border-gray-400"
+              disabled={!selectedFolder && !localSearchQuery.trim()}
+            >
+              <RefreshCw className="w-4 h-4" />
+              Reset
+            </Button>
+          </div>
         </div>
       </div>
 
