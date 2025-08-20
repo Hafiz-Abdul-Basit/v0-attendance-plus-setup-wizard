@@ -1,12 +1,13 @@
-"use client";
+"use client"
 
-import { useState, useEffect, useRef, useCallback } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { ChevronRight, Search, Code, FileText, Download } from "lucide-react";
-import { toast } from "sonner";
-import { StepContent } from "@/components/step-content";
-import { SnippetsContent, snippets } from "@/components/snippets-content";
+import { useState, useEffect, useRef, useCallback } from "react"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { ChevronRight, Search, Code, FileText, Download, BookOpen } from "lucide-react"
+import { toast } from "sonner"
+import { StepContent } from "@/components/step-content"
+import { SnippetsContent, snippets } from "@/components/snippets-content"
+import { InteractiveGuides } from "@/components/interactive-guides" // Import for InteractiveGuides
 
 const sections = [
   { id: "browser", title: "Browser Installation", number: 1 },
@@ -16,8 +17,8 @@ const sections = [
   { id: "mongodb", title: "MongoDB Installation", number: 5 },
   { id: "sqlserver", title: "SQL Server Setup", number: 6 },
   { id: "webapi", title: "Web API Deployment", number: 7 },
-  { id: "angular", title: "Angular Build", number: 8 }
-];
+  { id: "angular", title: "Angular Build", number: 8 },
+]
 
 // Search data for global search functionality
 const searchData = [
@@ -27,7 +28,7 @@ const searchData = [
     step: "browser-1",
     title: "Download Google Chrome",
     content: "browser chrome download install compatibility",
-    type: "step"
+    type: "step",
   },
 
   // IIS Setup
@@ -35,24 +36,22 @@ const searchData = [
     section: "iis",
     step: "iis-1",
     title: "Enable IIS Features",
-    content:
-      "iis features enable powershell server manager web server role application development aspnet",
-    type: "step"
+    content: "iis features enable powershell server manager web server role application development aspnet",
+    type: "step",
   },
   {
     section: "iis",
     step: "iis-2",
     title: "Configure Port Bindings",
-    content:
-      "port bindings iis sites intervention analysis administration court identity gateway",
-    type: "step"
+    content: "port bindings iis sites intervention analysis administration court identity gateway",
+    type: "step",
   },
   {
     section: "iis",
     step: "iis-3",
     title: "Configure Application Pools",
     content: "application pools iis no managed code localsystem identity",
-    type: "step"
+    type: "step",
   },
 
   // .NET Installation
@@ -61,14 +60,14 @@ const searchData = [
     step: "dotnet-1",
     title: "Download .NET 8",
     content: "dotnet 8 sdk hosting bundle download install",
-    type: "step"
+    type: "step",
   },
   {
     section: "dotnet",
     step: "dotnet-2",
     title: "Verify Installation",
     content: "dotnet version verify installation runtime check",
-    type: "step"
+    type: "step",
   },
 
   // RabbitMQ Setup
@@ -77,35 +76,35 @@ const searchData = [
     step: "rabbitmq-1",
     title: "Install Erlang",
     content: "erlang install rabbitmq prerequisite",
-    type: "step"
+    type: "step",
   },
   {
     section: "rabbitmq",
     step: "rabbitmq-2",
     title: "Install RabbitMQ",
     content: "rabbitmq server install message broker",
-    type: "step"
+    type: "step",
   },
   {
     section: "rabbitmq",
     step: "rabbitmq-3",
     title: "Enable Management Plugin",
     content: "rabbitmq management plugin enable web interface",
-    type: "step"
+    type: "step",
   },
   {
     section: "rabbitmq",
     step: "rabbitmq-4",
     title: "Restart RabbitMQ Server",
     content: "rabbitmq restart server service",
-    type: "step"
+    type: "step",
   },
   {
     section: "rabbitmq",
     step: "rabbitmq-5",
     title: "Access Management Interface",
     content: "rabbitmq management interface localhost 15672 guest credentials",
-    type: "step"
+    type: "step",
   },
 
   // MongoDB Installation
@@ -114,28 +113,28 @@ const searchData = [
     step: "mongodb-1",
     title: "Download MongoDB Components",
     content: "mongodb server compass shell tools download",
-    type: "step"
+    type: "step",
   },
   {
     section: "mongodb",
     step: "mongodb-2",
     title: "Configure Replica Set",
     content: "mongodb replica set configuration yaml mongod.cfg",
-    type: "step"
+    type: "step",
   },
   {
     section: "mongodb",
     step: "mongodb-3",
     title: "Initialize Replica Set",
     content: "mongodb replica set initialize mongosh rs.initiate",
-    type: "step"
+    type: "step",
   },
   {
     section: "mongodb",
     step: "mongodb-5",
     title: "Configure Document Paths",
     content: "mongodb document paths storage raawee directory",
-    type: "step"
+    type: "step",
   },
 
   // SQL Server Setup
@@ -144,28 +143,28 @@ const searchData = [
     step: "sqlserver-1",
     title: "Download SQL Server",
     content: "sql server download ssms management studio",
-    type: "step"
+    type: "step",
   },
   {
     section: "sqlserver",
     step: "sqlserver-2",
     title: "Install SQL Server",
     content: "sql server install database engine features mixed mode",
-    type: "step"
+    type: "step",
   },
   {
     section: "sqlserver",
     step: "sqlserver-3",
     title: "Configure SQL Server",
     content: "sql server configure tcp ip protocol enable",
-    type: "step"
+    type: "step",
   },
   {
     section: "sqlserver",
     step: "sqlserver-4",
     title: "Create AttendancePlus Database",
     content: "sql server database create attendanceplus user login",
-    type: "step"
+    type: "step",
   },
 
   // Web API Deployment
@@ -174,28 +173,28 @@ const searchData = [
     step: "webapi-1",
     title: "Prepare API Files",
     content: "api files extract prepare solution directory ports",
-    type: "step"
+    type: "step",
   },
   {
     section: "webapi",
     step: "webapi-2",
     title: "Deploy to IIS",
     content: "api deploy iis application pools websites",
-    type: "step"
+    type: "step",
   },
   {
     section: "webapi",
     step: "webapi-3",
     title: "Configure Connection Strings",
     content: "api connection strings appsettings.json configuration",
-    type: "step"
+    type: "step",
   },
   {
     section: "webapi",
     step: "webapi-4",
     title: "Test API Services",
     content: "api test services swagger endpoints",
-    type: "step"
+    type: "step",
   },
 
   // Snippets
@@ -204,152 +203,135 @@ const searchData = [
     step: "frontend-webconfig",
     title: "Frontend Web.config",
     content: "angular routing configuration iis web.config rewrite rules",
-    type: "snippet"
+    type: "snippet",
   },
   {
     section: "snippets",
     step: "backend-webconfig",
     title: "Backend Web.config",
     content: "aspnet core api configuration iis web.config hosting",
-    type: "snippet"
+    type: "snippet",
   },
   {
     section: "snippets",
     step: "mongodb-replica",
     title: "MongoDB Replica Set",
     content: "mongodb shell commands replica set initialize status",
-    type: "snippet"
+    type: "snippet",
   },
   {
     section: "snippets",
     step: "angular-dev",
     title: "Angular Development",
     content: "angular serve memory allocation node max_old_space_size",
-    type: "snippet"
+    type: "snippet",
   },
   {
     section: "snippets",
     step: "powershell-iis",
     title: "PowerShell IIS Commands",
     content: "powershell iis commands webadministration restart",
-    type: "step"
+    type: "step",
   },
   {
     section: "snippets",
     step: "sql-queries",
     title: "SQL Server Common Queries",
     content: "sql server queries select update delete backup restore",
-    type: "snippet"
+    type: "snippet",
   },
   {
     section: "snippets",
     step: "user-roles",
     title: "AttendancePlus User Roles",
     content: "aspnet roles insert campus officer admin principal",
-    type: "snippet"
+    type: "snippet",
   },
   {
     section: "snippets",
     step: "user-creation",
     title: "User Creation & Configuration",
     content: "user creation configuration claims campus assignments",
-    type: "step"
-  }
-];
+    type: "step",
+  },
+]
 
 export function InstallationWizard() {
-  const [activeSection, setActiveSection] = useState("iis");
-  const [completedSteps, setCompletedSteps] = useState<Record<string, boolean>>(
-    {
-      "browser-1": true
-    }
-  );
-  const [showSnippets, setShowSnippets] = useState(true); // Default to showing Snippets
-  const [searchQuery, setSearchQuery] = useState("");
-  const [searchResults, setSearchResults] = useState<typeof searchData>([]);
-  const [showSearch, setShowSearch] = useState(false);
-  const [showHelp, setShowHelp] = useState(false);
-  const searchInputRef = useRef<HTMLInputElement>(null);
+  const [activeSection, setActiveSection] = useState("iis")
+  const [completedSteps, setCompletedSteps] = useState<Record<string, boolean>>({
+    "browser-1": true,
+  })
+  const [showSnippets, setShowSnippets] = useState(true) // Default to showing Snippets
+  const [searchQuery, setSearchQuery] = useState("")
+  const [searchResults, setSearchResults] = useState<typeof searchData>([])
+  const [showSearch, setShowSearch] = useState(false)
+  const [showHelp, setShowHelp] = useState(false)
+  const searchInputRef = useRef<HTMLInputElement>(null)
 
-  const [showModernSearch, setShowModernSearch] = useState(false);
-  const [modernSearchQuery, setModernSearchQuery] = useState("");
-  const [modernSearchResults, setModernSearchResults] = useState<
-    typeof searchData
-  >([]);
+  const [showModernSearch, setShowModernSearch] = useState(false)
+  const [modernSearchQuery, setModernSearchQuery] = useState("")
+  const [modernSearchResults, setModernSearchResults] = useState<typeof searchData>([])
 
   // New state for snippet filtering
-  const [snippetFilter, setSnippetFilter] = useState<string>("");
-  const [filteredSnippetId, setFilteredSnippetId] = useState<string | null>(
-    null
-  );
+  const [snippetFilter, setSnippetFilter] = useState<string>("")
+  const [filteredSnippetId, setFilteredSnippetId] = useState<string | null>(null)
 
-  const [selectedResultIndex, setSelectedResultIndex] = useState(0);
+  const [selectedResultIndex, setSelectedResultIndex] = useState(0)
+  const [showGuides, setShowGuides] = useState(false) // New state for Guides
 
   const exportProgress = () => {
-    const completedSections = sections.filter(
-      (s) => getSectionProgress(s.id).percentage === 100
-    );
+    const completedSections = sections.filter((s) => getSectionProgress(s.id).percentage === 100)
     const report = {
       timestamp: new Date().toISOString(),
       overallProgress: overallProgress,
       completedSteps: completedStepsCount,
       totalSteps: totalSteps,
       completedSections: completedSections.map((s) => s.title),
-      pendingSections: sections
-        .filter((s) => getSectionProgress(s.id).percentage < 100)
-        .map((s) => s.title)
-    };
+      pendingSections: sections.filter((s) => getSectionProgress(s.id).percentage < 100).map((s) => s.title),
+    }
 
     const blob = new Blob([JSON.stringify(report, null, 2)], {
-      type: "application/json"
-    });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `attendanceplus-installation-progress-${
-      new Date().toISOString().split("T")[0]
-    }.json`;
-    a.click();
-    URL.revokeObjectURL(url);
-    toast.success("Progress exported successfully!");
-  };
+      type: "application/json",
+    })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement("a")
+    a.href = url
+    a.download = `attendanceplus-installation-progress-${new Date().toISOString().split("T")[0]}.json`
+    a.click()
+    URL.revokeObjectURL(url)
+    toast.success("Progress exported successfully!")
+  }
 
   const handleKeyDown = useCallback(
     (event: KeyboardEvent) => {
       // Handle modern search modal navigation
       if (showModernSearch) {
         if (event.key === "ArrowDown") {
-          event.preventDefault();
-          setSelectedResultIndex((prev) =>
-            prev < modernSearchResults.length - 1 ? prev + 1 : 0
-          );
+          event.preventDefault()
+          setSelectedResultIndex((prev) => (prev < modernSearchResults.length - 1 ? prev + 1 : 0))
         } else if (event.key === "ArrowUp") {
-          event.preventDefault();
-          setSelectedResultIndex((prev) =>
-            prev > 0 ? prev - 1 : modernSearchResults.length - 1
-          );
+          event.preventDefault()
+          setSelectedResultIndex((prev) => (prev > 0 ? prev - 1 : modernSearchResults.length - 1))
         } else if (event.key === "Enter") {
-          event.preventDefault();
+          event.preventDefault()
           if (modernSearchResults[selectedResultIndex]) {
-            handleModernSearchResultClick(
-              modernSearchResults[selectedResultIndex]
-            );
+            handleModernSearchResultClick(modernSearchResults[selectedResultIndex])
           }
         } else if (event.key === "Escape") {
-          setShowModernSearch(false);
-          setModernSearchQuery("");
-          setModernSearchResults([]);
-          setSelectedResultIndex(0);
+          setShowModernSearch(false)
+          setModernSearchQuery("")
+          setModernSearchResults([])
+          setSelectedResultIndex(0)
         }
-        return;
+        return
       }
 
       // Ctrl/Cmd + K to toggle modern search popup
       if ((event.ctrlKey || event.metaKey) && event.key === "k") {
-        event.preventDefault();
-        setShowModernSearch(true);
-        setModernSearchQuery("");
-        setSelectedResultIndex(0);
+        event.preventDefault()
+        setShowModernSearch(true)
+        setModernSearchQuery("")
+        setSelectedResultIndex(0)
 
         // Show default snippets immediately
         const defaultSnippets = [
@@ -358,262 +340,252 @@ export function InstallationWizard() {
             step: "frontend-webconfig",
             title: "Frontend Web.config",
             content: "Angular routing configuration for IIS",
-            type: "snippet" as const
+            type: "snippet" as const,
           },
           {
             section: "snippets",
             step: "backend-webconfig",
             title: "Backend Web.config",
             content: "ASP.NET Core API configuration for IIS",
-            type: "snippet" as const
+            type: "snippet" as const,
           },
           {
             section: "snippets",
             step: "mongodb-replica",
             title: "MongoDB Replica Set",
             content: "Essential MongoDB shell commands",
-            type: "snippet" as const
+            type: "snippet" as const,
           },
           {
             section: "snippets",
             step: "user-roles-setup",
             title: "Setup User Roles",
             content: "Initialize AspNetRoles for AttendancePlus system",
-            type: "snippet" as const
+            type: "snippet" as const,
           },
           {
             section: "snippets",
             step: "sql-server-common-queries",
             title: "SQL Server Common Queries",
             content: "Essential SQL commands for database operations",
-            type: "snippet" as const
+            type: "snippet" as const,
           },
           {
             section: "snippets",
             step: "abdul-basit-apps",
             title: "Abdul Basit Apps",
             content: "Collection of useful web applications and tools",
-            type: "snippet" as const
-          }
-        ];
-        setModernSearchResults(defaultSnippets);
+            type: "snippet" as const,
+          },
+        ]
+        setModernSearchResults(defaultSnippets)
 
         // Focus search input after modal opens
         setTimeout(() => {
-          const searchInput = document.getElementById("modern-search-input");
-          searchInput?.focus();
-        }, 100);
+          const searchInput = document.getElementById("modern-search-input")
+          searchInput?.focus()
+        }, 100)
       }
 
       // Ctrl/Cmd + number keys (1-9) for quick snippet access with filtering
-      if (
-        (event.ctrlKey || event.metaKey) &&
-        event.key >= "1" &&
-        event.key <= "9"
-      ) {
-        event.preventDefault();
-        const snippetIndex = Number.parseInt(event.key) - 1;
+      if ((event.ctrlKey || event.metaKey) && event.key >= "1" && event.key <= "9") {
+        event.preventDefault()
+        const snippetIndex = Number.parseInt(event.key) - 1
         if (snippetIndex < snippets.length) {
-          const selectedSnippet = snippets[snippetIndex];
-          setShowSnippets(true);
-          setShowSearch(false);
-          setSearchQuery("");
-          setFilteredSnippetId(selectedSnippet.id);
-          setSnippetFilter(selectedSnippet.title);
+          const selectedSnippet = snippets[snippetIndex]
+          setShowSnippets(true)
+          setShowGuides(false) // Close guides when filtering snippets
+          setShowSearch(false)
+          setSearchQuery("")
+          setFilteredSnippetId(selectedSnippet.id)
+          setSnippetFilter(selectedSnippet.title)
           toast.success(`Filtered to: ${selectedSnippet.title}`, {
             style: {
               background: "#8b5cf6",
               color: "white",
-              border: "none"
-            }
-          });
+              border: "none",
+            },
+          })
         }
       }
 
       // Ctrl/Cmd + H for help
       if ((event.ctrlKey || event.metaKey) && event.key === "h") {
-        event.preventDefault();
-        setShowHelp(true);
+        event.preventDefault()
+        setShowHelp(true)
       }
 
       // Escape to close modals and clear filters
       if (event.key === "Escape") {
         if (showModernSearch) {
-          setShowModernSearch(false);
-          setModernSearchQuery("");
-          setModernSearchResults([]);
-          setSelectedResultIndex(0);
+          setShowModernSearch(false)
+          setModernSearchQuery("")
+          setModernSearchResults([])
+          setSelectedResultIndex(0)
         }
         if (showSnippets) {
           // Clear filter when escaping from snippets
-          setFilteredSnippetId(null);
-          setSnippetFilter("");
+          setFilteredSnippetId(null)
+          setSnippetFilter("")
         }
-        if (showHelp) setShowHelp(false);
+        if (showGuides) setShowGuides(false) // Close guides when escaping
+        if (showHelp) setShowHelp(false)
         if (showSearch) {
-          setShowSearch(false);
-          setSearchQuery("");
+          setShowSearch(false)
+          setSearchQuery("")
         }
       }
     },
-    [
-      showSnippets,
-      showHelp,
-      showSearch,
-      showModernSearch,
-      modernSearchResults,
-      selectedResultIndex
-    ]
-  );
+    [showSnippets, showHelp, showSearch, showModernSearch, modernSearchResults, selectedResultIndex, showGuides],
+  )
 
   useEffect(() => {
-    document.addEventListener("keydown", handleKeyDown);
+    document.addEventListener("keydown", handleKeyDown)
     return () => {
-      document.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [handleKeyDown]);
+      document.removeEventListener("keydown", handleKeyDown)
+    }
+  }, [handleKeyDown])
 
   const toggleStepCompletion = (stepId: string) => {
     setCompletedSteps((prev) => ({
       ...prev,
-      [stepId]: !prev[stepId]
-    }));
-  };
+      [stepId]: !prev[stepId],
+    }))
+  }
 
   const handleSearch = (query: string) => {
-    setSearchQuery(query);
+    setSearchQuery(query)
     if (query.trim() === "") {
-      setSearchResults([]);
-      setShowSearch(false);
-      return;
+      setSearchResults([])
+      setShowSearch(false)
+      return
     }
 
     const results = searchData.filter(
       (item) =>
         item.title.toLowerCase().includes(query.toLowerCase()) ||
-        item.content.toLowerCase().includes(query.toLowerCase())
-    );
-    setSearchResults(results);
-    setShowSearch(true);
-  };
+        item.content.toLowerCase().includes(query.toLowerCase()),
+    )
+    setSearchResults(results)
+    setShowSearch(true)
+  }
 
   const handleSearchResultClick = (result: (typeof searchData)[0]) => {
     if (result.type === "snippet") {
-      setShowSnippets(true);
+      setShowSnippets(true)
+      setShowGuides(false) // Close guides when selecting a snippet
       // Set filter to show only this snippet
-      setFilteredSnippetId(result.step);
-      setSnippetFilter(result.title);
+      setFilteredSnippetId(result.step)
+      setSnippetFilter(result.title)
     } else {
-      setShowSnippets(false);
-      setActiveSection(result.section);
+      setShowSnippets(false)
+      setShowGuides(false) // Close guides when selecting an installation step
+      setActiveSection(result.section)
       // Clear snippet filters when going to installation steps
-      setFilteredSnippetId(null);
-      setSnippetFilter("");
+      setFilteredSnippetId(null)
+      setSnippetFilter("")
     }
-    setShowSearch(false);
-    setSearchQuery("");
-  };
+    setShowSearch(false)
+    setSearchQuery("")
+  }
 
   const getSectionProgress = (sectionId: string) => {
-    const sectionSteps = Object.keys(completedSteps).filter((key) =>
-      key.startsWith(sectionId)
-    );
-    const completedCount = sectionSteps.filter(
-      (key) => completedSteps[key]
-    ).length;
+    const sectionSteps = Object.keys(completedSteps).filter((key) => key.startsWith(sectionId))
+    const completedCount = sectionSteps.filter((key) => completedSteps[key]).length
 
     // Fixed step counts for each section
     if (sectionId === "browser")
       return {
         completed: completedCount,
         total: 1,
-        percentage: Math.round((completedCount / 1) * 100)
-      };
+        percentage: Math.round((completedCount / 1) * 100),
+      }
     if (sectionId === "iis")
       return {
         completed: completedCount,
         total: 3,
-        percentage: Math.round((completedCount / 3) * 100)
-      };
+        percentage: Math.round((completedCount / 3) * 100),
+      }
     if (sectionId === "dotnet")
       return {
         completed: completedCount,
         total: 2,
-        percentage: Math.round((completedCount / 2) * 100)
-      };
+        percentage: Math.round((completedCount / 2) * 100),
+      }
     if (sectionId === "rabbitmq")
       return {
         completed: completedCount,
         total: 5,
-        percentage: Math.round((completedCount / 5) * 100)
-      };
+        percentage: Math.round((completedCount / 5) * 100),
+      }
     if (sectionId === "mongodb")
       return {
         completed: completedCount,
         total: 5,
-        percentage: Math.round((completedCount / 5) * 100)
-      };
+        percentage: Math.round((completedCount / 5) * 100),
+      }
     if (sectionId === "sqlserver")
       return {
         completed: completedCount,
         total: 4,
-        percentage: Math.round((completedCount / 4) * 100)
-      };
+        percentage: Math.round((completedCount / 4) * 100),
+      }
     if (sectionId === "webapi")
       return {
         completed: completedCount,
         total: 4,
-        percentage: Math.round((completedCount / 4) * 100)
-      };
+        percentage: Math.round((completedCount / 4) * 100),
+      }
     if (sectionId === "angular")
       return {
         completed: completedCount,
         total: 3,
-        percentage: Math.round((completedCount / 3) * 100)
-      };
+        percentage: Math.round((completedCount / 3) * 100),
+      }
 
-    return { completed: 0, total: 1, percentage: 0 };
-  };
+    return { completed: 0, total: 1, percentage: 0 }
+  }
 
-  const activeStep = sections.find((s) => s.id === activeSection);
+  const activeStep = sections.find((s) => s.id === activeSection)
 
   const totalSteps = sections.reduce((acc, section) => {
-    const progress = getSectionProgress(section.id);
-    return acc + progress.total;
-  }, 0);
+    const progress = getSectionProgress(section.id)
+    return acc + progress.total
+  }, 0)
 
   const completedStepsCount = sections.reduce((acc, section) => {
-    const progress = getSectionProgress(section.id);
-    return acc + progress.completed;
-  }, 0);
+    const progress = getSectionProgress(section.id)
+    return acc + progress.completed
+  }, 0)
 
-  const overallProgress = Math.round((completedStepsCount / totalSteps) * 100);
+  const overallProgress = Math.round((completedStepsCount / totalSteps) * 100)
 
   const goToNextSection = () => {
-    const currentIndex = sections.findIndex((s) => s.id === activeSection);
+    const currentIndex = sections.findIndex((s) => s.id === activeSection)
     if (currentIndex < sections.length - 1) {
-      setActiveSection(sections[currentIndex + 1].id);
+      setActiveSection(sections[currentIndex + 1].id)
     }
-  };
+  }
 
   const goToPreviousSection = () => {
-    const currentIndex = sections.findIndex((s) => s.id === activeSection);
+    const currentIndex = sections.findIndex((s) => s.id === activeSection)
     if (currentIndex > 0) {
-      setActiveSection(sections[currentIndex - 1].id);
+      setActiveSection(sections[currentIndex - 1].id)
     }
-  };
+  }
 
   const handleSectionClick = (sectionId: string) => {
-    setActiveSection(sectionId);
-    setShowSnippets(false); // Exit snippets view when navigating to a section
+    setActiveSection(sectionId)
+    setShowSnippets(false) // Exit snippets view when navigating to a section
+    setShowGuides(false) // Exit guides view when navigating to a section
     // Clear snippet filters when navigating to installation steps
-    setFilteredSnippetId(null);
-    setSnippetFilter("");
-  };
+    setFilteredSnippetId(null)
+    setSnippetFilter("")
+  }
 
   const handleModernSearch = (query: string) => {
-    setModernSearchQuery(query);
-    setSelectedResultIndex(0); // Reset selection when search changes
+    setModernSearchQuery(query)
+    setSelectedResultIndex(0) // Reset selection when search changes
 
     if (query.trim() === "") {
       // Show popular/default snippets when no search query
@@ -623,54 +595,54 @@ export function InstallationWizard() {
           step: "frontend-webconfig",
           title: "Frontend Web.config",
           content: "Angular routing configuration for IIS",
-          type: "snippet" as const
+          type: "snippet" as const,
         },
         {
           section: "snippets",
           step: "backend-webconfig",
           title: "Backend Web.config",
           content: "ASP.NET Core API configuration for IIS",
-          type: "snippet" as const
+          type: "snippet" as const,
         },
         {
           section: "snippets",
           step: "mongodb-replica",
           title: "MongoDB Replica Set",
           content: "Essential MongoDB shell commands",
-          type: "snippet" as const
+          type: "snippet" as const,
         },
         {
           section: "snippets",
           step: "user-roles-setup",
           title: "Setup User Roles",
           content: "Initialize AspNetRoles for AttendancePlus system",
-          type: "snippet" as const
+          type: "snippet" as const,
         },
         {
           section: "snippets",
           step: "sql-server-common-queries",
           title: "SQL Server Common Queries",
           content: "Essential SQL commands for database operations",
-          type: "snippet" as const
+          type: "snippet" as const,
         },
         {
           section: "snippets",
           step: "abdul-basit-apps",
           title: "Abdul Basit Apps",
           content: "Collection of useful web applications and tools",
-          type: "snippet" as const
-        }
-      ];
-      setModernSearchResults(defaultSnippets);
-      return;
+          type: "snippet" as const,
+        },
+      ]
+      setModernSearchResults(defaultSnippets)
+      return
     }
 
     // Search in both installation steps and snippets
     const stepResults = searchData.filter(
       (item) =>
         item.title.toLowerCase().includes(query.toLowerCase()) ||
-        item.content.toLowerCase().includes(query.toLowerCase())
-    );
+        item.content.toLowerCase().includes(query.toLowerCase()),
+    )
 
     const snippetResults = snippets
       .map((snippet) => ({
@@ -678,44 +650,46 @@ export function InstallationWizard() {
         step: snippet.id,
         title: snippet.title,
         content: snippet.description,
-        type: "snippet" as const
+        type: "snippet" as const,
       }))
       .filter(
         (item) =>
           item.title.toLowerCase().includes(query.toLowerCase()) ||
-          item.content.toLowerCase().includes(query.toLowerCase())
-      );
+          item.content.toLowerCase().includes(query.toLowerCase()),
+      )
 
-    setModernSearchResults([...stepResults, ...snippetResults]);
-  };
+    setModernSearchResults([...stepResults, ...snippetResults])
+  }
 
   const handleModernSearchResultClick = (result: any) => {
     if (result.type === "snippet") {
-      setShowSnippets(true);
+      setShowSnippets(true)
+      setShowGuides(false) // Exit guides view when selecting a snippet
       // Set filter to show only this snippet
-      setFilteredSnippetId(result.step);
-      setSnippetFilter(result.title);
+      setFilteredSnippetId(result.step)
+      setSnippetFilter(result.title)
     } else {
-      setShowSnippets(false);
-      setActiveSection(result.section);
+      setShowSnippets(false)
+      setShowGuides(false) // Exit guides view when selecting an installation step
+      setActiveSection(result.section)
       // Clear snippet filters when going to installation steps
-      setFilteredSnippetId(null);
-      setSnippetFilter("");
+      setFilteredSnippetId(null)
+      setSnippetFilter("")
     }
-    setShowModernSearch(false);
-    setModernSearchQuery("");
-    setModernSearchResults([]);
-  };
+    setShowModernSearch(false)
+    setModernSearchQuery("")
+    setModernSearchResults([])
+  }
 
   const clearSnippetFilter = () => {
-    setFilteredSnippetId(null);
-    setSnippetFilter("");
-  };
+    setFilteredSnippetId(null)
+    setSnippetFilter("")
+  }
 
   return (
     <div className="flex h-screen bg-white overflow-hidden">
-      {/* Fixed Sidebar - Only shown when not viewing Snippets */}
-      {!showSnippets && (
+      {/* Fixed Sidebar - Only shown when not viewing Snippets or Guides */}
+      {!showSnippets && !showGuides && (
         <aside className="w-80 bg-white border-r border-gray-200 shadow-lg flex flex-col fixed left-0 top-0 h-full z-10">
           {/* Sidebar Header */}
           <div className="p-6 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50">
@@ -724,12 +698,8 @@ export function InstallationWizard() {
                 A
               </div>
               <div>
-                <h2 className="text-lg font-bold text-gray-900">
-                  Abdul Basit Snippets
-                </h2>
-                <p className="text-sm text-gray-600">
-                  Code & Configuration Hub
-                </p>
+                <h2 className="text-lg font-bold text-gray-900">Abdul Basit Snippets</h2>
+                <p className="text-sm text-gray-600">Code & Configuration Hub</p>
               </div>
             </div>
 
@@ -756,22 +726,15 @@ export function InstallationWizard() {
                       <div className="flex items-center gap-3">
                         <div
                           className={`w-2 h-2 rounded-full ${
-                            result.type === "snippet"
-                              ? "bg-purple-500"
-                              : "bg-blue-500"
+                            result.type === "snippet" ? "bg-purple-500" : "bg-blue-500"
                           }`}
                         />
                         <div className="flex-1">
-                          <div className="font-medium text-gray-900 text-sm">
-                            {result.title}
-                          </div>
+                          <div className="font-medium text-gray-900 text-sm">{result.title}</div>
                           <div className="text-xs text-gray-500 capitalize">
                             {result.type === "snippet"
                               ? "Code Snippet"
-                              : `${
-                                  sections.find((s) => s.id === result.section)
-                                    ?.title || result.section
-                                }`}
+                              : `${sections.find((s) => s.id === result.section)?.title || result.section}`}
                           </div>
                         </div>
                       </div>
@@ -781,13 +744,11 @@ export function InstallationWizard() {
               )}
 
               {/* No Results */}
-              {showSearch &&
-                searchResults.length === 0 &&
-                searchQuery.trim() !== "" && (
-                  <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-50 p-4 text-center text-gray-500 text-sm">
-                    No results found for "{searchQuery}"
-                  </div>
-                )}
+              {showSearch && searchResults.length === 0 && searchQuery.trim() !== "" && (
+                <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-50 p-4 text-center text-gray-500 text-sm">
+                  No results found for "{searchQuery}"
+                </div>
+              )}
             </div>
           </div>
 
@@ -795,9 +756,9 @@ export function InstallationWizard() {
           <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
             <div className="space-y-3">
               {sections.map((section) => {
-                const progress = getSectionProgress(section.id);
-                const isActive = activeSection === section.id && !showSnippets;
-                const isCompleted = progress.percentage === 100;
+                const progress = getSectionProgress(section.id)
+                const isActive = activeSection === section.id && !showSnippets && !showGuides
+                const isCompleted = progress.percentage === 100
 
                 return (
                   <button
@@ -815,18 +776,14 @@ export function InstallationWizard() {
                           isCompleted
                             ? "bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow-lg"
                             : isActive
-                            ? "bg-gradient-to-r from-blue-500 to-indigo-500 text-white shadow-lg"
-                            : "bg-gray-200 text-gray-600 group-hover:bg-gray-300"
+                              ? "bg-gradient-to-r from-blue-500 to-indigo-500 text-white shadow-lg"
+                              : "bg-gray-200 text-gray-600 group-hover:bg-gray-300"
                         }`}
                       >
                         {isCompleted ? "✓" : section.number}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div
-                          className={`font-semibold text-sm ${
-                            isActive ? "text-blue-900" : "text-gray-900"
-                          }`}
-                        >
+                        <div className={`font-semibold text-sm ${isActive ? "text-blue-900" : "text-gray-900"}`}>
                           {section.title}
                         </div>
                         <div className="text-xs text-gray-500 mt-1 font-medium">
@@ -850,7 +807,7 @@ export function InstallationWizard() {
                       )}
                     </div>
                   </button>
-                );
+                )
               })}
             </div>
           </div>
@@ -858,11 +815,7 @@ export function InstallationWizard() {
           {/* Sidebar Footer */}
           <div className="p-4 border-t border-gray-200 bg-gray-50">
             <div className="text-xs text-gray-500 text-center mb-3">
-              Press{" "}
-              <kbd className="px-1.5 py-0.5 bg-white rounded text-xs">
-                Ctrl+K
-              </kbd>{" "}
-              for quick search
+              Press <kbd className="px-1.5 py-0.5 bg-white rounded text-xs">Ctrl+K</kbd> for quick search
             </div>
             <Button
               onClick={exportProgress}
@@ -879,25 +832,17 @@ export function InstallationWizard() {
 
       {/* Main Content Area */}
       <main
-        className={`flex-1 ${
-          !showSnippets ? "ml-80" : "ml-0"
-        } flex flex-col h-screen overflow-hidden`}
+        className={`flex-1 ${!showSnippets && !showGuides ? "ml-80" : "ml-0"} flex flex-col h-screen overflow-hidden`}
       >
         {/* Fixed Header */}
         <header className="flex items-center justify-between p-6 bg-white border-b border-gray-200 shadow-sm z-20">
           <div className="flex items-center gap-4">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">
-                Abdul Basit Snippets
-              </h1>
+              <h1 className="text-2xl font-bold text-gray-900">Abdul Basit Snippets</h1>
               <div className="flex items-center gap-2 text-sm">
-                <p className="text-gray-500">
-                  Essential code snippets and configuration files
-                </p>
+                <p className="text-gray-500">Essential code snippets and configuration files</p>
                 <span className="text-gray-300">•</span>
-                <p className="text-gray-600 font-medium">
-                  Created by Abdul Basit
-                </p>
+                <p className="text-gray-600 font-medium">Created by Abdul Basit</p>
               </div>
             </div>
           </div>
@@ -906,11 +851,11 @@ export function InstallationWizard() {
             {/* View Snippets Button */}
             <Button
               onClick={() => {
-                setShowSnippets(!showSnippets);
-                // Clear filters when toggling snippets view
+                setShowSnippets(!showSnippets)
+                setShowGuides(false) // Close guides when opening snippets
                 if (!showSnippets) {
-                  setFilteredSnippetId(null);
-                  setSnippetFilter("");
+                  setFilteredSnippetId(null)
+                  setSnippetFilter("")
                 }
               }}
               variant={showSnippets ? "default" : "outline"}
@@ -923,6 +868,27 @@ export function InstallationWizard() {
               <FileText className="w-4 h-4" />
               {showSnippets ? "View Installation Steps" : "View Snippets"}
             </Button>
+
+            {/* Interactive Guides Button */}
+            <Button
+              onClick={() => {
+                setShowGuides(!showGuides)
+                setShowSnippets(false) // Close snippets when opening guides
+                if (!showGuides) {
+                  setFilteredSnippetId(null)
+                  setSnippetFilter("")
+                }
+              }}
+              variant={showGuides ? "default" : "outline"}
+              className={`gap-2 ${
+                showGuides
+                  ? "bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white shadow-lg"
+                  : "border-emerald-200 text-emerald-700 hover:bg-emerald-50"
+              }`}
+            >
+              <BookOpen className="w-4 h-4" />
+              {showGuides ? "Close Guides" : "Interactive Guides"}
+            </Button>
           </div>
         </header>
 
@@ -931,28 +897,22 @@ export function InstallationWizard() {
           <div className="p-8">
             <div className="max-w-[95rem] mx-auto">
               {/* Progress Header */}
-              {/* Progress Header - Only show for installation steps, not snippets */}
-              {!showSnippets && (
+              {/* Progress Header - Only show for installation steps, not snippets or guides */}
+              {!showSnippets && !showGuides && (
                 <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-6 mb-8">
                   <div className="flex items-center gap-4 mb-4">
                     <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-indigo-500 text-white rounded-xl flex items-center justify-center font-bold text-lg shadow-lg">
                       {activeStep?.number}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h1 className="text-3xl font-bold text-gray-900">
-                        {activeStep?.title}
-                      </h1>
+                      <h1 className="text-3xl font-bold text-gray-900">{activeStep?.title}</h1>
                       <p className="text-gray-500 mt-1">
                         Step {activeStep?.number} of {sections.length}
                       </p>
                     </div>
                     <div className="text-right">
-                      <div className="text-2xl font-bold text-gray-900">
-                        {overallProgress}%
-                      </div>
-                      <div className="text-sm text-gray-500">
-                        Overall Progress
-                      </div>
+                      <div className="text-2xl font-bold text-gray-900">{overallProgress}%</div>
+                      <div className="text-sm text-gray-500">Overall Progress</div>
                     </div>
                   </div>
 
@@ -968,23 +928,18 @@ export function InstallationWizard() {
                       {completedStepsCount} of {totalSteps} steps completed
                     </span>
                     <span>
-                      {
-                        sections.filter(
-                          (s) => getSectionProgress(s.id).percentage === 100
-                        ).length
-                      }{" "}
-                      of {sections.length} sections complete
+                      {sections.filter((s) => getSectionProgress(s.id).percentage === 100).length} of {sections.length}{" "}
+                      sections complete
                     </span>
                   </div>
                 </div>
               )}
 
               {/* Content */}
-              {showSnippets ? (
-                <SnippetsContent
-                  filteredSnippetId={filteredSnippetId}
-                  onClearFilter={clearSnippetFilter}
-                />
+              {showGuides ? (
+                <InteractiveGuides />
+              ) : showSnippets ? (
+                <SnippetsContent filteredSnippetId={filteredSnippetId} onClearFilter={clearSnippetFilter} />
               ) : (
                 <StepContent
                   activeSection={activeSection}
@@ -1002,15 +957,8 @@ export function InstallationWizard() {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl p-6 max-w-md mx-4 shadow-2xl">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-bold text-gray-900">
-                Keyboard Shortcuts
-              </h3>
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => setShowHelp(false)}
-                className="h-8 w-8 p-0"
-              >
+              <h3 className="text-lg font-bold text-gray-900">Keyboard Shortcuts</h3>
+              <Button size="sm" variant="ghost" onClick={() => setShowHelp(false)} className="h-8 w-8 p-0">
                 ×
               </Button>
             </div>
@@ -1018,21 +966,15 @@ export function InstallationWizard() {
             <div className="space-y-3 text-sm">
               <div className="flex justify-between items-center">
                 <span>Open Search</span>
-                <kbd className="px-2 py-1 bg-gray-100 rounded text-xs">
-                  Ctrl+K
-                </kbd>
+                <kbd className="px-2 py-1 bg-gray-100 rounded text-xs">Ctrl+K</kbd>
               </div>
               <div className="flex justify-between items-center">
                 <span>Quick Snippet Filter</span>
-                <kbd className="px-2 py-1 bg-gray-100 rounded text-xs">
-                  Ctrl+1-9
-                </kbd>
+                <kbd className="px-2 py-1 bg-gray-100 rounded text-xs">Ctrl+1-9</kbd>
               </div>
               <div className="flex justify-between items-center">
                 <span>Show Help</span>
-                <kbd className="px-2 py-1 bg-gray-100 rounded text-xs">
-                  Ctrl+H
-                </kbd>
+                <kbd className="px-2 py-1 bg-gray-100 rounded text-xs">Ctrl+H</kbd>
               </div>
               <div className="flex justify-between items-center">
                 <span>Clear Filter/Close</span>
@@ -1042,8 +984,8 @@ export function InstallationWizard() {
 
             <div className="mt-4 pt-4 border-t border-gray-200">
               <p className="text-xs text-gray-600">
-                💡 <strong>Tip:</strong> Use Ctrl+K to search and filter
-                snippets, or Ctrl+1-9 to quickly filter to specific snippets!
+                💡 <strong>Tip:</strong> Use Ctrl+K to search and filter snippets, or Ctrl+1-9 to quickly filter to
+                specific snippets!
               </p>
             </div>
           </div>
@@ -1092,17 +1034,14 @@ export function InstallationWizard() {
                       <div className="flex items-center gap-4">
                         <div
                           className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-                            result.type === "snippet"
-                              ? "bg-purple-500"
-                              : "bg-blue-500"
+                            result.type === "snippet" ? "bg-purple-500" : "bg-blue-500"
                           } text-white`}
                         >
                           {result.type === "snippet" ? (
                             <Code className="w-5 h-5" />
                           ) : (
                             <div className="text-sm font-bold">
-                              {sections.find((s) => s.id === result.section)
-                                ?.number || "?"}
+                              {sections.find((s) => s.id === result.section)?.number || "?"}
                             </div>
                           )}
                         </div>
@@ -1119,20 +1058,13 @@ export function InstallationWizard() {
                           <div className="text-sm text-gray-500 mt-1">
                             {result.type === "snippet"
                               ? "Code Snippet"
-                              : `${
-                                  sections.find((s) => s.id === result.section)
-                                    ?.title || result.section
-                                }`}
+                              : `${sections.find((s) => s.id === result.section)?.title || result.section}`}
                           </div>
-                          <div className="text-xs text-gray-400 mt-1 line-clamp-2">
-                            {result.content}
-                          </div>
+                          <div className="text-xs text-gray-400 mt-1 line-clamp-2">{result.content}</div>
                         </div>
                         <ChevronRight
                           className={`w-5 h-5 transition-colors ${
-                            index === selectedResultIndex
-                              ? "text-blue-500"
-                              : "text-gray-400 group-hover:text-blue-500"
+                            index === selectedResultIndex ? "text-blue-500" : "text-gray-400 group-hover:text-blue-500"
                           }`}
                         />
                       </div>
@@ -1142,29 +1074,14 @@ export function InstallationWizard() {
               ) : (
                 <div className="p-8 text-center text-gray-500">
                   <Search className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-                  <p className="text-lg font-medium mb-2">
-                    Search AttendancePlus Installation
-                  </p>
-                  <p className="text-sm">
-                    Find installation steps, code snippets, and configuration
-                    files
-                  </p>
+                  <p className="text-lg font-medium mb-2">Search AttendancePlus Installation</p>
+                  <p className="text-sm">Find installation steps, code snippets, and configuration files</p>
                   <div className="mt-4 flex flex-wrap gap-2 justify-center">
-                    <span className="px-3 py-1 bg-gray-100 rounded-full text-xs">
-                      IIS Setup
-                    </span>
-                    <span className="px-3 py-1 bg-gray-100 rounded-full text-xs">
-                      MongoDB
-                    </span>
-                    <span className="px-3 py-1 bg-gray-100 rounded-full text-xs">
-                      SQL Server
-                    </span>
-                    <span className="px-3 py-1 bg-gray-100 rounded-full text-xs">
-                      Web.config
-                    </span>
-                    <span className="px-3 py-1 bg-gray-100 rounded-full text-xs">
-                      Bookmarks
-                    </span>
+                    <span className="px-3 py-1 bg-gray-100 rounded-full text-xs">IIS Setup</span>
+                    <span className="px-3 py-1 bg-gray-100 rounded-full text-xs">MongoDB</span>
+                    <span className="px-3 py-1 bg-gray-100 rounded-full text-xs">SQL Server</span>
+                    <span className="px-3 py-1 bg-gray-100 rounded-full text-xs">Web.config</span>
+                    <span className="px-3 py-1 bg-gray-100 rounded-full text-xs">Bookmarks</span>
                   </div>
                 </div>
               )}
@@ -1174,22 +1091,16 @@ export function InstallationWizard() {
             <div className="p-3 border-t border-gray-100 bg-gray-50 text-xs text-gray-500 flex items-center justify-between">
               <div className="flex items-center gap-4">
                 <span className="flex items-center gap-1">
-                  <kbd className="px-1.5 py-0.5 bg-white rounded text-xs">
-                    ↑↓
-                  </kbd>
+                  <kbd className="px-1.5 py-0.5 bg-white rounded text-xs">↑↓</kbd>
                   Navigate
                 </span>
                 <span className="flex items-center gap-1">
-                  <kbd className="px-1.5 py-0.5 bg-white rounded text-xs">
-                    Enter
-                  </kbd>
+                  <kbd className="px-1.5 py-0.5 bg-white rounded text-xs">Enter</kbd>
                   Select
                 </span>
               </div>
               <span className="flex items-center gap-1">
-                <kbd className="px-1.5 py-0.5 bg-white rounded text-xs">
-                  Esc
-                </kbd>
+                <kbd className="px-1.5 py-0.5 bg-white rounded text-xs">Esc</kbd>
                 Close
               </span>
             </div>
@@ -1197,5 +1108,5 @@ export function InstallationWizard() {
         </div>
       )}
     </div>
-  );
+  )
 }

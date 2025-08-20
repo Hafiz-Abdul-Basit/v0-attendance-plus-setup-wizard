@@ -171,63 +171,98 @@ sqlcmd -S localhost -d MyDatabase -E -i "C:\\Scripts\\Migration.sql" -b -V 16`,
   },
   {
     id: "user-data-table",
-    title: "User Management Data Structure",
-    description:
-      "Sample user data table structure with campus assignments and role information based on Excel template",
-    content: `-- User Management Data Structure
--- Based on Excel template with Username, Email, CampusID, FirstName, LastName, RoleId
-
-CREATE TABLE Users (
-    Username NVARCHAR(50) PRIMARY KEY,
-    Email NVARCHAR(100) NOT NULL,
-    CampusID NVARCHAR(10),
-    FirstName NVARCHAR(50),
-    LastName NVARCHAR(50),
-    RoleId INT
-);
-
--- Sample Data Insert (Based on Excel Template)
-INSERT INTO Users (Username, Email, CampusID, FirstName, LastName, RoleId) VALUES
-('Abdul.Basit', 'Ab@raaweek12.com', 'ALL', 'Abdul', 'Basit', 1),
-('Ibteisam.Ahmed', 'IA@raaweek12.com', '1|4|7', 'Ibteisam', 'Ahmed', 2),
-('Yasir.Saeed', 'YS@raaweek12.com', '2', 'Yasir', 'Saeed', 4),
-('Muhammad.Ahsan', 'MA@raaweek12.com', '3', 'Muhammad', 'Ahsan', 1),
-('Shahzaib.Rehman', 'SR@raaweek12.com', '4', 'Shahzaib', 'Rehman', 3),
-('Islam.Khalil', 'IK@raaweek12.com', 'ALL', 'Islam', 'Khalil', 7),
-('Qasim.Khan', 'QK@raaweek12.com', '1', 'Qasim', 'Khan', 8),
-('Syed.Humail', 'SY@raaweek12.com', '3|1|5', 'Syed', 'Humail', 9),
-('Daniyal.Siddique', 'DS@raaweek12.com', '4', 'Daniyal', 'Siddique', 3),
-('Zafar.Khan', 'ZK@raaweek12.com', 'ALL', 'Zafar', 'Khan', 8);
-
--- Query to view all users with role information
-SELECT 
-    Username, 
-    Email, 
-    CampusID, 
-    FirstName, 
-    LastName, 
-    RoleId,
-    CASE 
-        WHEN CampusID = 'ALL' THEN 'All Campuses'
-        WHEN CampusID LIKE '%|%' THEN 'Multiple Campuses'
-        ELSE 'Single Campus'
-    END as CampusType
-FROM Users 
-ORDER BY LastName, FirstName;
-
--- Query users by specific campus
-SELECT * FROM Users 
-WHERE CampusID = '1' 
-   OR CampusID = 'ALL' 
-   OR CampusID LIKE '%|1|%' 
-   OR CampusID LIKE '1|%' 
-   OR CampusID LIKE '%|1';`,
+    title: "User Management Data Table",
+    description: "Interactive table with sample user data - view, edit, and download as Excel/CSV",
+    content: `INTERACTIVE_TABLE`,
     category: "User Management",
-    language: "SQL",
+    language: "Interactive",
     icon: "Users",
     color: "bg-purple-600",
-    tags: ["users", "data-structure", "campus", "roles", "management", "excel-template"],
+    tags: ["excel", "csv", "download", "interactive", "user-data", "table"],
     lastUsed: new Date("2024-01-10"),
+    isInteractive: true,
+    tableData: [
+      {
+        Username: "Abdul.Basit",
+        Email: "Ab@raaweek12.com",
+        CampusID: "ALL",
+        FirstName: "Abdul",
+        LastName: "Basit",
+        RoleId: 1,
+      },
+      {
+        Username: "Ibteisam.Ahmed",
+        Email: "IA@raaweek12.com",
+        CampusID: "1|4|7",
+        FirstName: "Ibteisam",
+        LastName: "Ahmed",
+        RoleId: 2,
+      },
+      {
+        Username: "Yasir.Saeed",
+        Email: "YS@raaweek12.com",
+        CampusID: "2",
+        FirstName: "Yasir",
+        LastName: "Saeed",
+        RoleId: 4,
+      },
+      {
+        Username: "Muhammad.Ahsan",
+        Email: "MA@raaweek12.com",
+        CampusID: "3",
+        FirstName: "Muhammad",
+        LastName: "Ahsan",
+        RoleId: 1,
+      },
+      {
+        Username: "Shahzaib.Rehman",
+        Email: "SR@raaweek12.com",
+        CampusID: "4",
+        FirstName: "Shahzaib",
+        LastName: "Rehman",
+        RoleId: 3,
+      },
+      {
+        Username: "Islam.Khalil",
+        Email: "IK@raaweek12.com",
+        CampusID: "ALL",
+        FirstName: "Islam",
+        LastName: "Khalil",
+        RoleId: 7,
+      },
+      {
+        Username: "Qasim.Khan",
+        Email: "QK@raaweek12.com",
+        CampusID: "1",
+        FirstName: "Qasim",
+        LastName: "Khan",
+        RoleId: 8,
+      },
+      {
+        Username: "Syed.Humail",
+        Email: "SY@raaweek12.com",
+        CampusID: "3|1|5",
+        FirstName: "Syed",
+        LastName: "Humail",
+        RoleId: 9,
+      },
+      {
+        Username: "Daniyal.Siddique",
+        Email: "DS@raaweek12.com",
+        CampusID: "4",
+        FirstName: "Daniyal",
+        LastName: "Siddique",
+        RoleId: 3,
+      },
+      {
+        Username: "Zafar.Khan",
+        Email: "ZK@raaweek12.com",
+        CampusID: "ALL",
+        FirstName: "Zafar",
+        LastName: "Khan",
+        RoleId: 8,
+      },
+    ],
   },
   {
     id: "user-roles-setup",
