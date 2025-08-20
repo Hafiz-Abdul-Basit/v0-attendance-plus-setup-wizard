@@ -20,25 +20,17 @@ import {
   Star,
   Download,
   Heart,
-  Clock,
-  Grid3X3,
-  List,
-  Tag,
   Zap,
-  RefreshCw,
   FileSpreadsheet,
   Table,
   Plus,
   Trash2,
   X,
   Search,
-  Folder,
-  FolderOpen,
   Copy,
 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { snippetsData } from "@/data/snippets"
 
@@ -233,8 +225,8 @@ function InteractiveTable({ snippet, onClose }: { snippet: any; onClose: () => v
           </div>
         </div>
 
-        {/* Table Container */}
-        <div className="flex-1 overflow-auto p-6">
+        {/* Table Container with proper scrolling */}
+        <div className="flex-1 overflow-auto p-6 custom-scrollbar">
           <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
             <table className="w-full">
               <thead className="bg-gradient-to-r from-purple-50 to-indigo-50">
@@ -453,305 +445,16 @@ export function SnippetsContent({ filteredSnippetId, onClearFilter }: SnippetsCo
   }, [])
 
   /** ------------------------------------------------------------
-   *  Render
+   *  Render - Show snippets by default
    *  ------------------------------------------------------------ */
   return (
     <div>
-      {/* Top Search Bar */}
-      <div className="mb-8 bg-gradient-to-br from-purple-50 via-indigo-50 to-blue-50 border-2 border-purple-200 rounded-2xl p-6 shadow-lg">
-        <div className="flex items-center gap-4 mb-6">
-          <div className="relative">
-            <div className="w-12 h-12 bg-gradient-to-r from-purple-600 via-indigo-600 to-blue-600 text-white rounded-xl flex items-center justify-center shadow-lg">
-              <Search className="w-6 h-6" />
-            </div>
-            <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-white animate-pulse"></div>
-          </div>
-          <div className="flex-1">
-            <h3 className="text-xl font-bold text-gray-900 mb-2">🔍 Smart Code Search</h3>
-            <p className="text-sm text-gray-700 leading-relaxed">
-              Instantly find snippets by title, description, content, or tags. Use keyboard shortcuts for lightning-fast
-              access.
-            </p>
-          </div>
-          <div className="flex items-center gap-3">
-            {/* Stats Cards */}
-            <div className="bg-white/70 backdrop-blur-sm rounded-lg p-3 text-center border border-purple-200">
-              <div className="text-lg font-bold text-purple-600">{snippetsData.length}</div>
-              <div className="text-xs text-gray-600">Snippets</div>
-            </div>
-            <div className="bg-white/70 backdrop-blur-sm rounded-lg p-3 text-center border border-indigo-200">
-              <div className="text-lg font-bold text-indigo-600">{Object.keys(folders).length}</div>
-              <div className="text-xs text-gray-600">Categories</div>
-            </div>
-            <div className="bg-white/70 backdrop-blur-sm rounded-lg p-3 text-center border border-blue-200">
-              <div className="text-lg font-bold text-blue-600">{favorites.size}</div>
-              <div className="text-xs text-gray-600">Favorites</div>
-            </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={exportSnippets}
-              className="gap-2 border-purple-300 text-purple-700 hover:bg-purple-100 bg-white/70 backdrop-blur-sm shadow-sm"
-            >
-              <Download className="w-4 h-4" />
-              Export All
-            </Button>
-          </div>
-        </div>
-
-        {/* Enhanced Search Input */}
-        <div className="relative">
-          <div className="absolute left-4 top-1/2 -translate-y-1/2 flex items-center gap-2">
-            <Search className="w-5 h-5 text-purple-500" />
-            <div className="h-4 w-px bg-purple-300"></div>
-          </div>
-          <Input
-            value={localSearchQuery}
-            onChange={(e) => handleSearch(e.target.value)}
-            placeholder="🚀 Search snippets by title, description, content, or tags..."
-            className="pl-16 pr-12 py-4 text-base border-2 border-purple-300 focus:border-purple-500 focus:ring-purple-300 bg-white/80 backdrop-blur-sm rounded-xl shadow-sm hover:shadow-md transition-all duration-200 placeholder:text-gray-500"
-          />
-          {localSearchQuery && (
-            <Button
-              size="icon"
-              variant="ghost"
-              onClick={() => setLocalSearchQuery("")}
-              className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 hover:bg-purple-100 text-purple-600 rounded-lg"
-            >
-              <X className="w-4 h-4" />
-            </Button>
-          )}
-
-          {/* Search shortcuts hint */}
-          <div className="absolute right-14 top-1/2 -translate-y-1/2 hidden md:flex items-center gap-1 text-xs text-gray-500">
-            <kbd className="px-1.5 py-0.5 bg-gray-100 rounded text-xs">Ctrl</kbd>
-            <span>+</span>
-            <kbd className="px-1.5 py-0.5 bg-gray-100 rounded text-xs">K</kbd>
-          </div>
-        </div>
-
-        {/* Search History with better styling */}
-        {searchHistory.length > 0 && !localSearchQuery && (
-          <div className="mt-4 flex items-center gap-3">
-            <div className="flex items-center gap-2 text-purple-600">
-              <Clock className="w-4 h-4" />
-              <span className="text-sm font-medium">Recent searches:</span>
-            </div>
-            <div className="flex gap-2 flex-wrap">
-              {searchHistory.map((term, index) => (
-                <button
-                  key={index}
-                  onClick={() => setLocalSearchQuery(term)}
-                  className="px-3 py-1.5 bg-white/80 backdrop-blur-sm text-purple-700 rounded-lg text-xs hover:bg-purple-100 transition-all duration-200 border border-purple-200 shadow-sm hover:shadow-md"
-                >
-                  {term}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Folder Navigation */}
-      {!filteredSnippetId && !localSearchQuery && (
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-3">
-              <Folder className="w-5 h-5 text-gray-600" />
-              <h3 className="text-lg font-semibold text-gray-900">Browse by Category</h3>
-            </div>
-
-            {/* Category controls on the right */}
-            <div className="flex items-center gap-3">
-              {selectedFolder && (
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-gray-600 bg-gray-50 px-3 py-2 rounded-lg border">
-                    📂 {filteredSnippets.length} snippet{filteredSnippets.length !== 1 ? "s" : ""} in {selectedFolder}
-                  </span>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setSelectedFolder(null)}
-                    className="gap-2 text-gray-600 hover:text-gray-800 border-gray-300 hover:border-gray-400"
-                  >
-                    <RefreshCw className="w-4 h-4" />
-                    Reset
-                  </Button>
-                </div>
-              )}
-
-              {/* View Mode Toggle */}
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-medium text-gray-700">View:</span>
-                <div className="flex items-center border-2 border-gray-200 rounded-xl overflow-hidden bg-gray-50">
-                  <button
-                    onClick={() => setViewMode("grid")}
-                    className={`p-2.5 transition-all duration-200 ${
-                      viewMode === "grid"
-                        ? "bg-gradient-to-r from-purple-500 to-indigo-500 text-white shadow-md"
-                        : "text-gray-500 hover:bg-gray-100 hover:text-gray-700"
-                    }`}
-                  >
-                    <Grid3X3 className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={() => setViewMode("list")}
-                    className={`p-2.5 transition-all duration-200 ${
-                      viewMode === "list"
-                        ? "bg-gradient-to-r from-purple-500 to-indigo-500 text-white shadow-md"
-                        : "text-gray-500 hover:bg-gray-100 hover:text-gray-700"
-                    }`}
-                  >
-                    <List className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {Object.entries(folders).map(([folderName, folderInfo]) => {
-              const FolderIcon = iconMap[folderInfo.icon] || FileText
-              const count = getFolderStats(folderName)
-              const isSelected = selectedFolder === folderName
-
-              return (
-                <button
-                  key={folderName}
-                  onClick={() => setSelectedFolder(isSelected ? null : folderName)}
-                  className={`group relative p-4 rounded-xl border-2 transition-all duration-200 text-left ${
-                    isSelected
-                      ? "border-purple-300 bg-purple-50 shadow-lg scale-[1.02]"
-                      : "border-gray-200 hover:border-purple-200 hover:bg-purple-25 hover:shadow-md"
-                  }`}
-                >
-                  <div className="flex items-center gap-3 mb-2">
-                    <div
-                      className={`w-10 h-10 rounded-lg ${folderInfo.color} text-white flex items-center justify-center shadow-md group-hover:scale-110 transition-transform duration-200`}
-                    >
-                      {isSelected ? <FolderOpen className="w-5 h-5" /> : <FolderIcon className="w-5 h-5" />}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h4
-                        className={`font-semibold transition-colors ${isSelected ? "text-purple-900" : "text-gray-900 group-hover:text-purple-700"}`}
-                      >
-                        {folderName}
-                      </h4>
-                      <div className="flex items-center gap-2 mt-1">
-                        <span
-                          className={`text-xs px-2 py-1 rounded-full font-medium ${
-                            isSelected ? "bg-purple-200 text-purple-800" : "bg-gray-100 text-gray-600"
-                          }`}
-                        >
-                          {count} snippet{count !== 1 ? "s" : ""}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                  <p className="text-xs text-gray-600 line-clamp-2">{folderInfo.description}</p>
-                </button>
-              )
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* Active Filters */}
-      {(selectedFolder || localSearchQuery) && (
-        <div className="mb-6 flex items-center gap-2">
-          <span className="text-sm text-gray-600">Active filters:</span>
-          {selectedFolder && (
-            <div className="flex items-center gap-1 bg-purple-100 text-purple-800 px-3 py-1 rounded-full text-sm">
-              <Tag className="w-3 h-3" />
-              {selectedFolder}
-              <button onClick={() => setSelectedFolder(null)} className="ml-1 hover:bg-purple-200 rounded-full p-0.5">
-                <X className="w-3 h-3" />
-              </button>
-            </div>
-          )}
-          {localSearchQuery && (
-            <div className="flex items-center gap-1 bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm">
-              <Search className="w-3 h-3" />"{localSearchQuery}"
-              <button onClick={() => setLocalSearchQuery("")} className="ml-1 hover:bg-blue-200 rounded-full p-0.5">
-                <X className="w-3 h-3" />
-              </button>
-            </div>
-          )}
-          {filteredSnippetId && onClearFilter && (
-            <div className="flex items-center gap-1 bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm">
-              <Search className="w-3 h-3" />
-              Filtered View
-              <button onClick={onClearFilter} className="ml-1 hover:bg-green-200 rounded-full p-0.5">
-                <X className="w-3 h-3" />
-              </button>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Snippets Display */}
+      {/* Snippets Display - Show by default */}
       {filteredSnippets.length ? (
-        <div className={viewMode === "grid" ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" : "space-y-4"}>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredSnippets.map((snip) => {
             const Icon = iconMap[snip.icon] || FileText
             const isFavorite = favorites.has(snip.id)
-
-            if (viewMode === "list") {
-              return (
-                <div
-                  key={snip.id}
-                  className="group relative cursor-pointer rounded-xl border-2 border-gray-200 hover:border-purple-300 bg-white p-4 shadow-sm hover:shadow-lg transition-all duration-300 flex items-center gap-4"
-                  onClick={() => handleSnippetClick(snip)}
-                >
-                  <div
-                    className={`flex h-12 w-12 items-center justify-center rounded-lg ${snip.color} text-white shadow-md group-hover:scale-110 transition-transform duration-200 flex-shrink-0`}
-                  >
-                    <Icon className="h-6 w-6" />
-                  </div>
-
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <h3 className="font-semibold text-gray-900 group-hover:text-blue-600 transition-colors truncate">
-                        {snip.title}
-                      </h3>
-                      <span className="inline-block rounded-full bg-gray-100 px-2 py-1 text-xs font-medium text-gray-600 flex-shrink-0">
-                        {snip.category}
-                      </span>
-                    </div>
-                    <p className="text-sm text-gray-600 line-clamp-1">{snip.description}</p>
-                    <div className="flex items-center gap-2 mt-2">
-                      <span className="text-xs text-gray-400">{snip.language}</span>
-                      <span className="text-xs text-gray-400">•</span>
-                      <span className="text-xs text-gray-400">{new Date(snip.lastUsed).toLocaleDateString()}</span>
-                      <div className="flex gap-1 ml-auto">
-                        {snip.tags.slice(0, 3).map((tag) => (
-                          <span key={tag} className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded">
-                            {tag}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2 flex-shrink-0">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        toggleFavorite(snip.id)
-                      }}
-                      className={`p-2 rounded-lg transition-colors ${
-                        isFavorite
-                          ? "text-red-500 hover:bg-red-50"
-                          : "text-gray-400 hover:bg-gray-50 hover:text-red-500"
-                      }`}
-                    >
-                      <Heart className={`w-4 h-4 ${isFavorite ? "fill-current" : ""}`} />
-                    </button>
-                    <Copy className="w-4 h-4 text-gray-400 group-hover:text-purple-500 transition-colors" />
-                  </div>
-                </div>
-              )
-            }
 
             return (
               <div
@@ -824,18 +527,6 @@ export function SnippetsContent({ filteredSnippetId, onClearFilter }: SnippetsCo
           <p className="text-gray-400 text-sm mt-2">
             {selectedFolder ? `No snippets found in ${selectedFolder} folder` : "Try adjusting your search terms"}
           </p>
-          {(selectedFolder || localSearchQuery) && (
-            <Button
-              onClick={() => {
-                setSelectedFolder(null)
-                setLocalSearchQuery("")
-              }}
-              className="mt-4 gap-2"
-            >
-              <RefreshCw className="w-4 h-4" />
-              Clear All Filters
-            </Button>
-          )}
         </div>
       )}
 
@@ -900,7 +591,7 @@ export function SnippetsContent({ filteredSnippetId, onClearFilter }: SnippetsCo
                   </div>
                 </div>
 
-                <div className="flex-1 overflow-auto p-6">
+                <div className="flex-1 overflow-auto p-6 custom-scrollbar">
                   <pre className="text-green-400 text-sm font-mono whitespace-pre-wrap leading-relaxed">
                     {selectedSnippetCode}
                   </pre>

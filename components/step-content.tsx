@@ -1,21 +1,54 @@
 "use client"
 
+import { AlertDescription } from "@/components/ui/alert"
+
+import { Alert } from "@/components/ui/alert"
+
 import type React from "react"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Copy, ExternalLink, AlertTriangle, Info, CheckCircle, XCircle } from "lucide-react"
 import { toast } from "sonner"
 import Image from "next/image"
 import { Checkbox } from "@/components/ui/checkbox"
+import { copyToClipboard } from "@/utils/clipboard"
 
 interface StepContentProps {
-  activeSection: string
-  completedSteps: Record<string, boolean>
-  onToggleStep: (stepId: string) => void
+  title: string
+  description: string
+  content: React.ReactNode
+  tips?: string[]
+  warnings?: string[]
+  nextSteps?: string[]
+  codeSnippets?: Array<{
+    title: string
+    code: string
+    language: string
+  }>
+  images?: Array<{
+    src: string
+    alt: string
+    caption?: string
+  }>
+  activeSection?: string
+  completedSteps?: Record<string, boolean>
+  onToggleStep?: (stepId: string) => void
 }
 
-export function StepContent({ activeSection, completedSteps, onToggleStep }: StepContentProps) {
-  const copyToClipboard = (text: string) => {
+export function StepContent({
+  title,
+  description,
+  content,
+  tips = [],
+  warnings = [],
+  nextSteps = [],
+  codeSnippets = [],
+  images = [],
+  activeSection,
+  completedSteps,
+  onToggleStep,
+}: StepContentProps) {
+  const copyToClipboardOld = (text: string) => {
     navigator.clipboard.writeText(text)
     toast.success("Copied to clipboard!")
   }
@@ -27,7 +60,7 @@ export function StepContent({ activeSection, completedSteps, onToggleStep }: Ste
         size="sm"
         variant="ghost"
         className="absolute top-2 right-2 h-8 w-8 p-0 hover:bg-gray-700"
-        onClick={() => copyToClipboard(children)}
+        onClick={() => copyToClipboardOld(children)}
       >
         <Copy className="w-4 h-4 text-gray-400" />
       </Button>
@@ -149,7 +182,9 @@ Start-Process -FilePath "ChromeSetup.exe" -ArgumentList "/silent /install" -Wait
             >
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div className="space-y-4">
-                  <p className="text-gray-700">Add required IIS roles and features through PowerShell or Server Manager.</p>
+                  <p className="text-gray-700">
+                    Add required IIS roles and features through PowerShell or Server Manager.
+                  </p>
 
                   <div className="space-y-2">
                     <h4 className="font-semibold text-gray-900">PowerShell Method (Recommended):</h4>
@@ -168,7 +203,8 @@ Enable-WindowsOptionalFeature -Online -FeatureName IIS-ASPNET45`}
                   <Alert className="bg-amber-50 border-amber-200">
                     <AlertTriangle className="h-4 w-4 text-amber-600" />
                     <AlertDescription className="text-amber-800">
-                      <strong>Critical:</strong> Ensure Application Development features are enabled for ASP.NET Core hosting.
+                      <strong>Critical:</strong> Ensure Application Development features are enabled for ASP.NET Core
+                      hosting.
                     </AlertDescription>
                   </Alert>
                 </div>
@@ -182,7 +218,7 @@ Enable-WindowsOptionalFeature -Online -FeatureName IIS-ASPNET45`}
                     height={300}
                     className="rounded-lg border shadow-sm w-full"
                   />
-                  
+
                   <ErrorFix
                     error="HTTP Error 500.19 - Internal Server Error"
                     fix="Ensure ASP.NET Core Hosting Bundle is installed and Application Initialization is enabled in IIS features."
@@ -205,17 +241,39 @@ Enable-WindowsOptionalFeature -Online -FeatureName IIS-ASPNET45`}
                   <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                     <h4 className="font-semibold text-blue-900 mb-3">Updated Port Configuration:</h4>
                     <div className="grid grid-cols-2 gap-2 text-sm text-blue-800">
-                      <div>• Intervention API: <code className="bg-blue-100 px-1 rounded">7189</code></div>
-                      <div>• Analysis API: <code className="bg-blue-100 px-1 rounded">7296</code></div>
-                      <div>• Administration: <code className="bg-blue-100 px-1 rounded">7239</code></div>
-                      <div>• Court Management: <code className="bg-blue-100 px-1 rounded">7007</code></div>
-                      <div>• Identity API: <code className="bg-blue-100 px-1 rounded">7206</code></div>
-                      <div>• SentLetter API: <code className="bg-blue-100 px-1 rounded">7101</code></div>
-                      <div>• LetterDispatch API: <code className="bg-blue-100 px-1 rounded">7119</code></div>
-                      <div>• MessageHub API: <code className="bg-blue-100 px-1 rounded">7120</code></div>
-                      <div>• Miscellaneous: <code className="bg-blue-100 px-1 rounded">7061</code></div>
-                      <div>• Gateway: <code className="bg-blue-100 px-1 rounded">443</code></div>
-                      <div>• Angular Web: <code className="bg-blue-100 px-1 rounded">443</code></div>
+                      <div>
+                        • Intervention API: <code className="bg-blue-100 px-1 rounded">7189</code>
+                      </div>
+                      <div>
+                        • Analysis API: <code className="bg-blue-100 px-1 rounded">7296</code>
+                      </div>
+                      <div>
+                        • Administration: <code className="bg-blue-100 px-1 rounded">7239</code>
+                      </div>
+                      <div>
+                        • Court Management: <code className="bg-blue-100 px-1 rounded">7007</code>
+                      </div>
+                      <div>
+                        • Identity API: <code className="bg-blue-100 px-1 rounded">7206</code>
+                      </div>
+                      <div>
+                        • SentLetter API: <code className="bg-blue-100 px-1 rounded">7101</code>
+                      </div>
+                      <div>
+                        • LetterDispatch API: <code className="bg-blue-100 px-1 rounded">7119</code>
+                      </div>
+                      <div>
+                        • MessageHub API: <code className="bg-blue-100 px-1 rounded">7120</code>
+                      </div>
+                      <div>
+                        • Miscellaneous: <code className="bg-blue-100 px-1 rounded">7061</code>
+                      </div>
+                      <div>
+                        • Gateway: <code className="bg-blue-100 px-1 rounded">443</code>
+                      </div>
+                      <div>
+                        • Angular Web: <code className="bg-blue-100 px-1 rounded">443</code>
+                      </div>
                     </div>
                   </div>
 
@@ -261,7 +319,8 @@ New-WebBinding -Name "RK12.AttPlus.APIGateway" -Protocol https -Port 443 -IPAddr
                   <Alert className="bg-red-50 border-red-200">
                     <AlertTriangle className="h-4 w-4 text-red-600" />
                     <AlertDescription className="text-red-800">
-                      <strong>CRITICAL:</strong> .NET CLR Version MUST be "No Managed Code" and Identity MUST be "LocalSystem"
+                      <strong>CRITICAL:</strong> .NET CLR Version MUST be "No Managed Code" and Identity MUST be
+                      "LocalSystem"
                     </AlertDescription>
                   </Alert>
 
@@ -340,7 +399,8 @@ Start-Process -FilePath "dotnet-hosting.exe" -ArgumentList "/quiet" -Wait`}
                   <Alert className="bg-blue-50 border-blue-200">
                     <Info className="h-4 w-4 text-blue-600" />
                     <AlertDescription className="text-blue-800">
-                      Install both SDK (development) and Hosting Bundle (production). Hosting Bundle is required for IIS.
+                      Install both SDK (development) and Hosting Bundle (production). Hosting Bundle is required for
+                      IIS.
                     </AlertDescription>
                   </Alert>
                 </div>
@@ -373,12 +433,14 @@ Start-Process -FilePath "dotnet-hosting.exe" -ArgumentList "/quiet" -Wait`}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div className="space-y-4">
                   <p className="text-gray-700">Verify the installation by checking the .NET version.</p>
-                  
+
                   <div className="space-y-2">
                     <h4 className="font-semibold text-gray-900">Verification Commands:</h4>
                     <CodeBlock title="Check .NET Version">dotnet --version</CodeBlock>
                     <CodeBlock title="List Installed Runtimes">dotnet --list-runtimes</CodeBlock>
-                    <CodeBlock title="Check Hosting Bundle">reg query "HKEY_LOCAL_MACHINE\SOFTWARE\dotnet\Setup\InstalledVersions\x64\sharedhost" /v Version</CodeBlock>
+                    <CodeBlock title="Check Hosting Bundle">
+                      reg query "HKEY_LOCAL_MACHINE\SOFTWARE\dotnet\Setup\InstalledVersions\x64\sharedhost" /v Version
+                    </CodeBlock>
                   </div>
                 </div>
 
@@ -453,12 +515,16 @@ Start-Process -FilePath "dotnet-hosting.exe" -ArgumentList "/quiet" -Wait`}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div className="space-y-4">
                   <p className="text-gray-700">Download and install RabbitMQ server.</p>
-                  <ExternalLinkButton href="https://www.rabbitmq.com/download.html">Download RabbitMQ</ExternalLinkButton>
+                  <ExternalLinkButton href="https://www.rabbitmq.com/download.html">
+                    Download RabbitMQ
+                  </ExternalLinkButton>
 
                   <div className="space-y-2">
                     <h4 className="font-semibold text-gray-900">Installation Paths:</h4>
                     <CodeBlock title="RabbitMQ Installation">C:\Program Files\RabbitMQ Server</CodeBlock>
-                    <CodeBlock title="RabbitMQ sbin Directory">C:\Program Files\RabbitMQ Server\rabbitmq_server-3.x.x\sbin</CodeBlock>
+                    <CodeBlock title="RabbitMQ sbin Directory">
+                      C:\Program Files\RabbitMQ Server\rabbitmq_server-3.x.x\sbin
+                    </CodeBlock>
                   </div>
                 </div>
 
@@ -537,7 +603,7 @@ rabbitmq-plugins enable rabbitmq_management`}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div className="space-y-4">
                   <p className="text-gray-700">Restart the RabbitMQ server to apply changes.</p>
-                  
+
                   <div className="space-y-2">
                     <h4 className="font-semibold text-gray-900">Restart Commands:</h4>
                     <CodeBlock title="Restart RabbitMQ Service">
@@ -574,7 +640,7 @@ rabbitmqctl start_app`}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div className="space-y-4">
                   <p className="text-gray-700">Access the RabbitMQ management interface to verify installation.</p>
-                  
+
                   <Button variant="outline" asChild className="gap-2 bg-transparent">
                     <a href="http://localhost:15672" target="_blank" rel="noopener noreferrer">
                       <ExternalLink className="w-4 h-4" />
@@ -585,8 +651,12 @@ rabbitmqctl start_app`}
                   <div className="bg-green-50 border border-green-200 rounded-lg p-4">
                     <h4 className="font-semibold text-green-900 mb-2">Default Credentials:</h4>
                     <div className="text-sm text-green-800">
-                      <div>Username: <code className="bg-green-100 px-1 rounded">guest</code></div>
-                      <div>Password: <code className="bg-green-100 px-1 rounded">guest</code></div>
+                      <div>
+                        Username: <code className="bg-green-100 px-1 rounded">guest</code>
+                      </div>
+                      <div>
+                        Password: <code className="bg-green-100 px-1 rounded">guest</code>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -676,7 +746,9 @@ C:\\data\\db\\`}
             >
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div className="space-y-4">
-                  <p className="text-gray-700">Update MongoDB configuration file to enable replica set functionality.</p>
+                  <p className="text-gray-700">
+                    Update MongoDB configuration file to enable replica set functionality.
+                  </p>
 
                   <div className="space-y-2">
                     <h4 className="font-semibold text-gray-900">Configuration File Location:</h4>
@@ -786,7 +858,7 @@ rs.status()`}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div className="space-y-4">
                   <p className="text-gray-700">Set up document storage paths in the application configuration.</p>
-                  
+
                   <div className="space-y-2">
                     <h4 className="font-semibold text-gray-900">Create Document Directory:</h4>
                     <CodeBlock title="Create Directory">
@@ -1056,9 +1128,7 @@ GO`}
       case "webapi":
         return (
           <div>
-            <p className="text-gray-600 mb-6 text-lg">
-              Deploy and configure the AttendancePlus Web API services.
-            </p>
+            <p className="text-gray-600 mb-6 text-lg">Deploy and configure the AttendancePlus Web API services.</p>
 
             <StepItem
               stepNumber={1}
@@ -1300,7 +1370,7 @@ Get-ChildItem "C:\\RK12.AttPlus.Solution.US\\*\\appsettings.json" | ForEach-Obje
               </div>
             </StepItem>
           </div>
-        );
+        )
 
       case "angular":
         return (
@@ -1309,7 +1379,7 @@ Get-ChildItem "C:\\RK12.AttPlus.Solution.US\\*\\appsettings.json" | ForEach-Obje
               Build and deploy the AttendancePlus Angular frontend application.
             </p>
           </div>
-        );
+        )
 
       default:
         return (
@@ -1317,9 +1387,131 @@ Get-ChildItem "C:\\RK12.AttPlus.Solution.US\\*\\appsettings.json" | ForEach-Obje
             <h2 className="text-2xl font-bold mb-4">Welcome to AttendancePlus Installation</h2>
             <p className="text-gray-600">Select a section from the sidebar to begin the installation process.</p>
           </div>
-        );
+        )
     }
   }
 
-  return <div>{renderContent()}</div>;
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div>
+        <h2 className="text-2xl font-bold text-gray-900 mb-2">{title}</h2>
+        <p className="text-gray-600">{description}</p>
+      </div>
+
+      {/* Main Content */}
+      <Card>
+        <CardContent className="p-6">{renderContent()}</CardContent>
+      </Card>
+
+      {/* Images */}
+      {images.length > 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {images.map((image, index) => (
+            <Card key={index}>
+              <CardContent className="p-4">
+                <img
+                  src={image.src || "/placeholder.svg"}
+                  alt={image.alt}
+                  className="w-full h-auto rounded-lg border border-gray-200"
+                />
+                {image.caption && <p className="text-sm text-gray-600 mt-2 text-center">{image.caption}</p>}
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+
+      {/* Code Snippets */}
+      {codeSnippets.length > 0 && (
+        <div className="space-y-4">
+          <h3 className="text-lg font-semibold text-gray-900">Code Examples</h3>
+          {codeSnippets.map((snippet, index) => (
+            <Card key={index}>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base flex items-center justify-between">
+                  <span>{snippet.title}</span>
+                  <Button size="sm" variant="outline" onClick={() => copyToClipboard(snippet.code)} className="gap-2">
+                    <Copy className="w-4 h-4" />
+                    Copy
+                  </Button>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <pre className="bg-gray-900 text-green-400 p-4 rounded-lg overflow-x-auto text-sm">
+                  <code>{snippet.code}</code>
+                </pre>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+
+      {/* Warnings */}
+      {warnings.length > 0 && (
+        <Card className="border-orange-200 bg-orange-50">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-orange-800 flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5" />
+              Important Warnings
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ul className="space-y-2">
+              {warnings.map((warning, index) => (
+                <li key={index} className="text-orange-700 flex items-start gap-2">
+                  <span className="text-orange-500 mt-1">•</span>
+                  <span>{warning}</span>
+                </li>
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Tips */}
+      {tips.length > 0 && (
+        <Card className="border-blue-200 bg-blue-50">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-blue-800 flex items-center gap-2">
+              <Info className="w-5 h-5" />
+              Helpful Tips
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ul className="space-y-2">
+              {tips.map((tip, index) => (
+                <li key={index} className="text-blue-700 flex items-start gap-2">
+                  <span className="text-blue-500 mt-1">•</span>
+                  <span>{tip}</span>
+                </li>
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Next Steps */}
+      {nextSteps.length > 0 && (
+        <Card className="border-green-200 bg-green-50">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-green-800 flex items-center gap-2">
+              <CheckCircle className="w-5 h-5" />
+              Next Steps
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ol className="space-y-2">
+              {nextSteps.map((step, index) => (
+                <li key={index} className="text-green-700 flex items-start gap-2">
+                  <span className="text-green-600 font-semibold mt-1">{index + 1}.</span>
+                  <span>{step}</span>
+                </li>
+              ))}
+            </ol>
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  )
 }

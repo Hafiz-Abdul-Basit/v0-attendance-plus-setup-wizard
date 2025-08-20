@@ -17,3 +17,86 @@ Abdul Basit Apps - Useful Web Tools
  
 🚀 Aeries Data Extractor
 **URL:** https://github.com/Hafiz-Abdul-Basit/Aeries-Data-Extractor
+
+# Abdul Basit - Useful Applications and Tools
+# Personal collection of essential development tools
+
+## Development IDEs & Editors
+Visual Studio 2022 Community - https://visualstudio.microsoft.com/vs/community/
+Visual Studio Code - https://code.visualstudio.com/
+JetBrains Rider - https://www.jetbrains.com/rider/
+Sublime Text - https://www.sublimetext.com/
+Notepad++ - https://notepad-plus-plus.org/
+
+## Database Management
+SQL Server Management Studio (SSMS) - https://docs.microsoft.com/en-us/sql/ssms/
+Azure Data Studio - https://docs.microsoft.com/en-us/sql/azure-data-studio/
+MongoDB Compass - https://www.mongodb.com/products/compass
+Robo 3T - https://robomongo.org/
+DBeaver - https://dbeaver.io/
+
+## API Development & Testing
+Postman - https://www.postman.com/
+Insomnia - https://insomnia.rest/
+Swagger UI - https://swagger.io/tools/swagger-ui/
+Fiddler - https://www.telerik.com/fiddler
+Thunder Client (VS Code Extension)
+
+## Version Control
+Git - https://git-scm.com/
+GitHub Desktop - https://desktop.github.com/
+SourceTree - https://www.sourcetreeapp.com/
+TortoiseGit - https://tortoisegit.org/
+GitKraken - https://www.gitkraken.com/
+
+## Design & Prototyping
+Figma - https://www.figma.com/
+Adobe XD - https://www.adobe.com/products/xd.html
+Sketch - https://www.sketch.com/
+Canva - https://www.canva.com/
+Draw.io - https://app.diagrams.net/
+
+## Communication & Collaboration
+Slack - https://slack.com/
+Microsoft Teams - https://www.microsoft.com/en-us/microsoft-teams/
+Discord - https://discord.com/
+Zoom - https://zoom.us/
+Google Meet - https://meet.google.com/
+
+## Productivity Tools
+Notion - https://www.notion.so/
+Trello - https://trello.com/
+Asana - https://asana.com/
+Todoist - https://todoist.com/
+Evernote - https://evernote.com/
+
+## System Utilities
+Windows Terminal - https://www.microsoft.com/en-us/p/windows-terminal/
+PowerToys - https://github.com/microsoft/PowerToys
+7-Zip - https://www.7-zip.org/
+Everything Search - https://www.voidtools.com/
+Process Monitor - https://docs.microsoft.com/en-us/sysinternals/
+
+## Browser Extensions
+React Developer Tools
+Vue.js devtools
+Angular DevTools
+JSON Viewer
+Wappalyzer
+ColorZilla
+WhatFont
+Lighthouse
+
+## Mobile Development
+Android Studio - https://developer.android.com/studio
+Xcode - https://developer.apple.com/xcode/
+Flutter - https://flutter.dev/
+React Native - https://reactnative.dev/
+Expo - https://expo.dev/
+
+## Cloud & DevOps
+Docker Desktop - https://www.docker.com/products/docker-desktop
+Kubernetes - https://kubernetes.io/
+Azure CLI - https://docs.microsoft.com/en-us/cli/azure/
+AWS CLI - https://aws.amazon.com/cli/
+Terraform - https://www.terraform.io/

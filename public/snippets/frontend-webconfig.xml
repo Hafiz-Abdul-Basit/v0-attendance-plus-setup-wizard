@@ -8,11 +8,24 @@
           <conditions logicalGrouping="MatchAll">
             <add input="{REQUEST_FILENAME}" matchType="IsFile" negate="true" />
             <add input="{REQUEST_FILENAME}" matchType="IsDirectory" negate="true" />
-            <add input="{REQUEST_URI}" pattern="^/(api)" negate="true" />
           </conditions>
           <action type="Rewrite" url="/" />
         </rule>
       </rules>
     </rewrite>
+    <staticContent>
+      <mimeMap fileExtension=".json" mimeType="application/json" />
+      <mimeMap fileExtension=".woff" mimeType="application/font-woff" />
+      <mimeMap fileExtension=".woff2" mimeType="application/font-woff2" />
+    </staticContent>
+    <httpCompression>
+      <dynamicTypes>
+        <add mimeType="application/json" enabled="true" />
+      </dynamicTypes>
+      <staticTypes>
+        <add mimeType="application/font-woff" enabled="true" />
+        <add mimeType="application/font-woff2" enabled="true" />
+      </staticTypes>
+    </httpCompression>
   </system.webServer>
 </configuration>

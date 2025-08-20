@@ -10,7 +10,7 @@ GO
 -- =============================================
 -- Author:	Usama Ahmed
 -- Create date: 01 - August - 2025
--- Description:	This SP will be user to add or update a single user.
+-- Description:	This SP will be used to add or update a single user.
 -- =============================================
 CREATE OR ALTER     PROCEDURE [dbo].[spTDPS_AddOrUpdateAttPlusUser]
 	@emailaddress varchar(100),
@@ -49,7 +49,55 @@ BEGIN
 			)
 			BEGIN
 			
-			
+				-- User Creation Script for AttendancePlus
+				-- Creates database users and assigns appropriate roles
+				USE AttendancePlusDB;
+				GO
+
+				-- Create login at server level (run on master database)
+				-- USE master;
+				-- CREATE LOGIN [AttendanceApp] WITH PASSWORD = 'SecurePassword123!';
+
+				-- Create database user
+				CREATE USER [AttendanceApp] FOR LOGIN [AttendanceApp];
+
+				-- Add user to appropriate role
+				ALTER ROLE AttendanceAdmin ADD MEMBER [AttendanceApp];
+
+				-- Create additional users for different access levels
+				CREATE USER [AttendanceReadOnly] WITHOUT LOGIN;
+				ALTER ROLE AttendanceReporter ADD MEMBER [AttendanceReadOnly];
+
+				-- Create service account user
+				CREATE USER [AttendanceService] WITHOUT LOGIN;
+				ALTER ROLE AttendanceUser ADD MEMBER [AttendanceService];
+
+				-- Grant specific permissions
+				GRANT CONNECT TO [AttendanceApp];
+				GRANT CONNECT TO [AttendanceReadOnly];
+				GRANT CONNECT TO [AttendanceService];
+
+				-- Create application-specific stored procedures
+				CREATE OR ALTER PROCEDURE sp_GetUserPermissions
+				    @Username NVARCHAR(128)
+				AS
+				BEGIN
+				    SELECT 
+				        dp.name AS principal_name,
+				        dp.type_desc AS principal_type,
+				        o.name AS object_name,
+				        p.permission_name,
+				        p.state_desc AS permission_state
+				    FROM sys.database_permissions p
+				        LEFT JOIN sys.objects o ON p.major_id = o.object_id
+				        LEFT JOIN sys.database_principals dp ON p.grantee_principal_id = dp.principal_id
+				    WHERE dp.name = @Username;
+				END;
+				GO
+
+				USE [TDPS];
+				GO
+
 				DECLARE @PasswordHash UNIQUEIDENTIFIER = NEWID();
 				DECLARE @SecurityStamp UNIQUEIDENTIFIER = NEWID();
 				DECLARE @ConcurrencyStamp UNIQUEIDENTIFIER = NEWID();

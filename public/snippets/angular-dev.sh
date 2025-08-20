@@ -1,8 +1,29 @@
-# Serve with increased memory allocation
-node --max_old_space_size=8192 ./node_modules/@angular/cli/bin/ng serve
+#!/bin/bash
 
-# Alternative using npx
-npx --node-options="--max_old_space_size=8192" ng serve
+# Angular Development Environment Setup
+# This script sets up the Angular development environment for AttendancePlus
 
-# For production build with increased memory
-node --max_old_space_size=8192 ./node_modules/@angular/cli/bin/ng build --configuration production
+echo "Setting up Angular Development Environment..."
+
+# Install Node.js dependencies
+npm install
+
+# Install Angular CLI globally
+npm install -g @angular/cli@latest
+
+# Install project dependencies
+npm install @angular/material @angular/cdk @angular/animations
+npm install @angular/flex-layout
+npm install rxjs
+npm install moment
+
+# Development server commands
+echo "Available commands:"
+echo "npm start - Start development server"
+echo "ng build - Build for production"
+echo "ng test - Run unit tests"
+echo "ng e2e - Run end-to-end tests"
+
+# Start development server
+echo "Starting development server..."
+ng serve --host 0.0.0.0 --port 4200

@@ -1,556 +1,672 @@
 "use client"
 
 import type React from "react"
-import { useState, useRef } from "react"
+import { useState, useRef, useEffect } from "react"
 import {
   BookOpen,
-  Lightbulb,
-  Play,
-  Zap,
-  Layers,
-  MousePointer,
-  Sparkles,
-  Database,
-  Server,
-  Code,
-  Users,
-  Shield,
-  Globe,
-  Lock,
+  Settings,
+  FolderTree,
   Trash2,
-  X,
-  ChevronRight,
-  ChevronDown,
-  Heart,
+  Save,
+  Download,
+  Upload,
+  Edit3,
+  Eye,
+  Bold,
+  Italic,
+  Underline,
+  List,
+  ListOrdered,
+  Link,
+  Code,
+  Quote,
+  Undo,
+  Redo,
+  Plus,
+  FileText,
+  Zap,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { toast } from "sonner"
 
-// Drag and Drop Playground Component
-function DragDropPlayground() {
-  const [droppedItems, setDroppedItems] = useState<
-    Array<{ id: string; type: string; x: number; y: number; content: string }>
-  >([])
-  const [draggedItem, setDraggedItem] = useState<string | null>(null)
-  const playgroundRef = useRef<HTMLDivElement>(null)
+// Guide types
+const GUIDE_TYPES = [
+  {
+    id: "client-setup",
+    title: "Client Setup Guide",
+    description: "Complete guide for setting up new client environments",
+    icon: Settings,
+    color: "bg-blue-600",
+    defaultContent: `# Client Setup Guide
 
-  const availableItems = [
-    { id: "iis", type: "server", content: "IIS Web Server", icon: Server, color: "bg-blue-500" },
-    { id: "database", type: "database", content: "SQL Server", icon: Database, color: "bg-red-500" },
-    { id: "mongodb", type: "database", content: "MongoDB", icon: Database, color: "bg-green-500" },
-    { id: "api", type: "code", content: "Web API", icon: Code, color: "bg-purple-500" },
-    { id: "frontend", type: "code", content: "Angular App", icon: Globe, color: "bg-orange-500" },
-    { id: "auth", type: "security", content: "Authentication", icon: Shield, color: "bg-indigo-500" },
-  ]
+## Overview
+This guide will walk you through setting up a new client environment for AttendancePlus.
 
-  const handleDragStart = (e: React.DragEvent, itemId: string) => {
-    setDraggedItem(itemId)
-    e.dataTransfer.effectAllowed = "copy"
-  }
+## Prerequisites
+- Windows Server 2019 or later
+- SQL Server 2019 or later
+- IIS 10 or later
+- .NET 8 Runtime
 
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault()
-    if (!draggedItem || !playgroundRef.current) return
+## Step 1: Database Setup
+1. Create new database for the client
+2. Run migration scripts
+3. Configure connection strings
 
-    const rect = playgroundRef.current.getBoundingClientRect()
-    const x = e.clientX - rect.left
-    const y = e.clientY - rect.top
+## Step 2: Application Configuration
+1. Deploy application files
+2. Configure IIS
+3. Set up SSL certificates
 
-    const item = availableItems.find((i) => i.id === draggedItem)
-    if (item) {
-      const newItem = {
-        id: `${item.id}-${Date.now()}`,
-        type: item.type,
-        x: Math.max(0, Math.min(x - 50, rect.width - 100)),
-        y: Math.max(0, Math.min(y - 25, rect.height - 50)),
-        content: item.content,
-      }
-      setDroppedItems((prev) => [...prev, newItem])
-      toast.success(`Added ${item.content} to playground!`)
-    }
-    setDraggedItem(null)
-  }
+## Step 3: User Setup
+1. Create admin user
+2. Configure roles and permissions
+3. Set up campus assignments
 
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault()
-    e.dataTransfer.dropEffect = "copy"
-  }
+## Step 4: Testing
+1. Test login functionality
+2. Verify database connectivity
+3. Check all modules
 
-  const removeItem = (id: string) => {
-    setDroppedItems((prev) => prev.filter((item) => item.id !== id))
-  }
+## Troubleshooting
+Common issues and solutions...`,
+  },
+  {
+    id: "folder-structure",
+    title: "Folder Structure Guide",
+    description: "Standard folder structure and organization guidelines",
+    icon: FolderTree,
+    color: "bg-green-600",
+    defaultContent: `# Folder Structure Guide
 
-  const clearPlayground = () => {
-    setDroppedItems([])
-    toast.success("Playground cleared!")
-  }
+## Project Structure
+\`\`\`
+AttendancePlus/
+├── src/
+│   ├── Frontend/
+│   │   ├── src/
+│   │   │   ├── app/
+│   │   │   ├── assets/
+│   │   │   └── environments/
+│   │   └── dist/
+│   ├── Backend/
+│   │   ├── Controllers/
+│   │   ├── Models/
+│   │   ├── Services/
+│   │   └── Data/
+│   └── Database/
+│       ├── Scripts/
+│       ├── Migrations/
+│       └── Backups/
+├── docs/
+├── tests/
+└── deployment/
+    ├── IIS/
+    ├── Scripts/
+    └── Configs/
+\`\`\`
 
+## Frontend Structure
+- **src/app/**: Main application components
+- **src/assets/**: Static files (images, fonts, etc.)
+- **src/environments/**: Environment configurations
+
+## Backend Structure
+- **Controllers/**: API controllers
+- **Models/**: Data models and DTOs
+- **Services/**: Business logic services
+- **Data/**: Database context and repositories
+
+## Database Structure
+- **Scripts/**: SQL scripts for setup
+- **Migrations/**: Database migration files
+- **Backups/**: Database backup files
+
+## Deployment Structure
+- **IIS/**: IIS configuration files
+- **Scripts/**: Deployment scripts
+- **Configs/**: Configuration templates`,
+  },
+  {
+    id: "cleanup-guide",
+    title: "Cleanup Guide",
+    description: "System cleanup and maintenance procedures",
+    icon: Trash2,
+    color: "bg-red-600",
+    defaultContent: `# Cleanup Guide
+
+## Database Cleanup
+
+### Log Table Cleanup
+\`\`\`sql
+-- Clean logs older than 30 days
+DELETE FROM SystemLogs 
+WHERE CreatedDate < DATEADD(day, -30, GETDATE())
+
+-- Clean audit logs older than 90 days
+DELETE FROM AuditLogs 
+WHERE CreatedDate < DATEADD(day, -90, GETDATE())
+\`\`\`
+
+### Temporary Data Cleanup
+\`\`\`sql
+-- Clean temporary attendance data
+DELETE FROM TempAttendance 
+WHERE ProcessedDate IS NOT NULL 
+AND ProcessedDate < DATEADD(day, -7, GETDATE())
+
+-- Clean expired sessions
+DELETE FROM UserSessions 
+WHERE ExpiryDate < GETDATE()
+\`\`\`
+
+## File System Cleanup
+
+### Log Files
+- Clean IIS logs older than 30 days
+- Clean application logs older than 60 days
+- Archive important logs before deletion
+
+### Temporary Files
+- Clean temp upload folders
+- Remove old backup files
+- Clear cache directories
+
+### Commands
+\`\`\`bash
+# Clean old log files
+find /var/log -name "*.log" -mtime +30 -delete
+
+# Clean temp directories
+rm -rf /tmp/uploads/*
+rm -rf /var/cache/app/*
+\`\`\`
+
+## Maintenance Schedule
+- **Daily**: Clean temp files and expired sessions
+- **Weekly**: Clean old logs and audit trails
+- **Monthly**: Archive important data and clean old backups
+- **Quarterly**: Full system cleanup and optimization
+
+## Monitoring
+Set up automated scripts to monitor:
+- Disk space usage
+- Database size growth
+- Log file sizes
+- System performance metrics`,
+  },
+]
+
+// Rich text editor toolbar
+function EditorToolbar({ onAction }: { onAction: (action: string, value?: string) => void }) {
   return (
-    <div className="bg-white rounded-2xl border-2 border-gray-200 shadow-lg overflow-hidden">
-      <div className="p-6 border-b border-gray-200 bg-gradient-to-r from-emerald-50 to-teal-50">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-lg flex items-center justify-center">
-              <Play className="w-5 h-5" />
-            </div>
-            <div>
-              <h3 className="text-lg font-bold text-gray-900">Architecture Playground</h3>
-              <p className="text-sm text-gray-600">Drag components to design your system architecture</p>
-            </div>
-          </div>
-          <Button
-            onClick={clearPlayground}
-            variant="outline"
-            size="sm"
-            className="gap-2 border-red-200 text-red-600 hover:bg-red-50 bg-transparent"
-          >
-            <Trash2 className="w-4 h-4" />
-            Clear
-          </Button>
-        </div>
+    <div className="flex items-center gap-1 p-2 border-b border-gray-200 bg-gray-50 flex-wrap">
+      <div className="flex items-center gap-1 border-r border-gray-300 pr-2 mr-2">
+        <Button size="sm" variant="ghost" onClick={() => onAction("undo")} className="h-8 w-8 p-0" title="Undo">
+          <Undo className="w-4 h-4" />
+        </Button>
+        <Button size="sm" variant="ghost" onClick={() => onAction("redo")} className="h-8 w-8 p-0" title="Redo">
+          <Redo className="w-4 h-4" />
+        </Button>
       </div>
 
-      <div className="flex h-96">
-        {/* Component Library */}
-        <div className="w-64 p-4 border-r border-gray-200 bg-gray-50">
-          <h4 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
-            <Layers className="w-4 h-4" />
-            Components
-          </h4>
-          <div className="space-y-2">
-            {availableItems.map((item) => {
-              const Icon = item.icon
-              return (
-                <div
-                  key={item.id}
-                  draggable
-                  onDragStart={(e) => handleDragStart(e, item.id)}
-                  className={`${item.color} text-white p-3 rounded-lg cursor-grab active:cursor-grabbing hover:scale-105 transition-transform shadow-md`}
-                >
-                  <div className="flex items-center gap-2">
-                    <Icon className="w-4 h-4" />
-                    <span className="text-sm font-medium">{item.content}</span>
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-        </div>
+      <div className="flex items-center gap-1 border-r border-gray-300 pr-2 mr-2">
+        <Button size="sm" variant="ghost" onClick={() => onAction("bold")} className="h-8 w-8 p-0" title="Bold">
+          <Bold className="w-4 h-4" />
+        </Button>
+        <Button size="sm" variant="ghost" onClick={() => onAction("italic")} className="h-8 w-8 p-0" title="Italic">
+          <Italic className="w-4 h-4" />
+        </Button>
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={() => onAction("underline")}
+          className="h-8 w-8 p-0"
+          title="Underline"
+        >
+          <Underline className="w-4 h-4" />
+        </Button>
+      </div>
 
-        {/* Playground Area */}
-        <div className="flex-1 relative">
-          <div
-            ref={playgroundRef}
-            onDrop={handleDrop}
-            onDragOver={handleDragOver}
-            className="w-full h-full bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 relative overflow-hidden"
-            style={{
-              backgroundImage: "radial-gradient(circle at 1px 1px, rgba(0,0,0,0.1) 1px, transparent 0)",
-              backgroundSize: "20px 20px",
-            }}
-          >
-            {droppedItems.length === 0 && (
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="text-center text-gray-400">
-                  <MousePointer className="w-12 h-12 mx-auto mb-4" />
-                  <p className="text-lg font-medium">Drop components here</p>
-                  <p className="text-sm">Drag items from the left to build your architecture</p>
-                </div>
-              </div>
-            )}
+      <div className="flex items-center gap-1 border-r border-gray-300 pr-2 mr-2">
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={() => onAction("insertUnorderedList")}
+          className="h-8 w-8 p-0"
+          title="Bullet List"
+        >
+          <List className="w-4 h-4" />
+        </Button>
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={() => onAction("insertOrderedList")}
+          className="h-8 w-8 p-0"
+          title="Numbered List"
+        >
+          <ListOrdered className="w-4 h-4" />
+        </Button>
+      </div>
 
-            {droppedItems.map((item) => {
-              const originalItem = availableItems.find((i) => i.type === item.type)
-              const Icon = originalItem?.icon || Code
-              const color = originalItem?.color || "bg-gray-500"
+      <div className="flex items-center gap-1 border-r border-gray-300 pr-2 mr-2">
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={() => {
+            const url = prompt("Enter URL:")
+            if (url) onAction("createLink", url)
+          }}
+          className="h-8 w-8 p-0"
+          title="Insert Link"
+        >
+          <Link className="w-4 h-4" />
+        </Button>
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={() => onAction("insertHTML", "<code></code>")}
+          className="h-8 w-8 p-0"
+          title="Code"
+        >
+          <Code className="w-4 h-4" />
+        </Button>
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={() => onAction("formatBlock", "blockquote")}
+          className="h-8 w-8 p-0"
+          title="Quote"
+        >
+          <Quote className="w-4 h-4" />
+        </Button>
+      </div>
 
-              return (
-                <div
-                  key={item.id}
-                  className={`absolute ${color} text-white p-2 rounded-lg shadow-lg cursor-move group hover:scale-110 transition-transform`}
-                  style={{ left: item.x, top: item.y }}
-                >
-                  <div className="flex items-center gap-2">
-                    <Icon className="w-4 h-4" />
-                    <span className="text-xs font-medium">{item.content}</span>
-                    <button
-                      onClick={() => removeItem(item.id)}
-                      className="opacity-0 group-hover:opacity-100 ml-1 hover:bg-white/20 rounded p-0.5 transition-opacity"
-                    >
-                      <X className="w-3 h-3" />
-                    </button>
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-        </div>
+      <div className="flex items-center gap-1">
+        <select
+          onChange={(e) => onAction("formatBlock", e.target.value)}
+          className="h-8 px-2 text-sm border border-gray-300 rounded"
+          defaultValue=""
+        >
+          <option value="">Format</option>
+          <option value="h1">Heading 1</option>
+          <option value="h2">Heading 2</option>
+          <option value="h3">Heading 3</option>
+          <option value="p">Paragraph</option>
+        </select>
       </div>
     </div>
   )
 }
 
-// Interactive Guide Card Component
-function GuideCard({
-  title,
-  description,
-  icon: Icon,
-  color,
-  children,
-  isExpanded,
-  onToggle,
+// Rich text editor component
+function RichTextEditor({
+  content,
+  onChange,
+  placeholder = "Start typing...",
 }: {
-  title: string
-  description: string
-  icon: any
-  color: string
-  children: React.ReactNode
-  isExpanded: boolean
-  onToggle: () => void
+  content: string
+  onChange: (content: string) => void
+  placeholder?: string
 }) {
+  const editorRef = useRef<HTMLDivElement>(null)
+  const [isPreview, setIsPreview] = useState(false)
+
+  useEffect(() => {
+    if (editorRef.current && !isPreview) {
+      editorRef.current.innerHTML = content
+    }
+  }, [content, isPreview])
+
+  const handleAction = (action: string, value?: string) => {
+    if (editorRef.current) {
+      editorRef.current.focus()
+      document.execCommand(action, false, value)
+      handleContentChange()
+    }
+  }
+
+  const handleContentChange = () => {
+    if (editorRef.current) {
+      onChange(editorRef.current.innerHTML)
+    }
+  }
+
+  const handlePaste = (e: React.ClipboardEvent) => {
+    e.preventDefault()
+    const text = e.clipboardData.getData("text/html") || e.clipboardData.getData("text/plain")
+    document.execCommand("insertHTML", false, text)
+    handleContentChange()
+  }
+
   return (
-    <div className="bg-white rounded-2xl border-2 border-gray-200 shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300">
-      <div className={`p-6 ${color} cursor-pointer`} onClick={onToggle}>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center">
-              <Icon className="w-6 h-6 text-white" />
-            </div>
-            <div>
-              <h3 className="text-xl font-bold text-white">{title}</h3>
-              <p className="text-white/80 text-sm">{description}</p>
-            </div>
-          </div>
-          <div className="text-white">
-            {isExpanded ? <ChevronDown className="w-6 h-6" /> : <ChevronRight className="w-6 h-6" />}
-          </div>
-        </div>
+    <div className="border border-gray-300 rounded-lg overflow-hidden bg-white">
+      <div className="flex items-center justify-between p-2 bg-gray-50 border-b border-gray-200">
+        <EditorToolbar onAction={handleAction} />
+        <Button size="sm" variant="ghost" onClick={() => setIsPreview(!isPreview)} className="gap-2">
+          {isPreview ? <Edit3 className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+          {isPreview ? "Edit" : "Preview"}
+        </Button>
       </div>
 
-      {isExpanded && <div className="p-6 border-t border-gray-200">{children}</div>}
+      {isPreview ? (
+        <div
+          className="p-4 min-h-[400px] max-h-[500px] overflow-y-auto prose prose-sm max-w-none"
+          dangerouslySetInnerHTML={{ __html: content }}
+        />
+      ) : (
+        <div
+          ref={editorRef}
+          contentEditable
+          onInput={handleContentChange}
+          onPaste={handlePaste}
+          className="p-4 min-h-[400px] max-h-[500px] overflow-y-auto outline-none prose prose-sm max-w-none"
+          style={{ whiteSpace: "pre-wrap" }}
+          data-placeholder={placeholder}
+        />
+      )}
     </div>
+  )
+}
+
+// Guide editor modal
+function GuideEditor({
+  guide,
+  isOpen,
+  onClose,
+  onSave,
+}: {
+  guide: any
+  isOpen: boolean
+  onClose: () => void
+  onSave: (content: string) => void
+}) {
+  const [content, setContent] = useState(guide?.defaultContent || "")
+  const [title, setTitle] = useState(guide?.title || "")
+
+  useEffect(() => {
+    if (guide) {
+      setContent(guide.defaultContent || "")
+      setTitle(guide.title || "")
+    }
+  }, [guide])
+
+  const handleSave = () => {
+    onSave(content)
+    toast.success("Guide saved successfully!")
+  }
+
+  const handleExport = () => {
+    const blob = new Blob([content], { type: "text/html" })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement("a")
+    a.href = url
+    a.download = `${title.toLowerCase().replace(/\s+/g, "-")}.html`
+    a.click()
+    URL.revokeObjectURL(url)
+    toast.success("Guide exported successfully!")
+  }
+
+  const handleImport = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      const reader = new FileReader()
+      reader.onload = (e) => {
+        const content = e.target?.result as string
+        setContent(content)
+        toast.success("Content imported successfully!")
+      }
+      reader.readAsText(file)
+    }
+  }
+
+  if (!guide) return null
+
+  const Icon = guide.icon
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="max-w-7xl w-[95vw] h-[95vh] flex flex-col p-0 overflow-hidden">
+        <DialogHeader className="px-6 py-4 border-b border-gray-200 flex-shrink-0">
+          <DialogTitle className="flex items-center gap-3">
+            <div
+              className={`flex h-10 w-10 items-center justify-center rounded-lg ${guide.color} text-white shadow-lg`}
+            >
+              <Icon className="h-5 w-5" />
+            </div>
+            <div className="flex-1">
+              <input
+                type="text"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                className="text-xl font-bold text-gray-900 bg-transparent border-none outline-none w-full"
+              />
+              <p className="text-sm text-gray-600 mt-1">{guide.description}</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <input type="file" accept=".html,.txt,.md" onChange={handleImport} className="hidden" id="import-file" />
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => document.getElementById("import-file")?.click()}
+                className="gap-2"
+              >
+                <Upload className="h-4 w-4" />
+                Import
+              </Button>
+              <Button size="sm" variant="outline" onClick={handleExport} className="gap-2 bg-transparent">
+                <Download className="h-4 w-4" />
+                Export
+              </Button>
+              <Button size="sm" onClick={handleSave} className="gap-2">
+                <Save className="h-4 w-4" />
+                Save
+              </Button>
+            </div>
+          </DialogTitle>
+        </DialogHeader>
+
+        <div className="flex-1 flex flex-col min-h-0 p-6 overflow-hidden">
+          <RichTextEditor content={content} onChange={setContent} placeholder="Start writing your guide..." />
+        </div>
+      </DialogContent>
+    </Dialog>
   )
 }
 
 export function InteractiveGuides() {
-  const [expandedGuide, setExpandedGuide] = useState<string | null>("architecture")
-  const [favorites, setFavorites] = useState<Set<string>>(new Set())
+  const [selectedGuide, setSelectedGuide] = useState<any>(null)
+  const [isEditorOpen, setIsEditorOpen] = useState(false)
+  const [guides, setGuides] = useState(GUIDE_TYPES)
 
-  const toggleGuide = (guideId: string) => {
-    setExpandedGuide(expandedGuide === guideId ? null : guideId)
+  const openGuide = (guide: any) => {
+    setSelectedGuide(guide)
+    setIsEditorOpen(true)
   }
 
-  const toggleFavorite = (guideId: string) => {
-    const newFavorites = new Set(favorites)
-    if (newFavorites.has(guideId)) {
-      newFavorites.delete(guideId)
-      toast.success("Removed from favorites")
-    } else {
-      newFavorites.add(guideId)
-      toast.success("Added to favorites")
+  const closeEditor = () => {
+    setIsEditorOpen(false)
+    setSelectedGuide(null)
+  }
+
+  const saveGuide = (content: string) => {
+    if (selectedGuide) {
+      setGuides(guides.map((guide) => (guide.id === selectedGuide.id ? { ...guide, defaultContent: content } : guide)))
     }
-    setFavorites(newFavorites)
   }
 
-  const guides = [
-    {
-      id: "architecture",
-      title: "System Architecture",
-      description: "Interactive system design and component relationships",
-      icon: Layers,
-      color: "bg-gradient-to-r from-blue-600 to-indigo-600",
-      content: <DragDropPlayground />,
-    },
-    {
-      id: "database",
-      title: "Database Design",
-      description: "Visual database schema and relationship builder",
-      icon: Database,
-      color: "bg-gradient-to-r from-green-600 to-emerald-600",
-      content: (
-        <div className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="p-4 bg-green-50 rounded-xl border border-green-200">
-              <h4 className="font-semibold text-green-900 mb-2 flex items-center gap-2">
-                <Database className="w-4 h-4" />
-                SQL Server Setup
-              </h4>
-              <ul className="text-sm text-green-800 space-y-1">
-                <li>• Install SQL Server 2019+</li>
-                <li>• Configure Mixed Mode Authentication</li>
-                <li>• Create AttendancePlus Database</li>
-                <li>• Set up backup strategy</li>
-              </ul>
-            </div>
-            <div className="p-4 bg-blue-50 rounded-xl border border-blue-200">
-              <h4 className="font-semibold text-blue-900 mb-2 flex items-center gap-2">
-                <Database className="w-4 h-4" />
-                MongoDB Configuration
-              </h4>
-              <ul className="text-sm text-blue-800 space-y-1">
-                <li>• Install MongoDB Community</li>
-                <li>• Configure Replica Set</li>
-                <li>• Set up document collections</li>
-                <li>• Configure indexes</li>
-              </ul>
-            </div>
-          </div>
-          <div className="p-4 bg-gray-50 rounded-xl">
-            <h4 className="font-semibold text-gray-900 mb-2">Connection String Examples</h4>
-            <div className="bg-gray-900 text-green-400 p-3 rounded-lg font-mono text-sm">
-              <div>SQL Server: Server=localhost;Database=AttendancePlus;Trusted_Connection=true;</div>
-              <div className="mt-2">MongoDB: mongodb://localhost:27017/attendanceplus?replicaSet=rs0</div>
-            </div>
-          </div>
-        </div>
-      ),
-    },
-    {
-      id: "deployment",
-      title: "Deployment Guide",
-      description: "Step-by-step deployment with best practices",
-      icon: Server,
-      color: "bg-gradient-to-r from-purple-600 to-pink-600",
-      content: (
-        <div className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="text-center p-4 bg-purple-50 rounded-xl">
-              <div className="w-12 h-12 bg-purple-500 text-white rounded-lg flex items-center justify-center mx-auto mb-3">
-                <Server className="w-6 h-6" />
-              </div>
-              <h4 className="font-semibold text-purple-900">IIS Setup</h4>
-              <p className="text-sm text-purple-700 mt-1">Configure web server</p>
-            </div>
-            <div className="text-center p-4 bg-pink-50 rounded-xl">
-              <div className="w-12 h-12 bg-pink-500 text-white rounded-lg flex items-center justify-center mx-auto mb-3">
-                <Code className="w-6 h-6" />
-              </div>
-              <h4 className="font-semibold text-pink-900">API Deployment</h4>
-              <p className="text-sm text-pink-700 mt-1">Deploy backend services</p>
-            </div>
-            <div className="text-center p-4 bg-indigo-50 rounded-xl">
-              <div className="w-12 h-12 bg-indigo-500 text-white rounded-lg flex items-center justify-center mx-auto mb-3">
-                <Globe className="w-6 h-6" />
-              </div>
-              <h4 className="font-semibold text-indigo-900">Frontend Build</h4>
-              <p className="text-sm text-indigo-700 mt-1">Angular application</p>
-            </div>
-          </div>
+  const createNewGuide = () => {
+    const title = prompt("Enter guide title:")
+    if (title) {
+      const newGuide = {
+        id: `custom-${Date.now()}`,
+        title,
+        description: "Custom guide",
+        icon: FileText,
+        color: "bg-gray-600",
+        defaultContent: `# ${title}\n\nStart writing your guide here...`,
+      }
+      setGuides([...guides, newGuide])
+      openGuide(newGuide)
+    }
+  }
 
-          <div className="bg-gradient-to-r from-purple-100 to-pink-100 p-6 rounded-xl">
-            <h4 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
-              <Zap className="w-5 h-5 text-purple-600" />
-              Quick Deployment Checklist
-            </h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <label className="flex items-center gap-2 text-sm">
-                  <input type="checkbox" className="rounded" />
-                  <span>Install .NET 8 Hosting Bundle</span>
-                </label>
-                <label className="flex items-center gap-2 text-sm">
-                  <input type="checkbox" className="rounded" />
-                  <span>Configure IIS Application Pools</span>
-                </label>
-                <label className="flex items-center gap-2 text-sm">
-                  <input type="checkbox" className="rounded" />
-                  <span>Set up SSL certificates</span>
-                </label>
-                <label className="flex items-center gap-2 text-sm">
-                  <input type="checkbox" className="rounded" />
-                  <span>Configure port bindings</span>
-                </label>
-              </div>
-              <div className="space-y-2">
-                <label className="flex items-center gap-2 text-sm">
-                  <input type="checkbox" className="rounded" />
-                  <span>Update connection strings</span>
-                </label>
-                <label className="flex items-center gap-2 text-sm">
-                  <input type="checkbox" className="rounded" />
-                  <span>Test API endpoints</span>
-                </label>
-                <label className="flex items-center gap-2 text-sm">
-                  <input type="checkbox" className="rounded" />
-                  <span>Verify database connectivity</span>
-                </label>
-                <label className="flex items-center gap-2 text-sm">
-                  <input type="checkbox" className="rounded" />
-                  <span>Configure logging</span>
-                </label>
-              </div>
-            </div>
-          </div>
-        </div>
-      ),
-    },
-    {
-      id: "security",
-      title: "Security Configuration",
-      description: "Authentication, authorization, and security best practices",
-      icon: Shield,
-      color: "bg-gradient-to-r from-red-600 to-orange-600",
-      content: (
-        <div className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="p-4 bg-red-50 rounded-xl border border-red-200">
-              <h4 className="font-semibold text-red-900 mb-3 flex items-center gap-2">
-                <Lock className="w-4 h-4" />
-                Authentication Setup
-              </h4>
-              <div className="space-y-2 text-sm text-red-800">
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-                  <span>Configure ASP.NET Identity</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-                  <span>Set up JWT tokens</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-                  <span>Configure password policies</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-                  <span>Enable two-factor authentication</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="p-4 bg-orange-50 rounded-xl border border-orange-200">
-              <h4 className="font-semibold text-orange-900 mb-3 flex items-center gap-2">
-                <Users className="w-4 h-4" />
-                Role Management
-              </h4>
-              <div className="space-y-2 text-sm text-orange-800">
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
-                  <span>Create user roles</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
-                  <span>Assign permissions</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
-                  <span>Configure claims</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
-                  <span>Set up campus assignments</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-gray-900 text-green-400 p-4 rounded-xl">
-            <h4 className="text-white font-semibold mb-2">Security Headers Configuration</h4>
-            <pre className="text-xs overflow-x-auto">
-              {`<httpProtocol>
-  <customHeaders>
-    <add name="X-Content-Type-Options" value="nosniff" />
-    <add name="X-Frame-Options" value="DENY" />
-    <add name="X-XSS-Protection" value="1; mode=block" />
-    <add name="Strict-Transport-Security" value="max-age=31536000" />
-  </customHeaders>
-</httpProtocol>`}
-            </pre>
-          </div>
-        </div>
-      ),
-    },
-  ]
+  const deleteGuide = (guideId: string) => {
+    if (confirm("Are you sure you want to delete this guide?")) {
+      setGuides(guides.filter((guide) => guide.id !== guideId))
+      toast.success("Guide deleted successfully!")
+    }
+  }
 
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div className="text-center">
-        <div className="flex items-center justify-center gap-3 mb-4">
-          <div className="w-16 h-16 bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 text-white rounded-2xl flex items-center justify-center shadow-lg">
-            <BookOpen className="w-8 h-8" />
-          </div>
-          <div className="text-left">
-            <h1 className="text-3xl font-bold text-gray-900">Interactive Guides</h1>
-            <p className="text-gray-600">Hands-on learning with drag & drop playground</p>
-          </div>
-        </div>
-
-        <div className="flex items-center justify-center gap-6 text-sm text-gray-600">
-          <div className="flex items-center gap-2">
-            <Sparkles className="w-4 h-4 text-emerald-500" />
-            <span>Interactive Components</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Play className="w-4 h-4 text-teal-500" />
-            <span>Drag & Drop Playground</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Lightbulb className="w-4 h-4 text-cyan-500" />
-            <span>Best Practices</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Interactive Guides */}
-      <div className="space-y-6">
-        {guides.map((guide) => (
-          <GuideCard
-            key={guide.id}
-            title={guide.title}
-            description={guide.description}
-            icon={guide.icon}
-            color={guide.color}
-            isExpanded={expandedGuide === guide.id}
-            onToggle={() => toggleGuide(guide.id)}
-          >
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => toggleFavorite(guide.id)}
-                  className={`gap-2 ${
-                    favorites.has(guide.id)
-                      ? "border-red-200 text-red-600 hover:bg-red-50"
-                      : "border-gray-200 text-gray-600 hover:bg-gray-50"
-                  }`}
-                >
-                  <Heart className={`w-4 h-4 ${favorites.has(guide.id) ? "fill-current" : ""}`} />
-                  {favorites.has(guide.id) ? "Favorited" : "Add to Favorites"}
-                </Button>
-              </div>
-              <div className="text-xs text-gray-500">Click and interact with the components below</div>
+      <div className="bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 border-2 border-indigo-200 rounded-2xl p-6 shadow-lg">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 text-white rounded-xl flex items-center justify-center shadow-lg">
+              <BookOpen className="w-6 h-6" />
             </div>
-            {guide.content}
-          </GuideCard>
-        ))}
+            <div>
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">📚 Interactive Setup Guides</h2>
+              <p className="text-gray-700">
+                Create, edit, and manage comprehensive setup guides with rich text editing
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <Button onClick={createNewGuide} className="gap-2 bg-indigo-600 hover:bg-indigo-700">
+              <Plus className="w-4 h-4" />
+              New Guide
+            </Button>
+          </div>
+        </div>
+
+        {/* Stats */}
+        <div className="flex gap-4">
+          <div className="bg-white/70 backdrop-blur-sm rounded-lg p-3 text-center border border-indigo-200">
+            <div className="text-lg font-bold text-indigo-600">{guides.length}</div>
+            <div className="text-xs text-gray-600">Total Guides</div>
+          </div>
+          <div className="bg-white/70 backdrop-blur-sm rounded-lg p-3 text-center border border-purple-200">
+            <div className="text-lg font-bold text-purple-600">
+              {guides.filter((g) => g.id.startsWith("custom-")).length}
+            </div>
+            <div className="text-xs text-gray-600">Custom Guides</div>
+          </div>
+          <div className="bg-white/70 backdrop-blur-sm rounded-lg p-3 text-center border border-pink-200">
+            <div className="text-lg font-bold text-pink-600">{GUIDE_TYPES.length}</div>
+            <div className="text-xs text-gray-600">Default Guides</div>
+          </div>
+        </div>
       </div>
 
-      {/* Tips Section */}
+      {/* Guides Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {guides.map((guide) => {
+          const Icon = guide.icon
+          const isCustom = guide.id.startsWith("custom-")
+
+          return (
+            <Card
+              key={guide.id}
+              className="border-2 hover:border-purple-300 transition-all duration-300 shadow-lg hover:shadow-xl cursor-pointer group"
+              onClick={() => openGuide(guide)}
+            >
+              <CardHeader className={`${guide.color} text-white rounded-t-lg relative`}>
+                <CardTitle className="flex items-center gap-3">
+                  <Icon className="w-6 h-6" />
+                  <div className="flex-1">
+                    <h3 className="text-lg font-bold">{guide.title}</h3>
+                    <p className="text-sm opacity-90 font-normal">{guide.description}</p>
+                  </div>
+                  {isCustom && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        deleteGuide(guide.id)
+                      }}
+                      className="opacity-0 group-hover:opacity-100 transition-opacity text-white hover:bg-white/20"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  )}
+                </CardTitle>
+              </CardHeader>
+
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2 text-sm text-gray-600">
+                    <Edit3 className="w-4 h-4" />
+                    <span>Click to edit</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {isCustom && (
+                      <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">Custom</span>
+                    )}
+                    <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-full">Rich Text</span>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2 text-sm text-gray-600">
+                    <Zap className="w-4 h-4 text-green-500" />
+                    <span>Word paste support</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm text-gray-600">
+                    <FileText className="w-4 h-4 text-blue-500" />
+                    <span>Rich formatting</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm text-gray-600">
+                    <Download className="w-4 h-4 text-purple-500" />
+                    <span>Export & Import</span>
+                  </div>
+                </div>
+
+                <div className="mt-4 pt-4 border-t border-gray-200">
+                  <Button
+                    className="w-full gap-2 group-hover:bg-purple-600 group-hover:text-white transition-colors bg-transparent"
+                    variant="outline"
+                  >
+                    <Edit3 className="w-4 h-4" />
+                    Open Editor
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )
+        })}
+      </div>
+
+      {/* Guide Editor Modal */}
+      <GuideEditor guide={selectedGuide} isOpen={isEditorOpen} onClose={closeEditor} onSave={saveGuide} />
+
+      {/* Features Section */}
       <div className="bg-gradient-to-r from-blue-50 via-purple-50 to-pink-50 rounded-2xl p-6 border-2 border-purple-200">
         <div className="flex items-center gap-3 mb-4">
           <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-lg flex items-center justify-center">
-            <Lightbulb className="w-5 h-5" />
+            <Zap className="w-5 h-5" />
           </div>
-          <h3 className="text-lg font-bold text-gray-900">Pro Tips</h3>
+          <h3 className="text-lg font-bold text-gray-900">Editor Features</h3>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           <div className="bg-white/70 backdrop-blur-sm p-4 rounded-xl border border-blue-200">
-            <h4 className="font-semibold text-blue-900 mb-2">🎯 Architecture Planning</h4>
-            <p className="text-sm text-blue-800">
-              Use the drag & drop playground to visualize your system before implementation.
-            </p>
+            <h4 className="font-semibold text-blue-900 mb-2">📝 Rich Text Editing</h4>
+            <p className="text-sm text-blue-800">Full WYSIWYG editor with formatting tools, lists, links, and more.</p>
           </div>
           <div className="bg-white/70 backdrop-blur-sm p-4 rounded-xl border border-purple-200">
-            <h4 className="font-semibold text-purple-900 mb-2">🔒 Security First</h4>
+            <h4 className="font-semibold text-purple-900 mb-2">📋 Word Paste Support</h4>
             <p className="text-sm text-purple-800">
-              Always configure security headers and authentication before going live.
+              Paste content directly from Microsoft Word with formatting preserved.
             </p>
           </div>
           <div className="bg-white/70 backdrop-blur-sm p-4 rounded-xl border border-pink-200">
-            <h4 className="font-semibold text-pink-900 mb-2">📊 Monitor Performance</h4>
-            <p className="text-sm text-pink-800">Set up logging and monitoring from day one to catch issues early.</p>
+            <h4 className="font-semibold text-pink-900 mb-2">💾 Import & Export</h4>
+            <p className="text-sm text-pink-800">Export guides as HTML or import from external files.</p>
           </div>
         </div>
       </div>

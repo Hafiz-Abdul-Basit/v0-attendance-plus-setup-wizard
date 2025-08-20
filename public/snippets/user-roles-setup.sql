@@ -1,27 +1,43 @@
---STEP #1 - ATTACH SCRIPT OF NETROLES
-INSERT [dbo].[AspNetRoles] ([Id], [ConcurrencyStamp], [Name], [NormalizedName], [Active], [CampusSelection]) 
-VALUES (N'1', NULL, N'CampusOfficer', N'CAMPUSOFFICER', 1, N'2');
+-- User Roles Setup for AttendancePlus
+-- This script creates the necessary roles and permissions
 
-INSERT [dbo].[AspNetRoles] ([Id], [ConcurrencyStamp], [Name], [NormalizedName], [Active], [CampusSelection]) 
-VALUES (N'2', NULL, N'Radmin', N'RADMIN', 1, N'2');
+USE AttendancePlusDB;
+GO
 
-INSERT [dbo].[AspNetRoles] ([Id], [ConcurrencyStamp], [Name], [NormalizedName], [Active], [CampusSelection]) 
-VALUES (N'3', NULL, N'CampusAttendanceOfficer', N'CAMPUSATTENDANCEOFFICER', 1, N'2');
+-- Create custom roles
+IF NOT EXISTS (SELECT * FROM sys.database_principals WHERE name = 'AttendanceAdmin')
+    CREATE ROLE AttendanceAdmin;
 
-INSERT [dbo].[AspNetRoles] ([Id], [ConcurrencyStamp], [Name], [NormalizedName], [Active], [CampusSelection]) 
-VALUES (N'4', NULL, N'Principal', N'PRINCIPAL', 1, N'2');
+IF NOT EXISTS (SELECT * FROM sys.database_principals WHERE name = 'AttendanceUser')
+    CREATE ROLE AttendanceUser;
 
-INSERT [dbo].[AspNetRoles] ([Id], [ConcurrencyStamp], [Name], [NormalizedName], [Active], [CampusSelection]) 
-VALUES (N'5', NULL, N'AssistantPrincipal', N'ASSISTANTPRINCIPAL', 1, N'2');
+IF NOT EXISTS (SELECT * FROM sys.database_principals WHERE name = 'AttendanceReporter')
+    CREATE ROLE AttendanceReporter;
 
-INSERT [dbo].[AspNetRoles] ([Id], [ConcurrencyStamp], [Name], [NormalizedName], [Active], [CampusSelection]) 
-VALUES (N'6', NULL, N'AttendanceOfficer', N'ATTENDANCEOFFICER', 1, N'2');
+-- Grant permissions to AttendanceAdmin role
+GRANT SELECT, INSERT, UPDATE, DELETE ON SCHEMA::dbo TO AttendanceAdmin;
+GRANT EXECUTE ON SCHEMA::dbo TO AttendanceAdmin;
 
-INSERT [dbo].[AspNetRoles] ([Id], [ConcurrencyStamp], [Name], [NormalizedName], [Active], [CampusSelection]) 
-VALUES (N'7', NULL, N'Director', N'DIRECTOR', 1, N'2');
+-- Grant permissions to AttendanceUser role
+GRANT SELECT, INSERT, UPDATE ON dbo.Attendance TO AttendanceUser;
+GRANT SELECT ON dbo.Students TO AttendanceUser;
+GRANT SELECT ON dbo.Classes TO AttendanceUser;
+GRANT SELECT ON dbo.Periods TO AttendanceUser;
 
-INSERT [dbo].[AspNetRoles] ([Id], [ConcurrencyStamp], [Name], [NormalizedName], [Active], [CampusSelection]) 
-VALUES (N'8', NULL, N'SPUser', N'SPUSER', 1, N'2');
+-- Grant permissions to AttendanceReporter role
+GRANT SELECT ON SCHEMA::dbo TO AttendanceReporter;
 
---DROP IF EXISTS
-SELECT * INTO [TDPS].dbo.AttplusUserRoles FROM IdentityDB.dbo.AspNetRoles;
+-- Create stored procedures for role management
+CREATE OR ALTER PROCEDURE sp_AddUserToRole
+    @Username NVARCHAR(128),
+    @RoleName NVARCHAR(128)
+AS
+BEGIN
+    DECLARE @SQL NVARCHAR(MAX);
+    SET @SQL = 'ALTER ROLE ' + QUOTENAME(@RoleName) + ' ADD MEMBER ' + QUOTENAME(@Username);
+    EXEC sp_executesql @SQL;
+END;
+GO
+
+-- Example usage:
+-- EXEC sp_AddUserToRole 'john.doe', 'AttendanceUser';

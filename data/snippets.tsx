@@ -1,8 +1,47 @@
-export const snippetsData = [
+// ============================================
+// SNIPPET VISIBILITY CONFIGURATION
+// ============================================
+// Set to false to hide any snippet from the UI
+const SNIPPET_VISIBILITY = {
+  "frontend-webconfig": true,
+  "backend-webconfig": true,
+  "mongodb-replica": true,
+  "angular-dev-setup": true,
+  "sql-server-cmdline": true,
+  "user-data-table": true,
+  "user-roles-setup": true,
+  "user-creation": true,
+  "user-claims": true,
+  "campus-assignment": true,
+  "database-sync": true,
+  "mongodb-backup-restore": true,
+  "tdps-truncate-tables": true,
+  "tdps-client-dependent-select": true,
+  "latest-bookmarks": true,
+  "admin-user-creation": true,
+  "abdul-basit-apps": true,
+  "angular-dev": true,
+  "powershell-iis": true,
+  "sql-server-common": true,
+  "tdps-generic-select": true,
+  "identitydb-truncate": true,
+  "identitydb-generic": true,
+  "esign-truncate": true,
+  "esign-client-select": true,
+  "message-center-truncate": true,
+  "history-tables": true,
+  "period-skipped": true,
+  "user-management-excel": true,
+} as const
+
+// ============================================
+// ORIGINAL SNIPPETS DATA (UNCHANGED)
+// ============================================
+const allSnippetsData = [
   {
     id: "frontend-webconfig",
     title: "Frontend Web.config",
-    description: "Complete web.config file for Angular frontend application with proper routing and MIME types",
+    description: "IIS configuration for Angular frontend with URL rewriting and static content optimization",
     content: `<?xml version="1.0" encoding="utf-8"?>
 <configuration>
   <system.webServer>
@@ -25,11 +64,11 @@ export const snippetsData = [
     </staticContent>
   </system.webServer>
 </configuration>`,
+    language: "xml",
     category: "IIS & Web Server",
-    language: "XML",
-    icon: "Settings",
+    tags: ["iis", "angular", "frontend", "web.config"],
+    icon: "Server",
     color: "bg-blue-600",
-    tags: ["web.config", "angular", "frontend", "iis", "routing"],
     lastUsed: new Date("2024-01-15"),
   },
   {
@@ -710,4 +749,83 @@ WHERE u.Email = @AdminEmail;`,
     tags: ["applications", "tools", "development", "productivity", "utilities"],
     lastUsed: new Date("2023-12-29"),
   },
+  {
+    id: "user-management-excel",
+    title: "User Management Excel Template",
+    description: "Excel-compatible template for bulk user management with proper column structure",
+    content: "INTERACTIVE_TABLE",
+    language: "excel",
+    category: "User Management",
+    tags: ["users", "excel", "template", "bulk-import"],
+    icon: "Users",
+    color: "bg-purple-600",
+    lastUsed: new Date("2024-01-14"),
+    isInteractive: true,
+    tableData: [
+      {
+        "First Name": "John",
+        "Last Name": "Doe",
+        Email: "john.doe@school.edu",
+        Username: "john.doe",
+        Role: "Teacher",
+        CampusID: "CAMP001",
+        Department: "Mathematics",
+        Phone: "555-0123",
+        Status: "Active",
+      },
+      {
+        "First Name": "Jane",
+        "Last Name": "Smith",
+        Email: "jane.smith@school.edu",
+        Username: "jane.smith",
+        Role: "Admin",
+        CampusID: "CAMP001",
+        Department: "Administration",
+        Phone: "555-0124",
+        Status: "Active",
+      },
+      {
+        "First Name": "Mike",
+        "Last Name": "Johnson",
+        Email: "mike.johnson@school.edu",
+        Username: "mike.johnson",
+        Role: "Student",
+        CampusID: "CAMP002",
+        Department: "Science",
+        Phone: "555-0125",
+        Status: "Active",
+      },
+    ],
+  },
 ]
+
+// ============================================
+// EXPORTED DATA (FILTERED BY VISIBILITY)
+// ============================================
+export const snippetsData = allSnippetsData.filter(
+  (snippet) => SNIPPET_VISIBILITY[snippet.id as keyof typeof SNIPPET_VISIBILITY],
+)
+
+// ============================================
+// UTILITY FUNCTIONS
+// ============================================
+export const getSnippetById = (id: string) => {
+  return snippetsData.find((snippet) => snippet.id === id)
+}
+
+export const getVisibleSnippetsCount = () => {
+  return snippetsData.length
+}
+
+export const getTotalSnippetsCount = () => {
+  return allSnippetsData.length
+}
+
+export const getHiddenSnippetsCount = () => {
+  return allSnippetsData.length - snippetsData.length
+}
+
+// Export visibility config for admin purposes
+export const getSnippetVisibilityConfig = () => {
+  return SNIPPET_VISIBILITY
+}
