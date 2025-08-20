@@ -7,7 +7,7 @@ import { ChevronRight, Search, Code, FileText, Download, BookOpen } from "lucide
 import { toast } from "sonner"
 import { StepContent } from "@/components/step-content"
 import { SnippetsContent, snippets } from "@/components/snippets-content"
-import { InteractiveGuides } from "@/components/interactive-guides"
+import { InteractiveGuides } from "@/components/interactive-guides" // Import for InteractiveGuides
 
 const sections = [
   { id: "browser", title: "Browser Installation", number: 1 },
@@ -261,7 +261,7 @@ export function InstallationWizard() {
   const [completedSteps, setCompletedSteps] = useState<Record<string, boolean>>({
     "browser-1": true,
   })
-  const [showSnippets, setShowSnippets] = useState(true)
+  const [showSnippets, setShowSnippets] = useState(true) // Default to showing Snippets
   const [searchQuery, setSearchQuery] = useState("")
   const [searchResults, setSearchResults] = useState<typeof searchData>([])
   const [showSearch, setShowSearch] = useState(false)
@@ -277,7 +277,7 @@ export function InstallationWizard() {
   const [filteredSnippetId, setFilteredSnippetId] = useState<string | null>(null)
 
   const [selectedResultIndex, setSelectedResultIndex] = useState(0)
-  const [showGuides, setShowGuides] = useState(false)
+  const [showGuides, setShowGuides] = useState(false) // New state for Guides
 
   const exportProgress = () => {
     const completedSections = sections.filter((s) => getSectionProgress(s.id).percentage === 100)
@@ -394,7 +394,7 @@ export function InstallationWizard() {
         if (snippetIndex < snippets.length) {
           const selectedSnippet = snippets[snippetIndex]
           setShowSnippets(true)
-          setShowGuides(false)
+          setShowGuides(false) // Close guides when filtering snippets
           setShowSearch(false)
           setSearchQuery("")
           setFilteredSnippetId(selectedSnippet.id)
@@ -428,7 +428,7 @@ export function InstallationWizard() {
           setFilteredSnippetId(null)
           setSnippetFilter("")
         }
-        if (showGuides) setShowGuides(false)
+        if (showGuides) setShowGuides(false) // Close guides when escaping
         if (showHelp) setShowHelp(false)
         if (showSearch) {
           setShowSearch(false)
@@ -473,13 +473,13 @@ export function InstallationWizard() {
   const handleSearchResultClick = (result: (typeof searchData)[0]) => {
     if (result.type === "snippet") {
       setShowSnippets(true)
-      setShowGuides(false)
+      setShowGuides(false) // Close guides when selecting a snippet
       // Set filter to show only this snippet
       setFilteredSnippetId(result.step)
       setSnippetFilter(result.title)
     } else {
       setShowSnippets(false)
-      setShowGuides(false)
+      setShowGuides(false) // Close guides when selecting an installation step
       setActiveSection(result.section)
       // Clear snippet filters when going to installation steps
       setFilteredSnippetId(null)
@@ -576,8 +576,8 @@ export function InstallationWizard() {
 
   const handleSectionClick = (sectionId: string) => {
     setActiveSection(sectionId)
-    setShowSnippets(false)
-    setShowGuides(false)
+    setShowSnippets(false) // Exit snippets view when navigating to a section
+    setShowGuides(false) // Exit guides view when navigating to a section
     // Clear snippet filters when navigating to installation steps
     setFilteredSnippetId(null)
     setSnippetFilter("")
@@ -664,13 +664,13 @@ export function InstallationWizard() {
   const handleModernSearchResultClick = (result: any) => {
     if (result.type === "snippet") {
       setShowSnippets(true)
-      setShowGuides(false)
+      setShowGuides(false) // Exit guides view when selecting a snippet
       // Set filter to show only this snippet
       setFilteredSnippetId(result.step)
       setSnippetFilter(result.title)
     } else {
       setShowSnippets(false)
-      setShowGuides(false)
+      setShowGuides(false) // Exit guides view when selecting an installation step
       setActiveSection(result.section)
       // Clear snippet filters when going to installation steps
       setFilteredSnippetId(null)
@@ -698,8 +698,8 @@ export function InstallationWizard() {
                 A
               </div>
               <div>
-                <h2 className="text-lg font-bold text-gray-900">AttendancePlus Setup</h2>
-                <p className="text-sm text-gray-600">Installation Wizard</p>
+                <h2 className="text-lg font-bold text-gray-900">Abdul Basit Snippets</h2>
+                <p className="text-sm text-gray-600">Code & Configuration Hub</p>
               </div>
             </div>
 
@@ -838,9 +838,9 @@ export function InstallationWizard() {
         <header className="flex items-center justify-between p-6 bg-white border-b border-gray-200 shadow-sm z-20">
           <div className="flex items-center gap-4">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">AttendancePlus Setup Wizard</h1>
+              <h1 className="text-2xl font-bold text-gray-900">Abdul Basit Snippets</h1>
               <div className="flex items-center gap-2 text-sm">
-                <p className="text-gray-500">Complete installation and configuration guide</p>
+                <p className="text-gray-500">Essential code snippets and configuration files</p>
                 <span className="text-gray-300">•</span>
                 <p className="text-gray-600 font-medium">Created by Abdul Basit</p>
               </div>
@@ -852,7 +852,7 @@ export function InstallationWizard() {
             <Button
               onClick={() => {
                 setShowSnippets(!showSnippets)
-                setShowGuides(false)
+                setShowGuides(false) // Close guides when opening snippets
                 if (!showSnippets) {
                   setFilteredSnippetId(null)
                   setSnippetFilter("")
@@ -870,10 +870,10 @@ export function InstallationWizard() {
             </Button>
 
             {/* Interactive Guides Button */}
-            {/* <Button
+            <Button
               onClick={() => {
                 setShowGuides(!showGuides)
-                setShowSnippets(false)
+                setShowSnippets(false) // Close snippets when opening guides
                 if (!showGuides) {
                   setFilteredSnippetId(null)
                   setSnippetFilter("")
@@ -888,7 +888,7 @@ export function InstallationWizard() {
             >
               <BookOpen className="w-4 h-4" />
               {showGuides ? "Close Guides" : "Interactive Guides"}
-            </Button> */}
+            </Button>
           </div>
         </header>
 
@@ -896,6 +896,7 @@ export function InstallationWizard() {
         <div className="flex-1 overflow-y-auto bg-gradient-to-br from-gray-50 to-white">
           <div className="p-8">
             <div className="max-w-[95rem] mx-auto">
+              {/* Progress Header */}
               {/* Progress Header - Only show for installation steps, not snippets or guides */}
               {!showSnippets && !showGuides && (
                 <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-6 mb-8">
@@ -1109,4 +1110,3 @@ export function InstallationWizard() {
     </div>
   )
 }
-
