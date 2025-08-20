@@ -261,7 +261,7 @@ export function InstallationWizard() {
   const [completedSteps, setCompletedSteps] = useState<Record<string, boolean>>({
     "browser-1": true,
   })
-  const [showSnippets, setShowSnippets] = useState(false)
+  const [showSnippets, setShowSnippets] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
   const [searchResults, setSearchResults] = useState<typeof searchData>([])
   const [showSearch, setShowSearch] = useState(false)
@@ -870,7 +870,7 @@ export function InstallationWizard() {
             </Button>
 
             {/* Interactive Guides Button */}
-            <Button
+            {/* <Button
               onClick={() => {
                 setShowGuides(!showGuides)
                 setShowSnippets(false)
@@ -888,7 +888,7 @@ export function InstallationWizard() {
             >
               <BookOpen className="w-4 h-4" />
               {showGuides ? "Close Guides" : "Interactive Guides"}
-            </Button>
+            </Button> */}
           </div>
         </header>
 
