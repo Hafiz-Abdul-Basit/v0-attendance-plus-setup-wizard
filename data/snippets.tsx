@@ -60,31 +60,34 @@ export const snippetsData = [
     lastUsed: new Date("2024-01-20"),
   },
   {
-    id: "powershell-iis",
-    title: "PowerShell IIS Commands",
-    description: "Essential PowerShell commands for IIS management",
-    category: "IIS & Web Server",
+    id: "sqlcmd-database-execution",
+    title: "SQL Server Command Line Execution",
+    description: "Execute SQL scripts using sqlcmd with authentication options",
+    category: "SQL Server",
     icon: "Terminal",
     color: "bg-blue-600",
-    content: `# Import IIS module
-Import-Module WebAdministration
+    content: `# Execute SQL script with SQL Server Authentication
+sqlcmd -S <ServerName> -d <DatabaseName> -U <UserName> -P <Password> -i "C:\\Path\\To\\YourScript.sql"
 
-# List all websites
-Get-Website
+# Execute SQL script with Windows Authentication
+sqlcmd -S localhost -d MyDatabase -E -i "C:\\Scripts\\BigScript.sql"
 
-# List all application pools
-Get-IISAppPool
+# Execute SQL script with trusted connection
+sqlcmd -S ServerName\\InstanceName -d DatabaseName -E -i "script.sql"
 
-# Restart application pool
-Restart-WebAppPool -Name "YourAppPoolName"
+# Execute SQL with output to file
+sqlcmd -S localhost -d MyDatabase -E -i "input.sql" -o "output.txt"
 
-# Reset IIS
-iisreset /restart
+# Execute inline SQL command
+sqlcmd -S localhost -d MyDatabase -E -Q "SELECT TOP 10 * FROM Users"
 
-# Check website status
-Get-Website -Name "YourWebsiteName" | Select-Object Name, State, PhysicalPath`,
+# Execute with variables
+sqlcmd -S localhost -d MyDatabase -E -v DatabaseName="MyDB" -i "script.sql"
+
+# Batch execution with error handling
+sqlcmd -S localhost -d MyDatabase -E -i "script.sql" -b -V 1`,
     language: "powershell",
-    tags: ["powershell", "iis", "webadministration", "restart"],
+    tags: ["sqlcmd", "sql-server", "command-line", "database", "authentication"],
     isFavorite: false,
     lastUsed: new Date("2024-01-10"),
   },
@@ -142,48 +145,45 @@ mongodump --db databasename --out backupfilepath`,
 
   // SQL Server Category
   {
-    id: "sql-server-common-queries",
-    title: "SQL Server Common Queries",
-    description: "Essential SQL commands for database operations",
-    category: "SQL Server",
+    id: "aspnet-user-cleanup",
+    title: "ASP.NET Identity User Cleanup",
+    description: "Clean up specific users and related claims from Identity database",
+    category: "User Management",
     icon: "Database",
     color: "bg-red-500",
-    content: `-- Select Top N Rows
-SELECT TOP 10 * FROM TableName;
+    content: `-- Delete specific users by email pattern
+DELETE from AspNetUsers 
+where email LIKE '%MISLAMKHALIL@RAAWEEK12.COM%'
 
--- Select with WHERE condition
-SELECT * FROM TableName
-WHERE ColumnName = 'Value';
+-- Delete user claims for users with specific email domain
+DELETE from AspNetUserClaims 
+where UserId in (
+    select ID from AspNetUsers 
+    where ClaimValue LIKE '%@RAAWEEK12.COM%'
+)
 
--- Like with wildcards
-SELECT * FROM TableName
-WHERE ColumnName LIKE '%keyword%';
+-- Alternative: Delete users and their claims in one transaction
+BEGIN TRANSACTION;
 
--- Add New Column
-ALTER TABLE Employees ADD Email NVARCHAR(100);
+-- First delete related claims
+DELETE from AspNetUserClaims 
+where UserId in (
+    select Id from AspNetUsers 
+    where Email LIKE '%@RAAWEEK12.COM%'
+);
 
--- Drop Column
-ALTER TABLE Employees DROP COLUMN Email;
+-- Then delete the users
+DELETE from AspNetUsers 
+where Email LIKE '%@RAAWEEK12.COM%';
 
--- Update Row
-UPDATE Employees
-SET FirstName = 'Jane'
-WHERE EmployeeID = 1;
+COMMIT TRANSACTION;
 
--- Delete Row
-DELETE FROM Employees
-WHERE EmployeeID = 1;
-
--- Backup Database
-BACKUP DATABASE YourDatabase
-TO DISK = 'D:\\Backups\\YourDatabase.bak';
-
--- Restore Database
-RESTORE DATABASE YourDatabase
-FROM DISK = 'D:\\Backups\\YourDatabase.bak'
-WITH REPLACE;`,
+-- Check remaining users
+SELECT Id, UserName, Email, EmailConfirmed 
+FROM AspNetUsers 
+WHERE Email LIKE '%@RAAWEEK12.COM%';`,
     language: "sql",
-    tags: ["sql", "server", "queries", "backup", "restore"],
+    tags: ["aspnet", "identity", "cleanup", "users", "claims"],
     isFavorite: true,
     lastUsed: new Date("2024-01-22"),
   },

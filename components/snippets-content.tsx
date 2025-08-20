@@ -108,7 +108,6 @@ const folders = {
   },
 }
 
-type SortOption = "name" | "category" | "recent" | "favorites"
 type ViewMode = "grid" | "list"
 
 /** Props from the parent wizard */
@@ -339,9 +338,6 @@ export function SnippetsContent({ filteredSnippetId, onClearFilter }: SnippetsCo
           </div>
         )}
       </div>
-
-      {/* Controls Bar */}
-      {/* Controls Bar was removed here */}
 
       {/* Folder Navigation */}
       {!filteredSnippetId && !localSearchQuery && (
