@@ -626,11 +626,11 @@ export function SnippetsContent({ filteredSnippetId, onClearFilter }: SnippetsCo
         </div>
       )}
 
-      {/* Snippet View Modal */}
+      {/* Snippet View Modal - FIXED SCROLLING ISSUE */}
       {currentSnippet && (
         <Dialog open={isSnippetModalOpen} onOpenChange={setIsSnippetModalOpen}>
-          <DialogContent className="max-w-6xl max-h-[90vh] overflow-hidden">
-            <DialogHeader className="pb-4">
+          <DialogContent className="max-w-7xl w-[95vw] h-[95vh] flex flex-col p-0">
+            <DialogHeader className="px-6 py-4 border-b border-gray-200 flex-shrink-0">
               <DialogTitle className="flex items-center gap-3">
                 <div
                   className={`flex h-10 w-10 items-center justify-center rounded-lg ${currentSnippet.color} text-white shadow-lg`}
@@ -655,25 +655,22 @@ export function SnippetsContent({ filteredSnippetId, onClearFilter }: SnippetsCo
                   >
                     <Heart className={`w-4 h-4 ${favorites.has(currentSnippet.id) ? "fill-current" : ""}`} />
                   </button>
+                  <Button
+                    size="sm"
+                    onClick={() => selectedSnippetCode && copyToClipboard(selectedSnippetCode)}
+                    className="gap-2 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white shadow-lg border-0"
+                    disabled={!selectedSnippetCode}
+                  >
+                    <Copy className="h-4 w-4" />
+                    Copy Code
+                  </Button>
                 </div>
               </DialogTitle>
             </DialogHeader>
 
-            <div className="relative flex-1 overflow-hidden">
-              <div className="absolute top-4 right-4 z-10 flex gap-2">
-                <Button
-                  size="sm"
-                  onClick={() => selectedSnippetCode && copyToClipboard(selectedSnippetCode)}
-                  className="gap-2 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white shadow-lg border-0"
-                  disabled={!selectedSnippetCode}
-                >
-                  <Copy className="h-4 w-4" />
-                  Copy Code
-                </Button>
-              </div>
-
-              <div className="bg-gray-900 rounded-lg overflow-hidden h-[65vh]">
-                <div className="flex items-center justify-between px-4 py-2 bg-gray-800 border-b border-gray-700">
+            <div className="flex-1 flex flex-col min-h-0 p-6">
+              <div className="bg-gray-900 rounded-lg overflow-hidden flex-1 flex flex-col">
+                <div className="flex items-center justify-between px-4 py-2 bg-gray-800 border-b border-gray-700 flex-shrink-0">
                   <div className="flex items-center gap-2">
                     <div className="flex gap-1">
                       <div className="w-3 h-3 rounded-full bg-red-500"></div>
@@ -690,7 +687,7 @@ export function SnippetsContent({ filteredSnippetId, onClearFilter }: SnippetsCo
                   </div>
                 </div>
 
-                <div className="p-6 h-full overflow-y-auto custom-scrollbar">
+                <div className="flex-1 overflow-auto p-6">
                   <pre className="text-green-400 text-sm font-mono whitespace-pre-wrap leading-relaxed">
                     {selectedSnippetCode}
                   </pre>
@@ -698,7 +695,7 @@ export function SnippetsContent({ filteredSnippetId, onClearFilter }: SnippetsCo
               </div>
 
               {/* Tags and Info */}
-              <div className="mt-4 flex items-center justify-between">
+              <div className="mt-4 flex items-center justify-between flex-shrink-0">
                 <div className="flex gap-2 flex-wrap">
                   {currentSnippet.tags.map((tag: string) => (
                     <span key={tag} className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full">
