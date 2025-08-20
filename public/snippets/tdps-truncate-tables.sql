@@ -1,11 +1,5 @@
 -- ============================================================================================================================= TDPS Database ==============================================================
 -- Truncate all these tables
-USE TDPSDB;
-GO
-
--- Disable foreign key constraints temporarily
-EXEC sp_MSforeachtable "ALTER TABLE ? NOCHECK CONSTRAINT all";
-
 TRUNCATE TABLE dbo.Alert_Data2;
 TRUNCATE TABLE dbo.Alert_Grammar_Mapping;
 TRUNCATE TABLE dbo.Alert_Push_Notification;
@@ -161,16 +155,3 @@ TRUNCATE TABLE dbo.TI_CommentsTemplate;
 TRUNCATE TABLE dbo.TI_CommentCategory;
 TRUNCATE TABLE dbo.TI_Devices;
 TRUNCATE TABLE dbo.TI_Setup;
-
--- Re-enable foreign key constraints
-EXEC sp_MSforeachtable "ALTER TABLE ? WITH CHECK CHECK CONSTRAINT all";
-
--- Reset identity columns
-DBCC CHECKIDENT ('Students', RESEED, 0);
-DBCC CHECKIDENT ('Teachers', RESEED, 0);
-DBCC CHECKIDENT ('Classes', RESEED, 0);
-DBCC CHECKIDENT ('Periods', RESEED, 0);
-DBCC CHECKIDENT ('AttendanceRecords', RESEED, 0);
-
-PRINT 'All TDPS tables have been truncated successfully!';
-PRINT 'WARNING: All data has been permanently deleted!';

@@ -20,18 +20,6 @@ const SNIPPET_VISIBILITY = {
   "latest-bookmarks": true,
   "admin-user-creation": true,
   "abdul-basit-apps": true,
-  "angular-dev": true,
-  "powershell-iis": true,
-  "sql-server-common": true,
-  "tdps-generic-select": true,
-  "identitydb-truncate": true,
-  "identitydb-generic": true,
-  "esign-truncate": true,
-  "esign-client-select": true,
-  "message-center-truncate": true,
-  "history-tables": true,
-  "period-skipped": true,
-  "user-management-excel": true,
 } as const
 
 // ============================================
@@ -41,7 +29,7 @@ const allSnippetsData = [
   {
     id: "frontend-webconfig",
     title: "Frontend Web.config",
-    description: "IIS configuration for Angular frontend with URL rewriting and static content optimization",
+    description: "Complete web.config file for Angular frontend application with proper routing and MIME types",
     content: `<?xml version="1.0" encoding="utf-8"?>
 <configuration>
   <system.webServer>
@@ -64,11 +52,11 @@ const allSnippetsData = [
     </staticContent>
   </system.webServer>
 </configuration>`,
-    language: "xml",
     category: "IIS & Web Server",
-    tags: ["iis", "angular", "frontend", "web.config"],
-    icon: "Server",
+    language: "XML",
+    icon: "Settings",
     color: "bg-blue-600",
+    tags: ["web.config", "angular", "frontend", "iis", "routing"],
     lastUsed: new Date("2024-01-15"),
   },
   {
@@ -748,54 +736,6 @@ WHERE u.Email = @AdminEmail;`,
     color: "bg-teal-600",
     tags: ["applications", "tools", "development", "productivity", "utilities"],
     lastUsed: new Date("2023-12-29"),
-  },
-  {
-    id: "user-management-excel",
-    title: "User Management Excel Template",
-    description: "Excel-compatible template for bulk user management with proper column structure",
-    content: "INTERACTIVE_TABLE",
-    language: "excel",
-    category: "User Management",
-    tags: ["users", "excel", "template", "bulk-import"],
-    icon: "Users",
-    color: "bg-purple-600",
-    lastUsed: new Date("2024-01-14"),
-    isInteractive: true,
-    tableData: [
-      {
-        "First Name": "John",
-        "Last Name": "Doe",
-        Email: "john.doe@school.edu",
-        Username: "john.doe",
-        Role: "Teacher",
-        CampusID: "CAMP001",
-        Department: "Mathematics",
-        Phone: "555-0123",
-        Status: "Active",
-      },
-      {
-        "First Name": "Jane",
-        "Last Name": "Smith",
-        Email: "jane.smith@school.edu",
-        Username: "jane.smith",
-        Role: "Admin",
-        CampusID: "CAMP001",
-        Department: "Administration",
-        Phone: "555-0124",
-        Status: "Active",
-      },
-      {
-        "First Name": "Mike",
-        "Last Name": "Johnson",
-        Email: "mike.johnson@school.edu",
-        Username: "mike.johnson",
-        Role: "Student",
-        CampusID: "CAMP002",
-        Department: "Science",
-        Phone: "555-0125",
-        Status: "Active",
-      },
-    ],
   },
 ]
 

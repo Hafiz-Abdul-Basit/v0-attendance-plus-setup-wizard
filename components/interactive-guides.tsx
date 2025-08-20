@@ -352,17 +352,14 @@ function RichTextEditor({
       </div>
 
       {isPreview ? (
-        <div
-          className="p-4 min-h-[400px] max-h-[500px] overflow-y-auto prose prose-sm max-w-none"
-          dangerouslySetInnerHTML={{ __html: content }}
-        />
+        <div className="p-4 min-h-[400px] prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: content }} />
       ) : (
         <div
           ref={editorRef}
           contentEditable
           onInput={handleContentChange}
           onPaste={handlePaste}
-          className="p-4 min-h-[400px] max-h-[500px] overflow-y-auto outline-none prose prose-sm max-w-none"
+          className="p-4 min-h-[400px] outline-none prose prose-sm max-w-none"
           style={{ whiteSpace: "pre-wrap" }}
           data-placeholder={placeholder}
         />
@@ -428,7 +425,7 @@ function GuideEditor({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-7xl w-[95vw] h-[95vh] flex flex-col p-0 overflow-hidden">
+      <DialogContent className="max-w-7xl w-[95vw] h-[95vh] flex flex-col p-0">
         <DialogHeader className="px-6 py-4 border-b border-gray-200 flex-shrink-0">
           <DialogTitle className="flex items-center gap-3">
             <div
@@ -468,7 +465,7 @@ function GuideEditor({
           </DialogTitle>
         </DialogHeader>
 
-        <div className="flex-1 flex flex-col min-h-0 p-6 overflow-hidden">
+        <div className="flex-1 flex flex-col min-h-0 p-6">
           <RichTextEditor content={content} onChange={setContent} placeholder="Start writing your guide..." />
         </div>
       </DialogContent>

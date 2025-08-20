@@ -1,28 +1,16 @@
-import { toast } from "sonner"
-
-export const copyToClipboard = async (text: string) => {
+export async function copyToClipboard(text: string) {
   try {
     await navigator.clipboard.writeText(text)
-    toast.success("Copied to clipboard!", {
-      style: {
-        background: "#10b981",
-        color: "white",
-        border: "none",
-      },
-    })
-  } catch (err) {
+  } catch {
     // Fallback for older browsers
-    const textArea = document.createElement("textarea")
-    textArea.value = text
-    document.body.appendChild(textArea)
-    textArea.focus()
-    textArea.select()
-    try {
-      document.execCommand("copy")
-      toast.success("Copied to clipboard!")
-    } catch (fallbackErr) {
-      toast.error("Failed to copy to clipboard")
-    }
-    document.body.removeChild(textArea)
+    const textarea = document.createElement("textarea")
+    textarea.value = text
+    textarea.style.position = "fixed"
+    textarea.style.opacity = "0"
+    document.body.appendChild(textarea)
+    textarea.focus()
+    textarea.select()
+    document.execCommand("copy")
+    document.body.removeChild(textarea)
   }
 }
