@@ -1109,4 +1109,3 @@ export function InstallationWizard() {
     </div>
   )
 }
-
