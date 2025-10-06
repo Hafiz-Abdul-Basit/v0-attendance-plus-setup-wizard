@@ -1,7 +1,3 @@
-
-
-
-
 // ============================================
 // SNIPPET VISIBILITY CONFIGURATION
 // ============================================
@@ -13,18 +9,17 @@ const SNIPPET_VISIBILITY = {
   "angular-dev-setup": true,
   "sql-server-cmdline": true,
   "user-data-table": true,
-  "user-roles-setup": false,
+  "user-roles-setup": true,
   "user-creation": true,
-  "user-claims": false,
-  "campus-assignment": false,
-  "database-sync": false,
+  "user-claims": true,
+  "campus-assignment": true,
+  "database-sync": true,
   "mongodb-backup-restore": true,
-  "tdps-truncate-tables": false,
-  "tdps-client-dependent-select": false,
+  "tdps-truncate-tables": true,
+  "tdps-client-dependent-select": true,
   "latest-bookmarks": true,
   "admin-user-creation": true,
-  "abdul-basit-apps": false,
-  "period-skipped-table-properties": true,
+  "abdul-basit-apps": true,
 } as const
 
 // ============================================
@@ -95,54 +90,84 @@ const allSnippetsData = [
     tags: ["web.config", "backend", "api", "cors", "security"],
     lastUsed: new Date("2024-01-14"),
   },
- {
-  id: "mongodb-replica",
-  title: "MongoDB Replica Set Setup",
-  description: "Complete script to initialize and configure MongoDB replica set for high availability",
-  content: `# Connect to MongoDB
-mongosh.exe
+  {
+    id: "mongodb-replica",
+    title: "MongoDB Replica Set Setup",
+    description: "Complete script to initialize and configure MongoDB replica set for high availability",
+    content: `#!/bin/bash
+
+# MongoDB Replica Set Configuration Script
+
+# Set variables
+BACKUP_DIR="/backup/mongodb"
+DB_NAME="attendanceplus"
+DATE=$(date +%Y%m%d_%H%M%S)
+
+# Start MongoDB instances
+mongod --replSet rs0 --port 27017 --dbpath /data/db1 --fork --logpath /var/log/mongodb/mongod1.log
+mongod --replSet rs0 --port 27018 --dbpath /data/db2 --fork --logpath /var/log/mongodb/mongod2.log
+mongod --replSet rs0 --port 27019 --dbpath /data/db3 --fork --logpath /var/log/mongodb/mongod3.log
 
 # Initialize replica set
-rs.initiate()
+mongo --port 27017 --eval "
+rs.initiate({
+  _id: 'rs0',
+  members: [
+    { _id: 0, host: 'localhost:27017' },
+    { _id: 1, host: 'localhost:27018' },
+    { _id: 2, host: 'localhost:27019' }
+  ]
+})
+"
 
 # Check replica set status
-rs.status()
+mongo --port 27017 --eval "rs.status()"`,
+    category: "MongoDB",
+    language: "Shell",
+    icon: "Database",
+    color: "bg-green-600",
+    tags: ["mongodb", "replica-set", "high-availability", "clustering"],
+    lastUsed: new Date("2024-01-13"),
+  },
+  {
+    id: "angular-dev-setup",
+    title: "Angular Development Setup",
+    description: "Complete Angular development environment setup with all necessary dependencies",
+    content: `#!/bin/bash
 
-# Add replica set member (if needed)
-rs.add("localhost:27018")
+# Angular Development Environment Setup
 
-# Check replica set configuration
-rs.conf()
+# Install Node.js (if not installed)
+curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+sudo apt-get install -y nodejs
 
-# Force reconfigure (if needed)
-rs.reconfig(config, {force: true})`,
-  category: "MongoDB",
-  language: "Shell",
-  icon: "Database",
-  color: "bg-green-600",
-  tags: ["mongodb", "replica-set", "high-availability", "clustering"],
-  lastUsed: new Date("2024-01-13"),
-},
- {
-  id: "angular-dev-setup",
-  title: "Angular Heap Serve & Build",
-  description: "Run Angular serve and production build commands with higher memory allocation to prevent build failures",
-  content: `# Serve with increased memory allocation
-node --max_old_space_size=8192 ./node_modules/@angular/cli/bin/ng serve
+# Install Angular CLI globally
+npm install -g @angular/cli@latest
 
-# Alternative using npx
-npx --node-options="--max_old_space_size=8192" ng serve
+# Create new Angular project
+ng new my-angular-app --routing --style=scss
 
-# For production build with increased memory
-node --max_old_space_size=8192 ./node_modules/@angular/cli/bin/ng build --configuration production`,
-  category: "Development",
-  language: "Shell",
-  icon: "Code2",
-  color: "bg-orange-600",
-  tags: ["angular", "serve", "build", "memory", "cli"],
-  lastUsed: new Date("2024-01-12"),
-},
+# Navigate to project directory
+cd my-angular-app
 
+# Install additional dependencies
+npm install bootstrap@latest
+npm install @angular/material @angular/cdk @angular/animations
+npm install rxjs@latest
+
+# Install development dependencies
+npm install --save-dev @types/node
+npm install --save-dev typescript@latest
+
+# Start development server
+ng serve --open`,
+    category: "Development",
+    language: "Shell",
+    icon: "Code2",
+    color: "bg-orange-600",
+    tags: ["angular", "setup", "development", "cli", "dependencies"],
+    lastUsed: new Date("2024-01-12"),
+  },
   {
     id: "sql-server-cmdline",
     title: "SQL Server Command Line Execution",
@@ -297,166 +322,39 @@ WHERE r.Name = 'Admin';`,
     tags: ["roles", "permissions", "identity", "claims", "security"],
     lastUsed: new Date("2024-01-09"),
   },
- {
-  id: "user-creation",
-  title: "User Account Creation",
-  description: "SQL script for creating new user accounts with proper hashing and default settings",
-  content: `USE [TDPS]
-GO
-/****** Object:  StoredProcedure [dbo].[spTDPS_AddOrUpdateAttPlusUser]    Script Date: 8/20/2025 7:33:52 AM ******/
-SET ANSI_NULLS ON
-GO
- 
-SET QUOTED_IDENTIFIER ON
-GO
- 
--- =============================================
--- Author:	Usama Ahmed
--- Create date: 01 - August - 2025
--- Description:	This SP will be user to add or update a single user.
--- =============================================
-CREATE OR ALTER     PROCEDURE [dbo].[spTDPS_AddOrUpdateAttPlusUser]
-	@emailaddress varchar(100),
-	@username varchar(100),
-	@firstname varchar(100),
-	@lastname varchar(100),
-	@roleid nvarchar(450),
-	@campusIDs varchar(500),
-	@clientAbbrev varchar(100)
-AS
-BEGIN
-		-- Step 1: Create a temp table to hold the split values
-		CREATE TABLE #TempCampusIDs (
-			CampusID VARCHAR(50)
-		);
- 
-		-- Step 2: Split and insert into the temp table
-		INSERT INTO #TempCampusIDs (CampusID)
-		SELECT value
-		FROM STRING_SPLIT(@campusIDs, ',')
-		WHERE value IS NOT NULL AND LTRIM(RTRIM(value)) <> '';
- 
-		--First Case -- Add a new User
-		DECLARE @UserID UNIQUEIDENTIFIER = NEWID();
-		DECLARE @AdminUserID nvarchar(500) = (SELECT [Value] from TDPS.dbo.TDPS_SETUP where [Key] = 'AttplusAdminID')
-		DECLARE @AdminUserName nvarchar(500) = (SELECT s.FirstName + ' ' + s.LastName from TDPS.dbo.AttplusUsers s where Id = @AdminUserID)
- 
-		BEGIN TRY
-		BEGIN TRANSACTION;
- 
-			IF NOT EXISTS (
-				SELECT 1 FROM IdentityDB.dbo.AspNetUsers
-				WHERE Email = @emailaddress
-			)
-			BEGIN
-				DECLARE @PasswordHash UNIQUEIDENTIFIER = NEWID();
-				DECLARE @SecurityStamp UNIQUEIDENTIFIER = NEWID();
-				DECLARE @ConcurrencyStamp UNIQUEIDENTIFIER = NEWID();
-			
-				-- Insert a new User
-				INSERT INTO IdentityDB.dbo.AspNetUsers
-				(Id, UserName, NormalizedUserName, Email, NormalizedEmail, EmailConfirmed,
-				 PasswordHash, SecurityStamp, ConcurrencyStamp, PhoneNumber, PhoneNumberConfirmed,
-				 TwoFactorEnabled, LockoutEnd, LockoutEnabled, AccessFailedCount, FirstName, LastName)
-				VALUES
-				(@UserID, @userName, UPPER(@userName), @emailaddress, UPPER(@emailaddress), 1,
-				 @PasswordHash, @SecurityStamp, @ConcurrencyStamp, '1234567890', 1, 0, NULL, 0, 0, @firstname, @lastname);
- 
-				 -- Insert User Claims
-				INSERT INTO IdentityDB.dbo.[AspNetUserClaims] ([ClaimType], [ClaimValue], [UserId]) 
-				VALUES (N'Username', @Username, @UserID);
-				INSERT INTO IdentityDB.dbo.[AspNetUserClaims] ([ClaimType], [ClaimValue], [UserId]) 
-				VALUES (N'Email', @emailaddress, @UserID);
-				INSERT INTO IdentityDB.dbo.[AspNetUserClaims] ([ClaimType], [ClaimValue], [UserId]) 
-				VALUES (N'ClientAbbrev', @clientAbbrev, @UserID);
-				INSERT INTO IdentityDB.dbo.[AspNetUserClaims] ([ClaimType], [ClaimValue], [UserId]) 
-				VALUES (N'ClientId', N'1', @UserID);
-				INSERT INTO IdentityDB.dbo.[AspNetUserClaims] ([ClaimType], [ClaimValue], [UserId]) 
-				VALUES (N'UserId', @UserID, @UserID); 
-				INSERT INTO IdentityDB.dbo.[AspNetUserClaims] ([ClaimType], [ClaimValue], [UserId]) 
-				VALUES (N'UserFullName', @firstname + ' ' + @lastname, @UserID);
- 
-				-- Insert User Role
-				INSERT INTO IdentityDB.dbo.[AspNetUserRoles] ([UserId], [RoleId])
-				VALUES (@UserID, @roleid);
- 
-				-- Insert user into TDPS table 						
-				INSERT INTO [TDPS].dbo.AttplusUsers
-				(Id, UserName, NormalizedUserName, Email, NormalizedEmail, EmailConfirmed,
-				 PasswordHash, SecurityStamp, ConcurrencyStamp, PhoneNumber, PhoneNumberConfirmed,
-				 TwoFactorEnabled, LockoutEnd, LockoutEnabled, AccessFailedCount, FirstName, LastName, RoleId, ActionTakenBy, ActionTakenId)
-				VALUES
-				(@UserID, @userName, UPPER(@userName), @emailaddress, UPPER(@emailaddress), 1,
-				 @PasswordHash, @SecurityStamp, @ConcurrencyStamp, '1234567890', 1, 0, NULL, 0, 0, @firstname, @lastname, @roleid, @AdminUserName, @AdminUserID);
-			 
-				 -- Insert user campuses into TDPS table 
-				INSERT INTO [TDPS].[dbo].[CampusUser] ([CampusID], [UserId], [Email], [CreatedBy], [CreatedDate], [LastModifiedBy], [LastModifiedDate]) 
-				SELECT  CampusID, @UserID, @Username, @AdminUserName, GETDATE(), NULL, NULL
-				FROM #TempCampusIDs;
- 
-			END
-			ELSE
-			-- UPDATE User
-			BEGIN
-				SELECT @UserID = Id FROM IdentityDB.dbo.AspNetUsers WHERE Email = @emailaddress;
- 
-				UPDATE IdentityDB.dbo.[AspNetUserRoles] 
-				SET RoleId = @roleid
-				where UserId = @UserID
- 
-				IF NOT EXISTS (
-					SELECT 1 FROM [TDPS].dbo.AttplusUsers
-					WHERE Email = @emailaddress
-				)
-				BEGIN
-					INSERT INTO [TDPS].dbo.AttplusUsers
-				   ([Id], [AccessFailedCount], [ConcurrencyStamp], [Email], [EmailConfirmed], [LockoutEnabled]
-				   ,[LockoutEnd], [NormalizedEmail], [NormalizedUserName], [PasswordHash], [PhoneNumber], [PhoneNumberConfirmed]
-				   ,[SecurityStamp], [TwoFactorEnabled], [UserName], [RoleId], [ActionTakenBy], [FirstName], [LastName], [ActionTakenId])
-				   SELECT [Id], [AccessFailedCount], [ConcurrencyStamp], [Email], [EmailConfirmed], [LockoutEnabled]
-				   ,[LockoutEnd], [NormalizedEmail], [NormalizedUserName], [PasswordHash], [PhoneNumber], [PhoneNumberConfirmed]
-				   ,[SecurityStamp], [TwoFactorEnabled], [UserName], @roleid, @AdminUserName, [FirstName], [LastName], @AdminUserID
-					FROM IdentityDB.dbo.AspNetUsers
-				END
-				ELSE 
-				BEGIN
-					UPDATE [TDPS].dbo.AttplusUsers
-					SET RoleId = @roleid, [ActionTakenBy] = @AdminUserName, [ActionTakenId] = @AdminUserID
-					WHERE Email = @emailaddress
-				END
- 
-				DELETE [TDPS].[dbo].[CampusUser] WHERE UserId = @UserID
-				INSERT INTO [TDPS].[dbo].[CampusUser] ([CampusID], [UserId], [Email], [CreatedBy], [CreatedDate], [LastModifiedBy], [LastModifiedDate]) 
-				SELECT  CampusID, @UserID, @Username, @AdminUserName, GETDATE(), NULL, NULL
-				FROM #TempCampusIDs;
- 
-			END
- 
-		COMMIT TRANSACTION;
-		END TRY
-		BEGIN CATCH
-			IF XACT_STATE() <> 0
-				ROLLBACK TRANSACTION;
- 
-			-- Optional: log or return error
-			DECLARE @ErrorMessage NVARCHAR(4000) = ERROR_MESSAGE();
-			DECLARE @ErrorSeverity INT = ERROR_SEVERITY();
-			DECLARE @ErrorState INT = ERROR_STATE();
- 
-			RAISERROR (@ErrorMessage, @ErrorSeverity, @ErrorState);
-		END CATCH
-		
-		DROP TABLE #TempCampusIDs
-END
-GO`,
-  category: "User Management",
-  language: "SQL",
-  icon: "UserPlus",
-  color: "bg-purple-600",
-  tags: ["user-creation", "identity", "accounts", "claims"],
-  lastUsed: new Date("2024-01-08"),
-},
+  {
+    id: "user-creation",
+    title: "User Account Creation",
+    description: "SQL script for creating new user accounts with proper hashing and default settings",
+    content: `-- Create New User Account
+DECLARE @UserId NVARCHAR(450) = NEWID();
+DECLARE @Email NVARCHAR(256) = 'newuser@example.com';
+DECLARE @UserName NVARCHAR(256) = 'newuser@example.com';
 
+INSERT INTO AspNetUsers (
+    Id, UserName, NormalizedUserName, Email, NormalizedEmail,
+    EmailConfirmed, PasswordHash, SecurityStamp, ConcurrencyStamp,
+    PhoneNumberConfirmed, TwoFactorEnabled, LockoutEnabled, AccessFailedCount
+)
+VALUES (
+    @UserId, @UserName, UPPER(@UserName), @Email, UPPER(@Email),
+    1, 'AQAAAAEAACcQAAAAEExample...', NEWID(), NEWID(),
+    0, 0, 1, 0
+);
+
+-- Add User Claims
+INSERT INTO AspNetUserClaims (UserId, ClaimType, ClaimValue)
+VALUES 
+    (@UserId, 'FirstName', 'John'),
+    (@UserId, 'LastName', 'Doe'),
+    (@UserId, 'Department', 'IT');`,
+    category: "User Management",
+    language: "SQL",
+    icon: "UserPlus",
+    color: "bg-purple-600",
+    tags: ["user-creation", "identity", "accounts", "claims"],
+    lastUsed: new Date("2024-01-08"),
+  },
   {
     id: "user-claims",
     title: "User Claims Management",
@@ -555,57 +453,43 @@ SELECT
     tags: ["sync", "migration", "database", "backup"],
     lastUsed: new Date("2024-01-05"),
   },
-
   {
-  id: "period-skipped-table-properties",
-  title: "Period Skipped Columns",
-  description: "Contains detailed attendance, absence, and owed minutes/hours data for each student",
-  content: `StudentId
-Course
-Period
-TeacherName
-Grade
-CampusName
-Absences
-ExcusedAbsences
-UnexcusedAbsences
-OwedTotal
-OwedToRecover
-MinutesOwedInTotal
-MinutesOwedToRecover
-HoursOwedTotal
-HoursOwedToRecover
-TotalPossibleDays
-TotalDaysPresent
-TotalDaysAbsent
-AttendancePercent`,
-  category: "SQL Server",
-  language: "Plain Text",
-  icon: "BookOpen",
-  color: "bg-blue-600",
-  tags: ["student", "attendance", "absences", "owed", "data"],
-  lastUsed: new Date("2024-08-21"),
-},
- {
-  id: "mongodb-backup-restore",
-  title: "MongoDB Backup & Restore",
-  description: "Complete MongoDB backup and restore operations with compression and scheduling",
-  content: `# Go to MongoDB tools path
-# Eg: C:\\Program Files\\MongoDB\\Tools\\100\\bin
+    id: "mongodb-backup-restore",
+    title: "MongoDB Backup & Restore",
+    description: "Complete MongoDB backup and restore operations with compression and scheduling",
+    content: `#!/bin/bash
 
-# Restore database
-mongorestore --db databasename backupfilepath
+# MongoDB Backup Script
+BACKUP_DIR="/backup/mongodb"
+DATE=$(date +%Y%m%d_%H%M%S)
+DB_NAME="attendanceplus"
 
-# Backup database
-mongodump --db databasename --out backupfilepath`,
-  category: "MongoDB",
-  language: "Shell",
-  icon: "Database",
-  color: "bg-green-600",
-  tags: ["backup", "restore", "mongodb", "compression", "automation"],
-  lastUsed: new Date("2024-01-04"),
-},
+# Create backup directory
+mkdir -p $BACKUP_DIR
 
+# Full database backup with compression
+mongodump --db $DB_NAME --gzip --archive=$BACKUP_DIR/\${DB_NAME}_\${DATE}.gz
+
+# Backup specific collection
+mongodump --db $DB_NAME --collection users --gzip --archive=$BACKUP_DIR/users_\${DATE}.gz
+
+# Restore from backup
+mongorestore --db $DB_NAME --gzip --archive=$BACKUP_DIR/\${DB_NAME}_\${DATE}.gz
+
+# Restore to different database
+mongorestore --db \${DB_NAME}_restored --gzip --archive=$BACKUP_DIR/\${DB_NAME}_\${DATE}.gz
+
+# Clean old backups (keep last 7 days)
+find $BACKUP_DIR -name "*.gz" -mtime +7 -delete
+
+echo "Backup completed: \${DB_NAME}_\${DATE}.gz"`,
+    category: "MongoDB",
+    language: "Shell",
+    icon: "Database",
+    color: "bg-green-600",
+    tags: ["backup", "restore", "mongodb", "compression", "automation"],
+    lastUsed: new Date("2024-01-04"),
+  },
   {
     id: "tdps-truncate-tables",
     title: "TDPS Database Table Cleanup",
@@ -695,84 +579,97 @@ GROUP BY c.Id, c.CampusName;`,
     tags: ["tdps", "client-specific", "campus", "queries", "reporting"],
     lastUsed: new Date("2024-01-01"),
   },
- {
-  "id": "latest-bookmarks",
-  "title": "Latest Bookmarks",
-  "description": "Essential system placeholders for quick reference in development",
-  "content": " <<ACTIVEISD>>\n <<ABSENCESDATE>>\n <<ACTIONTYPE>>\n <<ACTIVESEMESTER>>\n <<ALLABSENCESCOUNT>>\n <<ALLABSENCESCOUNTFROMINTDATE>>\n <<ALLABSENCESCOUNTTILLLETTERPRINTED>>\n <<ALLABSENCESCOUNTTILLLETTERPRINTEDFROMINTDATE>>\n <<ALLABSENCESDATES>>\n <<ALLABSENCESDATESFROMINTDATE>>\n <<ALLABSENCESDATESTILLLETTERPRINTED>>\n <<ALLABSENCESDATESTILLLETTERPRINTEDFROMINTDATE>>\n <<ALLFULLABSENCESCOUNT>>\n <<ALLFULLABSENCESCOUNTFROMINTDATE>>\n <<ALLFULLABSENCESDATES>>\n <<ALLFULLABSENCESDATESBULLETS>>\n <<ALLABSENCESDATESBULLETS>>\n <<ALLFULLABSENCESDATESFROMINTDATE>>\n <<ASSISTANTPRINCIPALNAME>>\n <<ATTENDANCEOFFICERNAME>>\n <<ATTENDANCEOFFICERNAMEASCURRENTUSER>>\n <<ATTENDANCERATE>>\n <<AVGSPEEDDAYS>>\n <<CAMPUSSTATE>>\n <<CAMPUSTYPE>>\n <<CAMPUSZIPCODE>>\n <<CAMPUSID>>\n <<CREATEDDATE>>\n <<CAMPUSCITYSTATEZIP>>\n <<CAMPUSCOMPLETEADDRESS>>\n <<CAMPUSEMAILADDRESS>>\n <<CAMPUSADDRESS>>\n <<CAMPUSNAME>>\n <<CAMPUSPHONENO>>\n <<CURRENTDATEWITHMONTHNAMEANDDASH>>\n <<CURRENTDATEWITHMONTHNAMEANDSLASH>>\n <<CURRENTDATEWITHMONTHNAMEANDSPACE>>\n <<CURRENTDATEWITHMONTHNUMBER>>\n <<CURRENTFORMATTEDDATE>>\n <<CURRENTUSERNAME>>\n <<CAUSENUMBER>>\n <<COURTACTIONVALIDITY>>\n <<CAMPUSSTARTTIME>>\n <<CONFERENCEROOMANDCAMPUSADDRESS>>\n <<CONFERENCELOCATION>>\n <<CONFERENCEROOM>>\n <<DATEOFBIRTH>>\n <<DAYSENROLLED>>\n <<DAYSPRESENT>>\n <<EXABSENCESCOUNT>>\n <<EXABSENCESCOUNTFROMINTDATE>>\n <<EXABSENCESCOUNTTILLLETTERPRINTED>>\n <<EXABSENCESCOUNTTILLLETTERPRINTEDFROMINTDATE>>\n <<EXABSENCESDATES>>\n <<EXABSENCESDATESFROMINTDATE>>\n <<EXABSENCESDATESTILLLETTERPRINTED>>\n <<EXABSENCESDATESTILLLETTERPRINTEDFROMINTDATE>>\n <<EXFULLABSENCESCOUNT>>\n <<EXFULLABSENCESCOUNTFROMINTDATE>>\n <<EXFULLABSENCESDATES>>\n <<EXFULLABSENCESDATESFROMINTDATE>>\n <<EXABSENCESCOUNTINWORDS>>\n <<EXFULLABSENCESDATESBULLETS>>\n <<EXABSENCESDATESBULLETS>>\n <<ENROLLMENTDATE>>\n <<FIRSTCONTACTNAME>>\n <<FIRSTCONTACTPHONE>>\n <<FIRSTWLDATE>>\n <<GRADEABSENCESSUMMARYENGLISH>>\n <<GUARDIANZIPCODE>>\n <<GRADE>>\n <<GUARDIANADDRESS>>\n <<GUARDIANDOB>>\n <<GUARDIANEMAIL>>\n <<GUARDIANGENDER-1>>\n <<GUARDIANNAME>>\n <<GUARDIANRELATIONSHIP>>\n <<GUARDIANHOMELANGUAGE>>\n <<HEARINGDATE>>\n <<LASTABSENCEDATE>>\n <<LASTSCHOOLYEAR>>\n <<LOSSEXCUSEDINSTRUCTIONSHOURS>>\n <<LOSSINSTRUCTIONSHOURS>>\n <<LOSSUNEXCUSEDINSTRUCTIONSHOURS>>\n <<LYABSENCESCOUNT>>\n <<LYEXCCOUNT>>\n <<LYGRADE>>\n <<LYLT30>>\n <<LYMT30>>\n <<LYSUSPENSIONCOUNT>>\n <<LYTARDYCOUNT>>\n <<LYUNEXCOUNT>>\n <<MONITERINGDATEEND>>\n <<MONITERINGDATESTART>>\n <<MODIFIEDDATE>>\n <<MONTHNAME>>\n <<NOTICEDATE>>\n <<PARENTEMAILADDRESS>>\n <<PARENTPHONENUMBER>>\n <<PARENTCITY>>\n <<PARENTCITYSTATEZIP>>\n <<PARENTCURRENTADDRESS>>\n <<PARENTORCURRENTADDRESS>>\n <<PARENTORCURRENTCITYSTATEZIP>>\n <<PARENTFIRSTANDLASTNAME>>\n <<PARENTFIRSTNAME>>\n <<PARENTFULLADDRESS>>\n <<PARENTFULLNAME>>\n <<PARENTNAME>>\n <<PARENTLASTANDFIRSTNAME>>\n <<PARENTLASTNAME>>\n <<PARENTMIDDLENAME>>\n <<PARENTPHONENO>>\n <<PARENTSTATE>>\n <<PARENTZIPCODE>>\n <<PRINCIPALNAME>>\n <<PICPHONE>>\n <<PICSPECIALIST>>\n <<REQUESTATTENDACEOFFICERNAME>>\n <<REQUESTFORMDATE>>\n <<STUDENTID>>\n <<STUDENTNAME>>\n <<STUDENTCURRENTADDRESS>>\n <<STUDENTSOCIALSECURITYNO>>\n <<STUDENTCURRENTCITYSTATEZIP>>\n <<STUDENTDATEOFBIRTH>>\n <<STUDENTFIRSTANDLASTNAME>>\n <<STUDENTFIRSTNAME>>\n <<STUDENTFULLNAME>>\n <<STUDENTGENDER>>\n <<STUDENTAGE>>\n <<STUDENTGRADE>>\n <<STUDENTLASTANDFIRSTNAME>>\n <<STUDENTLASTNAME>>\n <<STUDENTMIDDLENAME>>\n <<STUDENTNAMEANDID>>\n <<STUDENTPHONENUMBER>>\n <<STUDENTRACE>>\n <<SCHOOLDISTRICT>>\n <<STUDENTZIPCODE>>\n <<SARTDATE>>\n <<SCHOOLYEAR>>\n <<SECONDCONTACTNAME>>\n <<SECONDCONTACTPHONE>>\n <<SECONDNOTLETTERDATE>>\n <<SCHEDULEDDATE>>\n <<SCHEDULEDDATEWITHMONTHNAMEANDSPACE>>\n <<SCHEDULEDTIME>>\n <<SCHEDULEDMONTH>>\n <<TODAYSDATE>>\n <<USERNAME>>\n <<UNXABSENCESCOUNT>>\n <<UNXABSENCESCOUNTFROMINTDATE>>\n <<UNXABSENCESCOUNTTILLLETTERPRINTED>>\n <<UNXABSENCESCOUNTTILLLETTERPRINTEDFROMINTDATE>>\n <<UNXABSENCESDATES>>\n <<UNXABSENCESDATESFROMINTDATE>>\n <<UNXABSENCESDATESTILLLETTERPRINTED>>\n <<UNXABSENCESDATESTILLLETTERPRINTEDFROMINTDATE>>\n <<UNXFULLABSENCESCOUNT>>\n <<UNXFULLABSENCESCOUNTFROMINTDATE>>\n <<UNXFULLABSENCESDATES>>\n <<UNXFULLABSENCESDATESFROMINTDATE>>\n <<UNXFULLABSENCESDATESBULLETS>>\n <<UNXABSENCESDATESBULLETS>>",
-  "category": "Documentation",
-  "language": "Markdown",
-  "icon": "BookOpen",
-  "color": "bg-indigo-600",
-  "tags": ["bookmarks", "resources", "placeholders", "attendance", "campus"],
-  "lastUsed": "2025-08-21"
-},
- {
-  id: "admin-user-creation",
-  title: "Admin User Creation Script",
-  description: "Create administrative user accounts with full permissions and proper role assignments",
-  content: `-- Admin User Creation
+  {
+    id: "latest-bookmarks",
+    title: "Development Bookmarks",
+    description: "Essential development resources and documentation links for quick reference",
+    content: `# Development Bookmarks & Resources
 
-USE [TDPS] 
-DECLARE @NewId UNIQUEIDENTIFIER = NEWID(); 
+## Documentation
+- ASP.NET Core: https://docs.microsoft.com/en-us/aspnet/core/
+- Angular: https://angular.io/docs
+- MongoDB: https://docs.mongodb.com/
+- SQL Server: https://docs.microsoft.com/en-us/sql/
 
-IF NOT EXISTS (    
-    SELECT 1 FROM AttplusUsers     
-    WHERE UserName = 'Attplus.Admin'        
-       OR Email = 'attplusadmin@raaweek12.com'
+## Tools & Utilities
+- Postman: https://www.postman.com/
+- MongoDB Compass: https://www.mongodb.com/products/compass
+- SQL Server Management Studio: https://docs.microsoft.com/en-us/sql/ssms/
+- Visual Studio Code: https://code.visualstudio.com/
+
+## Libraries & Frameworks
+- Bootstrap: https://getbootstrap.com/
+- jQuery: https://jquery.com/
+- Chart.js: https://www.chartjs.org/
+- Moment.js: https://momentjs.com/
+
+## Learning Resources
+- Stack Overflow: https://stackoverflow.com/
+- GitHub: https://github.com/
+- CodePen: https://codepen.io/
+- MDN Web Docs: https://developer.mozilla.org/
+
+## Deployment & Hosting
+- IIS Configuration: https://docs.microsoft.com/en-us/iis/
+- Azure: https://azure.microsoft.com/
+- Docker: https://docs.docker.com/
+- Nginx: https://nginx.org/en/docs/`,
+    category: "Documentation",
+    language: "Markdown",
+    icon: "BookOpen",
+    color: "bg-indigo-600",
+    tags: ["bookmarks", "resources", "documentation", "tools", "learning"],
+    lastUsed: new Date("2023-12-31"),
+  },
+  {
+    id: "admin-user-creation",
+    title: "Admin User Creation Script",
+    description: "Create administrative user accounts with full permissions and proper role assignments",
+    content: `-- Create Admin User with Full Permissions
+DECLARE @AdminUserId NVARCHAR(450) = NEWID();
+DECLARE @AdminEmail NVARCHAR(256) = 'admin@attendanceplus.com';
+DECLARE @AdminUserName NVARCHAR(256) = 'admin@attendanceplus.com';
+
+-- Insert Admin User
+INSERT INTO AspNetUsers (
+    Id, UserName, NormalizedUserName, Email, NormalizedEmail,
+    EmailConfirmed, PasswordHash, SecurityStamp, ConcurrencyStamp,
+    PhoneNumberConfirmed, TwoFactorEnabled, LockoutEnabled, AccessFailedCount
 )
-BEGIN    
-    INSERT INTO AttplusUsers     
-    (Id, UserName, NormalizedUserName, Email, NormalizedEmail, EmailConfirmed,      
-     PasswordHash, SecurityStamp, ConcurrencyStamp, PhoneNumber, PhoneNumberConfirmed,      
-     TwoFactorEnabled, LockoutEnd, LockoutEnabled, AccessFailedCount, FirstName, LastName,      
-     RoleId, ActionTakenBy, ActionTakenId)     
-    VALUES     
-    (@NewId, 'Attplus.Admin', 'ATTPLUS.ADMIN', 'attplusadmin@raaweek12.com', 'ATTPLUSADMIN@RAAWEEK12.COM', 1,      
-     NEWID(), NEWID(), NEWID(), '1234567890', 1,      
-     0, NULL, 1, 0, 'Attplus', 'Admin',      
-     12, 'Attplus Admin', @NewId);
-END  
+VALUES (
+    @AdminUserId, @AdminUserName, UPPER(@AdminUserName), @AdminEmail, UPPER(@AdminEmail),
+    1, 'AQAAAAEAACcQAAAAEAdminHashedPassword...', NEWID(), NEWID(),
+    0, 0, 0, 0
+);
 
--- Entry in TDPS AttplusUserRoles Table
-IF NOT EXISTS (    
-    SELECT 1 FROM AttplusUserRoles     
-    WHERE Name = 'SystemAdmin'        
-       OR NormalizedName = 'SYSTEMADMIN'
-)
-BEGIN    
-    INSERT INTO AttplusUserRoles (Id, ConcurrencyStamp, Name, NormalizedName, Active, CampusSelection)    
-    VALUES (12, NULL, 'SystemAdmin', 'SYSTEMADMIN', 1, 2);
-END 
+-- Assign Admin Role
+INSERT INTO AspNetUserRoles (UserId, RoleId)
+SELECT @AdminUserId, Id FROM AspNetRoles WHERE Name = 'SuperAdmin';
 
--- Entry in TDPS TDPS_SETUP Table 
-DECLARE @AdminId UNIQUEIDENTIFIER; 
+-- Add Admin Claims
+INSERT INTO AspNetUserClaims (UserId, ClaimType, ClaimValue)
+VALUES 
+    (@AdminUserId, 'FirstName', 'System'),
+    (@AdminUserId, 'LastName', 'Administrator'),
+    (@AdminUserId, 'CampusId', 'ALL'),
+    (@AdminUserId, 'Department', 'IT'),
+    (@AdminUserId, 'CanManageUsers', 'true'),
+    (@AdminUserId, 'CanManageSystem', 'true');
 
--- Fetch the ID of Attplus.Admin from AttPlusUser
-SELECT @AdminId = Id FROM AttplusUsers WHERE Email = 'attplusadmin@raaweek12.com'; 
-
--- Check if 'AttplusAdminID' key exists in TDPS_SETUP
-IF EXISTS (SELECT 1 FROM TDPS_SETUP WHERE [Key] = 'AttplusAdminID')
-BEGIN    
-    -- Update the existing record    
-    UPDATE TDPS_SETUP     
-    SET [Value] = @AdminId     
-    WHERE [Key] = 'AttplusAdminID';
-END
-ELSE
-BEGIN    
-    -- Insert a new record if it doesn't exist    
-    INSERT INTO TDPS_SETUP ([Key], [Value])    
-    VALUES ('AttplusAdminID', @AdminId);
-END`,
-  category: "User Management",
-  language: "SQL",
-  icon: "Shield",
-  color: "bg-purple-600",
-  tags: ["admin", "user-creation", "permissions", "roles", "system"],
-  lastUsed: new Date("2023-12-30"),
-},
-
+-- Verify Admin User Creation
+SELECT u.Email, r.Name as Role, uc.ClaimType, uc.ClaimValue
+FROM AspNetUsers u
+LEFT JOIN AspNetUserRoles ur ON u.Id = ur.UserId
+LEFT JOIN AspNetRoles r ON ur.RoleId = r.Id
+LEFT JOIN AspNetUserClaims uc ON u.Id = uc.UserId
+WHERE u.Email = @AdminEmail;`,
+    category: "User Management",
+    language: "SQL",
+    icon: "Shield",
+    color: "bg-purple-600",
+    tags: ["admin", "user-creation", "permissions", "roles", "system"],
+    lastUsed: new Date("2023-12-30"),
+  },
   {
     id: "abdul-basit-apps",
     title: "Abdul Basit Applications List",

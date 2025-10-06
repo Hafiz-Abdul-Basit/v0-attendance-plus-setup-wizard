@@ -725,7 +725,7 @@ export function SnippetsContent({ filteredSnippetId, onClearFilter }: SnippetsCo
                       <span className="text-xs text-gray-400">{new Date(snip.lastUsed).toLocaleDateString()}</span>
                       <div className="flex gap-1 ml-auto">
                         {snip.tags.slice(0, 3).map((tag) => (
-                          <span key={tag} className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded">
+                          <span key={tag} className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">
                             {tag}
                           </span>
                         ))}
