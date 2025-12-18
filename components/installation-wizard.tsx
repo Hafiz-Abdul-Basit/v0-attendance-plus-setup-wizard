@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { ChevronRight, Search, Code, FileText, Download, BookOpen } from "lucide-react"
+import { ChevronRight, Search, Code, Download, Plus, BookOpen } from "lucide-react"
 import { toast } from "sonner"
 import { StepContent } from "@/components/step-content"
 import { SnippetsContent, snippets } from "@/components/snippets-content"
@@ -257,10 +257,8 @@ const searchData = [
 ]
 
 export function InstallationWizard() {
-  const [activeSection, setActiveSection] = useState("iis")
-  const [completedSteps, setCompletedSteps] = useState<Record<string, boolean>>({
-    "browser-1": true,
-  })
+  const [activeSection, setActiveSection] = useState("browser")
+  const [completedSteps, setCompletedSteps] = useState<string[]>([])
   const [showSnippets, setShowSnippets] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
   const [searchResults, setSearchResults] = useState<typeof searchData>([])
@@ -447,10 +445,13 @@ export function InstallationWizard() {
   }, [handleKeyDown])
 
   const toggleStepCompletion = (stepId: string) => {
-    setCompletedSteps((prev) => ({
-      ...prev,
-      [stepId]: !prev[stepId],
-    }))
+    setCompletedSteps((prev) => {
+      if (prev.includes(stepId)) {
+        return prev.filter((id) => id !== stepId)
+      } else {
+        return [...prev, stepId]
+      }
+    })
   }
 
   const handleSearch = (query: string) => {
@@ -491,7 +492,7 @@ export function InstallationWizard() {
 
   const getSectionProgress = (sectionId: string) => {
     const sectionSteps = Object.keys(completedSteps).filter((key) => key.startsWith(sectionId))
-    const completedCount = sectionSteps.filter((key) => completedSteps[key]).length
+    const completedCount = sectionSteps.filter((key) => completedSteps.includes(key)).length
 
     // Fixed step counts for each section
     if (sectionId === "browser")
@@ -817,139 +818,112 @@ export function InstallationWizard() {
             <div className="text-xs text-gray-500 text-center mb-3">
               Press <kbd className="px-1.5 py-0.5 bg-white rounded text-xs">Ctrl+K</kbd> for quick search
             </div>
-            <Button
-              onClick={exportProgress}
-              variant="outline"
-              size="sm"
-              className="w-full gap-2 text-xs bg-transparent"
-            >
-              <Download className="w-4 h-4" />
-              Export Progress
-            </Button>
+            <div className="space-y-2">
+              <Button
+                onClick={() => {
+                  setShowSnippets(true)
+                  setShowGuides(false)
+                  setFilteredSnippetId(null)
+                  setSnippetFilter("")
+                }}
+                variant="outline"
+                size="sm"
+                className="w-full gap-2 text-xs bg-gradient-to-r from-purple-50 to-pink-50 border-purple-200 hover:from-purple-100 hover:to-pink-100"
+              >
+                <Code className="w-4 h-4" />
+                View Snippets
+              </Button>
+              <Button
+                onClick={exportProgress}
+                variant="outline"
+                size="sm"
+                className="w-full gap-2 text-xs bg-transparent"
+              >
+                <Download className="w-4 h-4" />
+                Export Progress
+              </Button>
+            </div>
           </div>
         </aside>
       )}
 
-      {/* Main Content Area */}
-      <main
-        className={`flex-1 ${!showSnippets && !showGuides ? "ml-80" : "ml-0"} flex flex-col h-screen overflow-hidden`}
+      {/* Main Content Area with dynamic left margin */}
+      <div
+        className={`flex-1 flex flex-col transition-all duration-300 ${!showSnippets && !showGuides ? "ml-80" : "ml-0"}`}
       >
-        {/* Fixed Header */}
-        <header className="flex items-center justify-between p-6 bg-white border-b border-gray-200 shadow-sm z-20">
-          <div className="flex items-center gap-4">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">AttendancePlus Setup Wizard</h1>
-              <div className="flex items-center gap-2 text-sm">
-                <p className="text-gray-500">Complete installation and configuration guide</p>
-                <span className="text-gray-300">•</span>
-                <p className="text-gray-600 font-medium">Created by Abdul Basit</p>
+        {/* Top Header - Only shown when viewing Snippets or Guides */}
+        {(showSnippets || showGuides) && (
+          <header className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-gray-200 px-8 py-6 shadow-sm">
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                  {showSnippets ? "AttendancePlus Setup Wizard" : "Interactive Guides"}
+                </h1>
+                <p className="text-gray-600 mt-1">
+                  {showSnippets
+                    ? "Complete installation and configuration guide • Created by Abdul Basit"
+                    : "Step-by-step interactive tutorials"}
+                </p>
               </div>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-4">
-            {/* View Snippets Button */}
-            <Button
-              onClick={() => {
-                setShowSnippets(!showSnippets)
-                setShowGuides(false)
-                if (!showSnippets) {
-                  setFilteredSnippetId(null)
-                  setSnippetFilter("")
-                }
-              }}
-              variant={showSnippets ? "default" : "outline"}
-              className={`gap-2 ${
-                showSnippets
-                  ? "bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white shadow-lg"
-                  : "border-purple-200 text-purple-700 hover:bg-purple-50"
-              }`}
-            >
-              <FileText className="w-4 h-4" />
-              {showSnippets ? "View Installation Steps" : "View Snippets"}
-            </Button>
-
-            {/* Interactive Guides Button */}
-            {/* <Button
-              onClick={() => {
-                setShowGuides(!showGuides)
-                setShowSnippets(false)
-                if (!showGuides) {
-                  setFilteredSnippetId(null)
-                  setSnippetFilter("")
-                }
-              }}
-              variant={showGuides ? "default" : "outline"}
-              className={`gap-2 ${
-                showGuides
-                  ? "bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white shadow-lg"
-                  : "border-emerald-200 text-emerald-700 hover:bg-emerald-50"
-              }`}
-            >
-              <BookOpen className="w-4 h-4" />
-              {showGuides ? "Close Guides" : "Interactive Guides"}
-            </Button> */}
-          </div>
-        </header>
-
-        {/* Scrollable Content */}
-        <div className="flex-1 overflow-y-auto bg-gradient-to-br from-gray-50 to-white">
-          <div className="p-8">
-            <div className="max-w-[95rem] mx-auto">
-              {/* Progress Header - Only show for installation steps, not snippets or guides */}
-              {!showSnippets && !showGuides && (
-                <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-6 mb-8">
-                  <div className="flex items-center gap-4 mb-4">
-                    <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-indigo-500 text-white rounded-xl flex items-center justify-center font-bold text-lg shadow-lg">
-                      {activeStep?.number}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h1 className="text-3xl font-bold text-gray-900">{activeStep?.title}</h1>
-                      <p className="text-gray-500 mt-1">
-                        Step {activeStep?.number} of {sections.length}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-2xl font-bold text-gray-900">{overallProgress}%</div>
-                      <div className="text-sm text-gray-500">Overall Progress</div>
-                    </div>
-                  </div>
-
-                  <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
-                    <div
-                      className="h-full bg-gradient-to-r from-blue-400 to-indigo-500 transition-all duration-500 ease-out"
-                      style={{ width: `${overallProgress}%` }}
-                    />
-                  </div>
-
-                  <div className="flex justify-between text-sm text-gray-600 mt-2">
-                    <span>
-                      {completedStepsCount} of {totalSteps} steps completed
-                    </span>
-                    <span>
-                      {sections.filter((s) => getSectionProgress(s.id).percentage === 100).length} of {sections.length}{" "}
-                      sections complete
-                    </span>
-                  </div>
-                </div>
+              {showSnippets && (
+                <Button
+                  onClick={() => {
+                    setShowSnippets(false)
+                    setShowGuides(false)
+                  }}
+                  className="gap-2 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white shadow-lg"
+                >
+                  <BookOpen className="w-4 h-4" />
+                  View Installation Steps
+                </Button>
               )}
-
-              {/* Content */}
-              {showGuides ? (
-                <InteractiveGuides />
-              ) : showSnippets ? (
-                <SnippetsContent filteredSnippetId={filteredSnippetId} onClearFilter={clearSnippetFilter} />
-              ) : (
-                <StepContent
-                  activeSection={activeSection}
-                  completedSteps={completedSteps}
-                  onToggleStep={toggleStepCompletion}
-                />
+              {showGuides && (
+                <Button
+                  onClick={() => {
+                    setShowSnippets(true)
+                    setShowGuides(false)
+                  }}
+                  className="gap-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white shadow-lg"
+                >
+                  <Code className="w-4 h-4" />
+                  View Snippets
+                </Button>
               )}
             </div>
+          </header>
+        )}
+
+        <div className="max-w-7xl mx-auto px-8 py-8">
+          {showSnippets && (
+            <div className="mb-6 flex justify-end">
+              <Button
+                onClick={() => {
+                  const event = new CustomEvent("create-snippet")
+                  window.dispatchEvent(event)
+                }}
+                className="gap-2 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white shadow-lg"
+              >
+                <Plus className="w-4 h-4" />
+                Create Snippet
+              </Button>
+            </div>
+          )}
+
+          <div className="bg-white rounded-2xl max-h-[calc(100vh-220px)] overflow-y-auto">
+            {showGuides ? (
+              <InteractiveGuides />
+            ) : showSnippets ? (
+              <SnippetsContent filteredSnippetId={filteredSnippetId} onClearFilter={clearSnippetFilter} />
+            ) : (
+              <StepContent
+                activeSection={activeSection}
+                completedSteps={completedSteps}
+                onToggleStep={toggleStepCompletion}
+              />
+            )}
           </div>
         </div>
-      </main>
+      </div>
 
       {/* Help Modal */}
       {showHelp && (
@@ -981,7 +955,7 @@ export function InstallationWizard() {
               </div>
             </div>
 
-            <div className="mt-4 pt-4 border-t border-gray-200">
+            <div className="mt-4 pt-4 border-t border-gray-100">
               <p className="text-xs text-gray-600">
                 💡 <strong>Tip:</strong> Use Ctrl+K to search and filter snippets, or Ctrl+1-9 to quickly filter to
                 specific snippets!

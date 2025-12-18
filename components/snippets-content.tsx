@@ -1,30 +1,16 @@
 "use client"
 
 import React from "react"
-import type { ReactElement } from "react"
 import { useState, useEffect } from "react"
 import { toast } from "sonner"
 import {
-  Code2,
-  Database,
-  Settings,
-  Terminal,
   FileText,
-  Users,
-  Shield,
-  UserPlus,
-  Key,
-  BookOpen,
-  Server,
-  Wrench,
-  Star,
   Download,
   Heart,
   Clock,
   Grid3X3,
   List,
   Tag,
-  Zap,
   RefreshCw,
   FileSpreadsheet,
   Table,
@@ -35,29 +21,54 @@ import {
   Folder,
   FolderOpen,
   Copy,
+  Edit,
+  AlertCircle,
 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { snippetsData } from "@/data/snippets"
+import { snippets as snippetsData } from "@/data/snippets" // Assuming snippetsData is imported from here
+import * as Icons from "lucide-react"
+import { InteractiveTableModal } from "./interactive-table-modal"
+import {
+  getAllSnippets,
+  createSnippet,
+  updateSnippet,
+  deleteSnippet,
+  migrateDefaultSnippets,
+  type CustomSnippet,
+} from "@/lib/indexeddb"
+import { SnippetEditorDialog } from "./snippet-editor-dialog"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 
 // Icon mapping for dynamic icons
-const iconMap: Record<string, ReactElement> = {
-  Code2,
-  Database,
-  Settings,
-  Terminal,
-  FileText,
-  Users,
-  Shield,
-  UserPlus,
-  Key,
-  BookOpen,
-  Server,
-  Wrench,
-  Star,
-  Zap,
+const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
+  FileText: Icons.FileText,
+  Code2: Icons.Code2,
+  Database: Icons.Database,
+  Server: Icons.Server,
+  Settings: Icons.Settings,
+  Terminal: Icons.Terminal,
+  Users: Icons.Users,
+  Shield: Icons.Shield,
+  Key: Icons.Key,
+  BookOpen: Icons.BookOpen,
+  UserPlus: Icons.UserPlus,
+  File: Icons.File,
+  FolderOpen: Icons.FolderOpen,
+  Wrench: Icons.Wrench,
+  Star: Icons.Star,
+  Zap: Icons.Zap,
 }
 
 // Folder definitions
@@ -336,12 +347,47 @@ export function SnippetsContent({ filteredSnippetId, onClearFilter }: SnippetsCo
   const [showInteractiveTable, setShowInteractiveTable] = useState(false)
   const [interactiveSnippet, setInteractiveSnippet] = useState<any>(null)
 
+  // State for custom snippets and CRUD operations
+  const [customSnippets, setCustomSnippets] = useState<CustomSnippet[]>([])
+  const [isEditorOpen, setIsEditorOpen] = useState(false)
+  const [editorMode, setEditorMode] = useState<"create" | "edit">("create")
+  const [snippetToEdit, setSnippetToEdit] = useState<CustomSnippet | null>(null)
+  const [snippetToDelete, setSnippetToDelete] = useState<CustomSnippet | null>(null)
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+
   // Load favorites from localStorage
   useEffect(() => {
     const savedFavorites = localStorage.getItem("snippet-favorites")
     if (savedFavorites) {
       setFavorites(new Set(JSON.parse(savedFavorites)))
     }
+  }, [])
+
+  useEffect(() => {
+    const initializeSnippets = async () => {
+      try {
+        // Load from IndexedDB
+        const dbSnippets = await getAllSnippets()
+
+        // If empty, migrate default snippets
+        if (dbSnippets.length === 0) {
+          console.log("[v0] First load detected, migrating default snippets...")
+          await migrateDefaultSnippets(snippetsData)
+          // Reload after migration
+          const migratedSnippets = await getAllSnippets()
+          console.log("[v0] Loaded", migratedSnippets.length, "snippets after migration")
+          setCustomSnippets(migratedSnippets)
+        } else {
+          console.log("[v0] Loaded", dbSnippets.length, "snippets from IndexedDB")
+          setCustomSnippets(dbSnippets)
+        }
+      } catch (error) {
+        console.error("[v0] Error initializing snippets:", error)
+        toast.error("Failed to load snippets")
+      }
+    }
+
+    initializeSnippets()
   }, [])
 
   // Save favorites to localStorage
@@ -373,7 +419,7 @@ export function SnippetsContent({ filteredSnippetId, onClearFilter }: SnippetsCo
   }
 
   const exportSnippets = () => {
-    const dataStr = JSON.stringify(snippetsData, null, 2)
+    const dataStr = JSON.stringify(customSnippets, null, 2) // Export from customSnippets (now includes all)
     const dataBlob = new Blob([dataStr], { type: "application/json" })
     const url = URL.createObjectURL(dataBlob)
     const link = document.createElement("a")
@@ -384,9 +430,11 @@ export function SnippetsContent({ filteredSnippetId, onClearFilter }: SnippetsCo
     toast.success("Snippets exported successfully!")
   }
 
+  const allSnippets = customSnippets
+
   /** Get filtered snippets */
   const getFilteredSnippets = () => {
-    let filtered = snippetsData
+    let filtered = allSnippets
 
     // Filter by parent-supplied snippet ID first
     if (filteredSnippetId) {
@@ -431,7 +479,7 @@ export function SnippetsContent({ filteredSnippetId, onClearFilter }: SnippetsCo
 
   // Get folder statistics
   const getFolderStats = (folderName: string) => {
-    return snippetsData.filter((s) => s.category === folderName).length
+    return allSnippets.filter((s) => s.category === folderName).length
   }
 
   // Handle search with history
@@ -444,19 +492,68 @@ export function SnippetsContent({ filteredSnippetId, onClearFilter }: SnippetsCo
     }
   }
 
-  // Load search history
-  useEffect(() => {
-    const savedHistory = localStorage.getItem("search-history")
-    if (savedHistory) {
-      setSearchHistory(JSON.parse(savedHistory))
+  const handleCreateSnippet = () => {
+    setEditorMode("create")
+    setSnippetToEdit(null)
+    setIsEditorOpen(true)
+  }
+
+  const handleEditSnippet = (snippet: any, e: React.MouseEvent) => {
+    e.stopPropagation()
+    setEditorMode("edit")
+    setSnippetToEdit(snippet)
+    setIsEditorOpen(true)
+  }
+
+  const handleDeleteSnippet = (snippet: any, e: React.MouseEvent) => {
+    e.stopPropagation()
+    setSnippetToDelete(snippet)
+    setIsDeleteDialogOpen(true)
+  }
+
+  const confirmDelete = async () => {
+    if (!snippetToDelete) return
+
+    try {
+      await deleteSnippet(snippetToDelete.id)
+      await getAllSnippets().then(setCustomSnippets) // Reload after delete
+      toast.success("Snippet deleted successfully!")
+      setIsDeleteDialogOpen(false)
+      setSnippetToDelete(null)
+    } catch (error) {
+      console.error("[v0] Error deleting snippet:", error)
+      toast.error("Failed to delete snippet")
     }
+  }
+
+  const handleSaveSnippet = async (snippetData: Omit<CustomSnippet, "id" | "createdAt" | "updatedAt" | "isCustom">) => {
+    try {
+      if (editorMode === "create") {
+        await createSnippet(snippetData)
+      } else if (snippetToEdit) {
+        await updateSnippet(snippetToEdit.id, snippetData)
+      }
+      await getAllSnippets().then(setCustomSnippets) // Reload after save
+    } catch (error) {
+      console.error("[v0] Error saving snippet:", error)
+      throw error
+    }
+  }
+
+  useEffect(() => {
+    const handleCreateSnippetEvent = () => {
+      handleCreateSnippet()
+    }
+
+    window.addEventListener("create-snippet", handleCreateSnippetEvent)
+    return () => window.removeEventListener("create-snippet", handleCreateSnippetEvent)
   }, [])
 
   /** ------------------------------------------------------------
    *  Render
    *  ------------------------------------------------------------ */
   return (
-    <div>
+    <div className="space-y-6 p-6">
       {/* Top Search Bar */}
       <div className="mb-8 bg-gradient-to-br from-purple-50 via-indigo-50 to-blue-50 border-2 border-purple-200 rounded-2xl p-6 shadow-lg">
         <div className="flex items-center gap-4 mb-6">
@@ -476,7 +573,7 @@ export function SnippetsContent({ filteredSnippetId, onClearFilter }: SnippetsCo
           <div className="flex items-center gap-3">
             {/* Stats Cards */}
             <div className="bg-white/70 backdrop-blur-sm rounded-lg p-3 text-center border border-purple-200">
-              <div className="text-lg font-bold text-purple-600">{snippetsData.length}</div>
+              <div className="text-lg font-bold text-purple-600">{allSnippets.length}</div>
               <div className="text-xs text-gray-600">Snippets</div>
             </div>
             <div className="bg-white/70 backdrop-blur-sm rounded-lg p-3 text-center border border-indigo-200">
@@ -694,7 +791,17 @@ export function SnippetsContent({ filteredSnippetId, onClearFilter }: SnippetsCo
         <div className={viewMode === "grid" ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" : "space-y-4"}>
           {filteredSnippets.map((snip) => {
             const Icon = iconMap[snip.icon] || FileText
-            const isFavorite = favorites.has(snip.id)
+            const isCustomSnippet = "isCustom" in snip && snip.isCustom // Check for isCustom property
+            console.log(
+              "[v0] Rendering snippet:",
+              snip.title,
+              "isCustom:",
+              isCustomSnippet,
+              "has property:",
+              "isCustom" in snip,
+              "value:",
+              (snip as any).isCustom,
+            )
 
             if (viewMode === "list") {
               return (
@@ -717,6 +824,11 @@ export function SnippetsContent({ filteredSnippetId, onClearFilter }: SnippetsCo
                       <span className="inline-block rounded-full bg-gray-100 px-2 py-1 text-xs font-medium text-gray-600 flex-shrink-0">
                         {snip.category}
                       </span>
+                      {isCustomSnippet && (
+                        <span className="inline-block rounded-full bg-green-100 px-2 py-1 text-xs font-medium text-green-600 flex-shrink-0">
+                          Custom
+                        </span>
+                      )}
                     </div>
                     <p className="text-sm text-gray-600 line-clamp-1">{snip.description}</p>
                     <div className="flex items-center gap-2 mt-2">
@@ -725,7 +837,7 @@ export function SnippetsContent({ filteredSnippetId, onClearFilter }: SnippetsCo
                       <span className="text-xs text-gray-400">{new Date(snip.lastUsed).toLocaleDateString()}</span>
                       <div className="flex gap-1 ml-auto">
                         {snip.tags.slice(0, 3).map((tag) => (
-                          <span key={tag} className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded">
+                          <span key={tag} className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">
                             {tag}
                           </span>
                         ))}
@@ -734,18 +846,36 @@ export function SnippetsContent({ filteredSnippetId, onClearFilter }: SnippetsCo
                   </div>
 
                   <div className="flex items-center gap-2 flex-shrink-0">
+                    {isCustomSnippet && (
+                      <>
+                        <button
+                          onClick={(e) => handleEditSnippet(snip, e)}
+                          className="p-2 rounded-lg text-blue-500 hover:bg-blue-50 transition-colors"
+                          title="Edit snippet"
+                        >
+                          <Edit className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={(e) => handleDeleteSnippet(snip, e)}
+                          className="p-2 rounded-lg text-red-500 hover:bg-red-50 transition-colors"
+                          title="Delete snippet"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </>
+                    )}
                     <button
                       onClick={(e) => {
                         e.stopPropagation()
                         toggleFavorite(snip.id)
                       }}
                       className={`p-2 rounded-lg transition-colors ${
-                        isFavorite
+                        isCustomSnippet
                           ? "text-red-500 hover:bg-red-50"
                           : "text-gray-400 hover:bg-gray-50 hover:text-red-500"
                       }`}
                     >
-                      <Heart className={`w-4 h-4 ${isFavorite ? "fill-current" : ""}`} />
+                      <Heart className={`w-4 h-4 ${isCustomSnippet ? "fill-current" : ""}`} />
                     </button>
                     <Copy className="w-4 h-4 text-gray-400 group-hover:text-purple-500 transition-colors" />
                   </div>
@@ -759,6 +889,26 @@ export function SnippetsContent({ filteredSnippetId, onClearFilter }: SnippetsCo
                 className="group relative cursor-pointer rounded-xl border-2 border-gray-200 hover:border-purple-300 bg-white p-6 shadow-sm hover:shadow-xl transition-all duration-300 h-64 flex flex-col hover:scale-[1.02] transform"
                 onClick={() => handleSnippetClick(snip)}
               >
+                {/* Grid View Card - add buttons */}
+                <div className="absolute top-2 right-12 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 bg-blue-500 hover:bg-blue-600 text-white"
+                    onClick={(e) => handleEditSnippet(snip, e)}
+                  >
+                    <Edit className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 bg-red-500 hover:bg-red-600 text-white"
+                    onClick={(e) => handleDeleteSnippet(snip, e)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+
                 {/* Favorite Button */}
                 <button
                   onClick={(e) => {
@@ -766,12 +916,12 @@ export function SnippetsContent({ filteredSnippetId, onClearFilter }: SnippetsCo
                     toggleFavorite(snip.id)
                   }}
                   className={`absolute top-3 right-3 p-2 rounded-lg transition-colors ${
-                    isFavorite
+                    isCustomSnippet
                       ? "text-red-500 hover:bg-red-50"
                       : "text-gray-400 hover:bg-gray-50 hover:text-red-500 opacity-0 group-hover:opacity-100"
                   }`}
                 >
-                  <Heart className={`w-4 h-4 ${isFavorite ? "fill-current" : ""}`} />
+                  <Heart className={`w-4 h-4 ${isCustomSnippet ? "fill-current" : ""}`} />
                 </button>
 
                 <div className="flex items-start gap-4 mb-4">
@@ -784,9 +934,16 @@ export function SnippetsContent({ filteredSnippetId, onClearFilter }: SnippetsCo
                     <h3 className="font-semibold text-gray-900 mb-2 group-hover:text-blue-600 transition-colors line-clamp-2">
                       {snip.title}
                     </h3>
-                    <span className="inline-block rounded-full bg-gray-100 px-2 py-1 text-xs font-medium text-gray-600">
-                      {snip.category}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className="inline-block rounded-full bg-gray-100 px-2 py-1 text-xs font-medium text-gray-600">
+                        {snip.category}
+                      </span>
+                      {isCustomSnippet && (
+                        <span className="inline-block rounded-full bg-green-100 px-2 py-1 text-xs font-medium text-green-600">
+                          Custom
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
 
@@ -925,16 +1082,45 @@ export function SnippetsContent({ filteredSnippetId, onClearFilter }: SnippetsCo
         </Dialog>
       )}
 
-      {/* Interactive Table */}
-      {showInteractiveTable && interactiveSnippet && (
-        <InteractiveTable
-          snippet={interactiveSnippet}
+      {/* Interactive Table Modal */}
+      {interactiveSnippet && (
+        <InteractiveTableModal
+          isOpen={showInteractiveTable}
           onClose={() => {
             setShowInteractiveTable(false)
             setInteractiveSnippet(null)
           }}
+          snippet={interactiveSnippet}
         />
       )}
+
+      <SnippetEditorDialog
+        open={isEditorOpen}
+        onOpenChange={setIsEditorOpen}
+        snippet={snippetToEdit}
+        onSave={handleSaveSnippet}
+        mode={editorMode}
+      />
+
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertCircle className="w-5 h-5 text-red-500" />
+              Delete Snippet
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete "{snippetToDelete?.title}"? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-red-500 hover:bg-red-600">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
