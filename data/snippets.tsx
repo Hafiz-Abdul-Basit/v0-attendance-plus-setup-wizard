@@ -1,31 +1,4 @@
-// ============================================
-// SNIPPET VISIBILITY CONFIGURATION
-// ============================================
-// Set to false to hide any snippet from the UI
-const SNIPPET_VISIBILITY = {
-  "frontend-webconfig": true,
-  "backend-webconfig": true,
-  "mongodb-replica": true,
-  "angular-dev-setup": true,
-  "sql-server-cmdline": true,
-  "user-data-table": true,
-  "user-roles-setup": true,
-  "user-creation": true,
-  "user-claims": true,
-  "campus-assignment": true,
-  "database-sync": true,
-  "mongodb-backup-restore": true,
-  "tdps-truncate-tables": true,
-  "tdps-client-dependent-select": true,
-  "latest-bookmarks": true,
-  "admin-user-creation": true,
-  "abdul-basit-apps": true,
-} as const
-
-// ============================================
-// ORIGINAL SNIPPETS DATA (UNCHANGED)
-// ============================================
-const allSnippetsData = [
+export const snippetsData = [
   {
     id: "frontend-webconfig",
     title: "Frontend Web.config",
@@ -738,36 +711,3 @@ WHERE u.Email = @AdminEmail;`,
     lastUsed: new Date("2023-12-29"),
   },
 ]
-
-// ============================================
-// EXPORTED DATA (FILTERED BY VISIBILITY)
-// ============================================
-export const snippetsData = allSnippetsData.filter(
-  (snippet) => SNIPPET_VISIBILITY[snippet.id as keyof typeof SNIPPET_VISIBILITY],
-)
-
-export const snippets = snippetsData
-
-// ============================================
-// UTILITY FUNCTIONS
-// ============================================
-export const getSnippetById = (id: string) => {
-  return snippetsData.find((snippet) => snippet.id === id)
-}
-
-export const getVisibleSnippetsCount = () => {
-  return snippetsData.length
-}
-
-export const getTotalSnippetsCount = () => {
-  return allSnippetsData.length
-}
-
-export const getHiddenSnippetsCount = () => {
-  return allSnippetsData.length - snippetsData.length
-}
-
-// Export visibility config for admin purposes
-export const getSnippetVisibilityConfig = () => {
-  return SNIPPET_VISIBILITY
-}
