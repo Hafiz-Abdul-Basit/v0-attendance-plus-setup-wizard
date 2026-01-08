@@ -2,10 +2,13 @@ export const snippetsData = [
   {
     id: "frontend-webconfig",
     title: "Frontend Web.config",
-    description: "Complete web.config file for Angular frontend application with proper routing and MIME types",
+    description:
+      "Complete web.config file for Angular frontend application with proper routing and MIME types",
     content: `<?xml version="1.0" encoding="utf-8"?>
 <configuration>
+
   <system.webServer>
+
     <rewrite>
       <rules>
         <rule name="Angular Routes" stopProcessing="true">
@@ -13,17 +16,15 @@ export const snippetsData = [
           <conditions logicalGrouping="MatchAll">
             <add input="{REQUEST_FILENAME}" matchType="IsFile" negate="true" />
             <add input="{REQUEST_FILENAME}" matchType="IsDirectory" negate="true" />
+            <add input="{REQUEST_URI}" pattern="^/(api)" negate="true" />
           </conditions>
           <action type="Rewrite" url="/" />
         </rule>
       </rules>
     </rewrite>
-    <staticContent>
-      <mimeMap fileExtension=".json" mimeType="application/json" />
-      <mimeMap fileExtension=".woff" mimeType="application/font-woff" />
-      <mimeMap fileExtension=".woff2" mimeType="application/font-woff2" />
-    </staticContent>
+
   </system.webServer>
+
 </configuration>`,
     category: "IIS & Web Server",
     language: "XML",
@@ -32,30 +33,24 @@ export const snippetsData = [
     tags: ["web.config", "angular", "frontend", "iis", "routing"],
     lastUsed: new Date("2024-01-15"),
   },
+
   {
     id: "backend-webconfig",
     title: "Backend Web.config",
-    description: "Complete web.config for .NET Core backend API with CORS, authentication, and security headers",
+    description:
+      "Complete web.config for .NET Core backend API with CORS, authentication, and security headers",
     content: `<?xml version="1.0" encoding="utf-8"?>
 <configuration>
-  <system.webServer>
-    <modules>
-      <remove name="WebDAVModule" />
-    </modules>
-    <handlers>
-      <remove name="WebDAV" />
-      <add name="aspNetCore" path="*" verb="*" modules="AspNetCoreModuleV2" resourceType="Unspecified" />
-    </handlers>
-    <aspNetCore processPath="dotnet" arguments=".\\YourApp.dll" stdoutLogEnabled="false" stdoutLogFile=".\\logs\\stdout" />
-    <httpProtocol>
-      <customHeaders>
-        <add name="X-Content-Type-Options" value="nosniff" />
-        <add name="X-Frame-Options" value="DENY" />
-        <add name="X-XSS-Protection" value="1; mode=block" />
-      </customHeaders>
-    </httpProtocol>
-  </system.webServer>
-</configuration>`,
+  <location path="." inheritInChildApplications="false">
+    <system.webServer>
+      <handlers>
+        <add name="aspNetCore" path="*" verb="*" modules="AspNetCoreModuleV2" resourceType="Unspecified" />
+      </handlers>
+      <aspNetCore processPath=".\RK12.AttPlus.Administration.API.exe" stdoutLogEnabled="true" stdoutLogFile=".\logs\stdout" hostingModel="OutOfProcess" />
+    </system.webServer>
+  </location>
+</configuration>
+<!--ProjectGuid: ea5e6680-3822-4c89-bba0-1f0645140e4f-->`,
     category: "IIS & Web Server",
     language: "XML",
     icon: "Server",
@@ -63,49 +58,69 @@ export const snippetsData = [
     tags: ["web.config", "backend", "api", "cors", "security"],
     lastUsed: new Date("2024-01-14"),
   },
+
   {
     id: "mongodb-replica",
     title: "MongoDB Replica Set Setup",
-    description: "Complete script to initialize and configure MongoDB replica set for high availability",
-    content: `#!/bin/bash
+    description:
+      "Complete guide to configure MongoDB replica set for high availability on Windows, including mongod.cfg and mongosh steps",
+    content: `# MongoDB Replica Set Setup on Windows
 
-# MongoDB Replica Set Configuration Script
+Replication Set (Why we need replication & full correct format of command):
 
-# Set variables
-BACKUP_DIR="/backup/mongodb"
-DB_NAME="attendanceplus"
-DATE=$(date +%Y%m%d_%H%M%S)
+1. Stop MongoDB Service from Services.
 
-# Start MongoDB instances
-mongod --replSet rs0 --port 27017 --dbpath /data/db1 --fork --logpath /var/log/mongodb/mongod1.log
-mongod --replSet rs0 --port 27018 --dbpath /data/db2 --fork --logpath /var/log/mongodb/mongod2.log
-mongod --replSet rs0 --port 27019 --dbpath /data/db3 --fork --logpath /var/log/mongodb/mongod3.log
+2. Browse to MongoDB folder until BIN (C:\\Program Files\\MongoDB\\Server\\7.0\\bin).
 
-# Initialize replica set
-mongo --port 27017 --eval "
-rs.initiate({
-  _id: 'rs0',
-  members: [
-    { _id: 0, host: 'localhost:27017' },
-    { _id: 1, host: 'localhost:27018' },
-    { _id: 2, host: 'localhost:27019' }
-  ]
-})
-"
+3. Edit mongod.cfg file in editor. Replace #replication: with below:
+replication:
+  replSetName: "rs0"
 
-# Check replica set status
-mongo --port 27017 --eval "rs.status()"`,
+4. Restart MongoDB Service:
+   net stop mongodb
+   net start mongodb
+
+Mongosh Settings:
+
+a. Download Mongosh components from:
+   https://downloads.mongodb.com/compass/mongosh-2.3.1-win32-x64.zip
+
+b. Unzip the file and browse to Bin folder:
+   "<Unzipped Drive>:\\MongoDB\\mongosh-<Mongosh version>-win32-x64\\bin"
+
+c. Open Command Prompt, navigate to the folder, and run:
+   mongosh.exe
+   rs.initiate()
+   rs.status()
+
+5. Update the MongoDB connection string to:
+   mongodb://localhost:27017/?replicaSet=rs0
+
+6. Restart MongoDB Service from Services.
+
+# Notes:
+- This setup ensures high availability and automatic failover.
+- All commands should be run with administrator privileges.
+- Ensure ports used by MongoDB are not blocked by firewall.`,
     category: "MongoDB",
     language: "Shell",
     icon: "Database",
     color: "bg-green-600",
-    tags: ["mongodb", "replica-set", "high-availability", "clustering"],
+    tags: [
+      "mongodb",
+      "replica-set",
+      "high-availability",
+      "clustering",
+      "windows",
+    ],
     lastUsed: new Date("2024-01-13"),
   },
+
   {
     id: "angular-dev-setup",
     title: "Angular Development Setup",
-    description: "Complete Angular development environment setup with all necessary dependencies",
+    description:
+      "Complete Angular development environment setup with all necessary dependencies",
     content: `#!/bin/bash
 
 # Angular Development Environment Setup
@@ -144,7 +159,8 @@ ng serve --open`,
   {
     id: "sql-server-cmdline",
     title: "SQL Server Command Line Execution",
-    description: "Execute SQL scripts using sqlcmd with various authentication methods and parameters",
+    description:
+      "Execute SQL scripts using sqlcmd with various authentication methods and parameters",
     content: `-- Execute SQL script with SQL Server Authentication
 sqlcmd -S <ServerName> -d <DatabaseName> -U <UserName> -P <Password> -i "C:\\Path\\To\\YourScript.sql"
 
@@ -172,7 +188,8 @@ sqlcmd -S localhost -d MyDatabase -E -i "C:\\Scripts\\Migration.sql" -b -V 16`,
   {
     id: "user-data-table",
     title: "User Management Data Table",
-    description: "Interactive table with sample user data - view, edit, and download as Excel/CSV",
+    description:
+      "Interactive table with sample user data - view, edit, and download as Excel/CSV",
     content: `INTERACTIVE_TABLE`,
     category: "User Management",
     language: "Interactive",
@@ -266,28 +283,33 @@ sqlcmd -S localhost -d MyDatabase -E -i "C:\\Scripts\\Migration.sql" -b -V 16`,
   },
   {
     id: "user-roles-setup",
-    title: "User Roles Configuration",
-    description: "Complete setup for user roles and permissions in ASP.NET Identity system",
-    content: `-- Create Roles Table and Insert Default Roles
-INSERT INTO AspNetRoles (Id, Name, NormalizedName, ConcurrencyStamp)
-VALUES 
-    (NEWID(), 'SuperAdmin', 'SUPERADMIN', NEWID()),
-    (NEWID(), 'Admin', 'ADMIN', NEWID()),
-    (NEWID(), 'Manager', 'MANAGER', NEWID()),
-    (NEWID(), 'Teacher', 'TEACHER', NEWID()),
-    (NEWID(), 'Student', 'STUDENT', NEWID());
-
--- Assign User to Role
-INSERT INTO AspNetUserRoles (UserId, RoleId)
-SELECT u.Id, r.Id
-FROM AspNetUsers u, AspNetRoles r
-WHERE u.Email = 'admin@example.com' AND r.Name = 'Admin';
-
--- Create Claims for Roles
-INSERT INTO AspNetRoleClaims (RoleId, ClaimType, ClaimValue)
-SELECT r.Id, 'permission', 'CanManageUsers'
-FROM AspNetRoles r
-WHERE r.Name = 'Admin';`,
+    title: "User Roles Setup",
+    description:
+      "Complete setup for user roles and permissions in ASP.NET Identity system",
+    content: `USE [IdentityDB]
+GO
+INSERT [dbo].[AspNetRoles] ([Id], [ConcurrencyStamp], [Name], [NormalizedName], [CampusSelection], [Active]) VALUES (N'1', NULL, N'Campus Officer', N'CAMPUSOFFICER', N'2', 1)
+GO
+INSERT [dbo].[AspNetRoles] ([Id], [ConcurrencyStamp], [Name], [NormalizedName], [CampusSelection], [Active]) VALUES (N'10', NULL, N'Attendance Director', N'ATTENDANCEDIRECTOR', N'2', 1)
+GO
+INSERT [dbo].[AspNetRoles] ([Id], [ConcurrencyStamp], [Name], [NormalizedName], [CampusSelection], [Active]) VALUES (N'11', NULL, N'Teacher', N'TEACHER', N'2', 1)
+GO
+INSERT [dbo].[AspNetRoles] ([Id], [ConcurrencyStamp], [Name], [NormalizedName], [CampusSelection], [Active]) VALUES (N'2', NULL, N'Radmin', N'RADMIN', N'0', 1)
+GO
+INSERT [dbo].[AspNetRoles] ([Id], [ConcurrencyStamp], [Name], [NormalizedName], [CampusSelection], [Active]) VALUES (N'3', NULL, N'Campus Attendance Officer', N'CAMPUSATTENDANCEOFFICER', N'2', 1)
+GO
+INSERT [dbo].[AspNetRoles] ([Id], [ConcurrencyStamp], [Name], [NormalizedName], [CampusSelection], [Active]) VALUES (N'4', NULL, N'Principal', N'PRINCIPAL', N'1', 1)
+GO
+INSERT [dbo].[AspNetRoles] ([Id], [ConcurrencyStamp], [Name], [NormalizedName], [CampusSelection], [Active]) VALUES (N'5', NULL, N'Assistant Principal', N'ASSISTANTPRINCIPAL', N'2', 1)
+GO
+INSERT [dbo].[AspNetRoles] ([Id], [ConcurrencyStamp], [Name], [NormalizedName], [CampusSelection], [Active]) VALUES (N'6', NULL, N'District Attendance Officer', N'ATTENDANCEOFFICER', N'2', 1)
+GO
+INSERT [dbo].[AspNetRoles] ([Id], [ConcurrencyStamp], [Name], [NormalizedName], [CampusSelection], [Active]) VALUES (N'7', NULL, N'Director', N'DIRECTOR', N'0', 1)
+GO
+INSERT [dbo].[AspNetRoles] ([Id], [ConcurrencyStamp], [Name], [NormalizedName], [CampusSelection], [Active]) VALUES (N'8', NULL, N'SPUser', N'SPUSER', N'2', 1)
+GO
+INSERT [dbo].[AspNetRoles] ([Id], [ConcurrencyStamp], [Name], [NormalizedName], [CampusSelection], [Active]) VALUES (N'9', NULL, N'Counselor', N'COUNSELOR', N'2', 1)
+GO`,
     category: "User Management",
     language: "SQL",
     icon: "Shield",
@@ -295,220 +317,581 @@ WHERE r.Name = 'Admin';`,
     tags: ["roles", "permissions", "identity", "claims", "security"],
     lastUsed: new Date("2024-01-09"),
   },
+
   {
-    id: "user-creation",
-    title: "User Account Creation",
-    description: "SQL script for creating new user accounts with proper hashing and default settings",
-    content: `-- Create New User Account
-DECLARE @UserId NVARCHAR(450) = NEWID();
-DECLARE @Email NVARCHAR(256) = 'newuser@example.com';
-DECLARE @UserName NVARCHAR(256) = 'newuser@example.com';
+    id: "users-configuration",
+    title: "User Configuration (For Single User)",
+    description:
+      "Manage user claims, roles, and campuses for a single user in Identity and TDPS system via stored procedure",
+    content: `USE [TDPS]
+GO
 
-INSERT INTO AspNetUsers (
-    Id, UserName, NormalizedUserName, Email, NormalizedEmail,
-    EmailConfirmed, PasswordHash, SecurityStamp, ConcurrencyStamp,
-    PhoneNumberConfirmed, TwoFactorEnabled, LockoutEnabled, AccessFailedCount
-)
-VALUES (
-    @UserId, @UserName, UPPER(@UserName), @Email, UPPER(@Email),
-    1, 'AQAAAAEAACcQAAAAEExample...', NEWID(), NEWID(),
-    0, 0, 1, 0
-);
+/****** Object:  StoredProcedure [dbo].[spTDPS_AddOrUpdateAttPlusUser]    Script Date: 8/20/2025 7:33:52 AM ******/
+SET ANSI_NULLS ON
+GO
 
--- Add User Claims
-INSERT INTO AspNetUserClaims (UserId, ClaimType, ClaimValue)
-VALUES 
-    (@UserId, 'FirstName', 'John'),
-    (@UserId, 'LastName', 'Doe'),
-    (@UserId, 'Department', 'IT');`,
-    category: "User Management",
-    language: "SQL",
-    icon: "UserPlus",
-    color: "bg-purple-600",
-    tags: ["user-creation", "identity", "accounts", "claims"],
-    lastUsed: new Date("2024-01-08"),
-  },
-  {
-    id: "user-claims",
-    title: "User Claims Management",
-    description: "Manage user claims for custom properties and permissions in Identity system",
-    content: `-- Add Claims to User
-INSERT INTO AspNetUserClaims (UserId, ClaimType, ClaimValue)
-SELECT Id, 'Campus', 'Main Campus'
-FROM AspNetUsers
-WHERE Email = 'user@example.com';
+SET QUOTED_IDENTIFIER ON
+GO
 
--- Update User Claim
-UPDATE AspNetUserClaims 
-SET ClaimValue = 'New Value'
-WHERE UserId = (SELECT Id FROM AspNetUsers WHERE Email = 'user@example.com')
-AND ClaimType = 'Department';
+CREATE OR ALTER PROCEDURE [dbo].[spTDPS_AddOrUpdateAttPlusUser]
+	@emailaddress varchar(100),
+	@username varchar(100),
+	@firstname varchar(100),
+	@lastname varchar(100),
+	@roleid nvarchar(450),
+	@campusIDs varchar(500),
+	@clientAbbrev varchar(100)
+AS
+BEGIN
 
--- Remove User Claim
-DELETE FROM AspNetUserClaims
-WHERE UserId = (SELECT Id FROM AspNetUsers WHERE Email = 'user@example.com')
-AND ClaimType = 'OldClaim';
+	-- Step 1: Create a temp table to hold the split values
+	CREATE TABLE #TempCampusIDs (
+		CampusID VARCHAR(50)
+	);
 
--- Get All Claims for User
-SELECT u.Email, uc.ClaimType, uc.ClaimValue
-FROM AspNetUsers u
-JOIN AspNetUserClaims uc ON u.Id = uc.UserId
-WHERE u.Email = 'user@example.com';`,
+	-- Step 2: Split and insert into the temp table
+	INSERT INTO #TempCampusIDs (CampusID)
+	SELECT value
+	FROM STRING_SPLIT(@campusIDs, ',')
+	WHERE value IS NOT NULL AND LTRIM(RTRIM(value)) <> '';
+
+	-- First Case -- Add a new User
+	DECLARE @UserID UNIQUEIDENTIFIER = NEWID();
+	DECLARE @AdminUserID nvarchar(500) = (SELECT [Value] from TDPS.dbo.TDPS_SETUP where [Key] = 'AttplusAdminID')
+	DECLARE @AdminUserName nvarchar(500) = (SELECT s.FirstName + ' ' + s.LastName from TDPS.dbo.AttplusUsers s where Id = @AdminUserID)
+
+	BEGIN TRY
+	BEGIN TRANSACTION;
+
+		IF NOT EXISTS (
+			SELECT 1 FROM IdentityDB.dbo.AspNetUsers
+			WHERE Email = @emailaddress
+		)
+		BEGIN
+			DECLARE @PasswordHash UNIQUEIDENTIFIER = NEWID();
+			DECLARE @SecurityStamp UNIQUEIDENTIFIER = NEWID();
+			DECLARE @ConcurrencyStamp UNIQUEIDENTIFIER = NEWID();
+
+			-- Insert a new User
+			INSERT INTO IdentityDB.dbo.AspNetUsers
+			(Id, UserName, NormalizedUserName, Email, NormalizedEmail, EmailConfirmed,
+			 PasswordHash, SecurityStamp, ConcurrencyStamp, PhoneNumber, PhoneNumberConfirmed,
+			 TwoFactorEnabled, LockoutEnd, LockoutEnabled, AccessFailedCount, FirstName, LastName)
+			VALUES
+			(@UserID, @userName, UPPER(@userName), @emailaddress, UPPER(@emailaddress), 1,
+			 @PasswordHash, @SecurityStamp, @ConcurrencyStamp, '1234567890', 1, 0, NULL, 0, 0, @firstname, @lastname);
+
+			-- Insert User Claims
+			INSERT INTO IdentityDB.dbo.[AspNetUserClaims] ([ClaimType], [ClaimValue], [UserId]) 
+			VALUES (N'Username', @Username, @UserID);
+			INSERT INTO IdentityDB.dbo.[AspNetUserClaims] ([ClaimType], [ClaimValue], [UserId]) 
+			VALUES (N'Email', @emailaddress, @UserID);
+			INSERT INTO IdentityDB.dbo.[AspNetUserClaims] ([ClaimType], [ClaimValue], [UserId]) 
+			VALUES (N'ClientAbbrev', @clientAbbrev, @UserID);
+			INSERT INTO IdentityDB.dbo.[AspNetUserClaims] ([ClaimType], [ClaimValue], [UserId]) 
+			VALUES (N'ClientId', N'1', @UserID);
+			INSERT INTO IdentityDB.dbo.[AspNetUserClaims] ([ClaimType], [ClaimValue], [UserId]) 
+			VALUES (N'UserId', @UserID, @UserID); 
+			INSERT INTO IdentityDB.dbo.[AspNetUserClaims] ([ClaimType], [ClaimValue], [UserId]) 
+			VALUES (N'UserFullName', @firstname + ' ' + @lastname, @UserID);
+
+			-- Insert User Role
+			INSERT INTO IdentityDB.dbo.[AspNetUserRoles] ([UserId], [RoleId])
+			VALUES (@UserID, @roleid);
+
+			-- Insert user into TDPS table 						
+			INSERT INTO [TDPS].dbo.AttplusUsers
+			(Id, UserName, NormalizedUserName, Email, NormalizedEmail, EmailConfirmed,
+			 PasswordHash, SecurityStamp, ConcurrencyStamp, PhoneNumber, PhoneNumberConfirmed,
+			 TwoFactorEnabled, LockoutEnd, LockoutEnabled, AccessFailedCount, FirstName, LastName, RoleId, ActionTakenBy, ActionTakenId)
+			VALUES
+			(@UserID, @userName, UPPER(@userName), @emailaddress, UPPER(@emailaddress), 1,
+			 @PasswordHash, @SecurityStamp, @ConcurrencyStamp, '1234567890', 1, 0, NULL, 0, 0, @firstname, @lastname, @roleid, @AdminUserName, @AdminUserID);
+
+			-- Insert user campuses into TDPS table 
+			INSERT INTO [TDPS].[dbo].[CampusUser] ([CampusID], [UserId], [Email], [CreatedBy], [CreatedDate], [LastModifiedBy], [LastModifiedDate]) 
+			SELECT  CampusID, @UserID, @Username, @AdminUserName, GETDATE(), NULL, NULL
+			FROM #TempCampusIDs;
+
+		END
+		ELSE
+		-- UPDATE User
+		BEGIN
+			SELECT @UserID = Id FROM IdentityDB.dbo.AspNetUsers WHERE Email = @emailaddress;
+
+			UPDATE IdentityDB.dbo.[AspNetUserRoles] 
+			SET RoleId = @roleid
+			WHERE UserId = @UserID;
+
+			IF NOT EXISTS (
+				SELECT 1 FROM [TDPS].dbo.AttplusUsers
+				WHERE Email = @emailaddress
+			)
+			BEGIN
+				INSERT INTO [TDPS].dbo.AttplusUsers
+			   ([Id], [AccessFailedCount], [ConcurrencyStamp], [Email], [EmailConfirmed], [LockoutEnabled]
+			   ,[LockoutEnd], [NormalizedEmail], [NormalizedUserName], [PasswordHash], [PhoneNumber], [PhoneNumberConfirmed]
+			   ,[SecurityStamp], [TwoFactorEnabled], [UserName], [RoleId], [ActionTakenBy], [FirstName], [LastName], [ActionTakenId])
+			   SELECT [Id], [AccessFailedCount], [ConcurrencyStamp], [Email], [EmailConfirmed], [LockoutEnabled]
+			   ,[LockoutEnd], [NormalizedEmail], [NormalizedUserName], [PasswordHash], [PhoneNumber], [PhoneNumberConfirmed]
+			   ,[SecurityStamp], [TwoFactorEnabled], [UserName], @roleid, @AdminUserName, [FirstName], [LastName], @AdminUserID
+				FROM IdentityDB.dbo.AspNetUsers;
+			END
+			ELSE 
+			BEGIN
+				UPDATE [TDPS].dbo.AttplusUsers
+				SET RoleId = @roleid, [ActionTakenBy] = @AdminUserName, [ActionTakenId] = @AdminUserID
+				WHERE Email = @emailaddress;
+			END
+
+			DELETE [TDPS].[dbo].[CampusUser] WHERE UserId = @UserID;
+			INSERT INTO [TDPS].[dbo].[CampusUser] ([CampusID], [UserId], [Email], [CreatedBy], [CreatedDate], [LastModifiedBy], [LastModifiedDate]) 
+			SELECT  CampusID, @UserID, @Username, @AdminUserName, GETDATE(), NULL, NULL
+			FROM #TempCampusIDs;
+
+		END
+
+	COMMIT TRANSACTION;
+	END TRY
+	BEGIN CATCH
+		IF XACT_STATE() <> 0
+			ROLLBACK TRANSACTION;
+
+		DECLARE @ErrorMessage NVARCHAR(4000) = ERROR_MESSAGE();
+		DECLARE @ErrorSeverity INT = ERROR_SEVERITY();
+		DECLARE @ErrorState INT = ERROR_STATE();
+
+		RAISERROR (@ErrorMessage, @ErrorSeverity, @ErrorState);
+	END CATCH
+
+	DROP TABLE #TempCampusIDs
+END
+GO`,
     category: "User Management",
     language: "SQL",
     icon: "Key",
     color: "bg-purple-600",
-    tags: ["claims", "permissions", "identity", "properties"],
+    tags: ["claims", "permissions", "identity", "properties", "users"],
     lastUsed: new Date("2024-01-07"),
   },
   {
-    id: "campus-assignment",
-    title: "Campus User Assignment",
-    description: "Assign users to specific campuses and manage multi-campus access permissions",
-    content: `-- Assign User to Single Campus
-UPDATE AspNetUserClaims 
-SET ClaimValue = '1'
-WHERE UserId = (SELECT Id FROM AspNetUsers WHERE Email = 'user@example.com')
-AND ClaimType = 'CampusId';
+    id: "users-configuration-multiple",
+    title: "User Configuration (For Multiple Users)",
+    description:
+      "Add or update multiple users in Identity and TDPS system using a dynamic table and loop via stored procedure",
+    content: `USE [TDPS]
+GO
 
--- Assign User to Multiple Campuses
-UPDATE AspNetUserClaims 
-SET ClaimValue = '1|2|3'
-WHERE UserId = (SELECT Id FROM AspNetUsers WHERE Email = 'user@example.com')
-AND ClaimType = 'CampusId';
+/****** Object:  StoredProcedure [dbo].[spTDPS_AddOrUpdateAttPlusUserMultipleUserUsingDynamicTable]    Script Date: 8/20/2025 7:34:01 AM ******/
+SET ANSI_NULLS ON
+GO
 
--- Get Users by Campus
-SELECT u.Email, u.UserName, uc.ClaimValue as CampusIds
-FROM AspNetUsers u
-JOIN AspNetUserClaims uc ON u.Id = uc.UserId
-WHERE uc.ClaimType = 'CampusId'
-AND (uc.ClaimValue = '1' OR uc.ClaimValue LIKE '%|1|%' OR uc.ClaimValue LIKE '1|%' OR uc.ClaimValue LIKE '%|1');
+SET QUOTED_IDENTIFIER ON
+GO
 
--- Remove Campus Assignment
-DELETE FROM AspNetUserClaims
-WHERE ClaimType = 'CampusId'
-AND UserId = (SELECT Id FROM AspNetUsers WHERE Email = 'user@example.com');`,
+CREATE OR ALTER PROCEDURE [dbo].[spTDPS_AddOrUpdateAttPlusUserMultipleUserUsingDynamicTable]
+AS
+BEGIN	
+	BEGIN TRY
+	BEGIN TRANSACTION;
+
+		-- Create a temp table with row numbers
+		SELECT ROW_NUMBER() OVER (ORDER BY (SELECT NULL)) AS RowNum, FIELD1, FIELD2, FIELD3, FIELD4, FIELD5
+		INTO #TempTable
+		FROM DYNAMICTABLE1;
+
+		DECLARE @Row INT = 1;
+		DECLARE @Max INT = (SELECT COUNT(*) FROM #TempTable);
+		DECLARE @emailaddress varchar(100),
+				@username varchar(100),
+				@firstname varchar(100),
+				@lastname varchar(100),
+				@campusIDs varchar(500),
+				@roleid nvarchar(450) = '1',
+				@clientAbbrev varchar(100) = 'LODIUSDCA';
+		
+		-- Add or update users
+		WHILE @Row <= @Max
+		BEGIN
+			SELECT @firstname = FIELD1, @lastname = FIELD2, @emailaddress = FIELD3, @campusIDs = FIELD4, @username = FIELD5
+			FROM #TempTable WHERE RowNum = @Row;
+
+			-- Call single-user stored procedure
+			DECLARE @RC int;
+			EXECUTE @RC = [dbo].[spTDPS_AddOrUpdateAttPlusUser] 
+								@emailaddress
+								,@username
+								,@firstname
+								,@lastname
+								,@roleid
+								,@campusIDs
+								,@clientAbbrev;
+
+			SET @Row += 1;
+		END
+
+		DROP TABLE #TempTable;
+
+		-- Deactivate users not in the current dynamic table
+		SELECT ROW_NUMBER() OVER (ORDER BY (SELECT NULL)) AS RowNum, Email 
+		INTO #TempTable1
+		FROM IdentityDB.dbo.AspNetUsers 
+		JOIN IdentityDB.dbo.AspNetUserRoles ON IdentityDB.dbo.AspNetUsers.Id = IdentityDB.dbo.AspNetUserRoles.UserId and RoleId = @roleid
+		WHERE Email NOT IN (
+			SELECT DISTINCT FIELD3 FROM DYNAMICTABLE1
+		);
+
+		SET @Row = 1;
+		DECLARE @Max1 INT = (SELECT COUNT(*) FROM #TempTable1);
+
+		WHILE @Row <= @Max1
+		BEGIN
+			SELECT @emailaddress = Email
+			FROM #TempTable1 WHERE RowNum = @Row;
+
+			-- Remove user from Identity and TDPS
+			DELETE IdentityDB.dbo.AspNetUserRoles WHERE UserId = (SELECT Id FROM IdentityDB.dbo.AspNetUsers WHERE Email = @emailaddress);
+			DELETE IdentityDB.dbo.AspNetUserClaims WHERE UserId = (SELECT Id FROM IdentityDB.dbo.AspNetUsers WHERE Email = @emailaddress);
+			DELETE TDPS.dbo.AttplusUsers WHERE Email = @emailaddress;
+			DELETE TDPS.dbo.CampusUser WHERE UserId = (SELECT Id FROM IdentityDB.dbo.AspNetUsers WHERE Email = @emailaddress);
+
+			SET @Row += 1;
+		END
+
+		DROP TABLE #TempTable1;
+
+	COMMIT TRANSACTION;
+	END TRY
+	BEGIN CATCH
+		IF XACT_STATE() <> 0
+			ROLLBACK TRANSACTION;
+
+		DECLARE @ErrorMessage NVARCHAR(4000) = ERROR_MESSAGE();
+		DECLARE @ErrorSeverity INT = ERROR_SEVERITY();
+		DECLARE @ErrorState INT = ERROR_STATE();
+
+		RAISERROR (@ErrorMessage, @ErrorSeverity, @ErrorState);
+	END CATCH
+END
+GO`,
     category: "User Management",
     language: "SQL",
-    icon: "Users",
+    icon: "Key",
     color: "bg-purple-600",
-    tags: ["campus", "assignment", "multi-campus", "permissions"],
-    lastUsed: new Date("2024-01-06"),
+    tags: ["claims", "permissions", "identity", "properties", "users", "bulk"],
+    lastUsed: new Date("2024-01-07"),
   },
-  {
-    id: "database-sync",
-    title: "Database Synchronization",
-    description: "Scripts for synchronizing data between different database environments",
-    content: `-- Sync Users Between Databases
-INSERT INTO [TargetDB].[dbo].[AspNetUsers]
-SELECT * FROM [SourceDB].[dbo].[AspNetUsers]
-WHERE Id NOT IN (SELECT Id FROM [TargetDB].[dbo].[AspNetUsers]);
 
--- Sync User Claims
-INSERT INTO [TargetDB].[dbo].[AspNetUserClaims]
-SELECT * FROM [SourceDB].[dbo].[AspNetUserClaims]
-WHERE Id NOT IN (SELECT Id FROM [TargetDB].[dbo].[AspNetUserClaims]);
-
--- Sync Roles
-INSERT INTO [TargetDB].[dbo].[AspNetRoles]
-SELECT * FROM [SourceDB].[dbo].[AspNetRoles]
-WHERE Id NOT IN (SELECT Id FROM [TargetDB].[dbo].[AspNetRoles]);
-
--- Compare Record Counts
-SELECT 
-    'Users' as TableName,
-    (SELECT COUNT(*) FROM [SourceDB].[dbo].[AspNetUsers]) as SourceCount,
-    (SELECT COUNT(*) FROM [TargetDB].[dbo].[AspNetUsers]) as TargetCount;`,
-    category: "SQL Server",
-    language: "SQL",
-    icon: "Database",
-    color: "bg-red-600",
-    tags: ["sync", "migration", "database", "backup"],
-    lastUsed: new Date("2024-01-05"),
-  },
   {
     id: "mongodb-backup-restore",
-    title: "MongoDB Backup & Restore",
-    description: "Complete MongoDB backup and restore operations with compression and scheduling",
-    content: `#!/bin/bash
+    title: "MongoDB Backup & Restore (CMD)",
+    description:
+      "Step-by-step MongoDB backup and restore operations using mongodump and mongorestore commands in Windows CMD",
+    content: `-- Part 1: Backup (mongodump)
+-- Use this to extract data from the database and save it as a file.
 
-# MongoDB Backup Script
-BACKUP_DIR="/backup/mongodb"
-DATE=$(date +%Y%m%d_%H%M%S)
-DB_NAME="attendanceplus"
+1. Open CMD as Administrator.
 
-# Create backup directory
-mkdir -p $BACKUP_DIR
+2. Navigate to MongoDB Tools folder:
+   cd "C:\\Program Files\\MongoDB\\Tools\\100\\bin"
 
-# Full database backup with compression
-mongodump --db $DB_NAME --gzip --archive=$BACKUP_DIR/\${DB_NAME}_\${DATE}.gz
+3. Run the backup command:
+   mongodump --db [DatabaseName] --out "[DestinationPath]"
 
-# Backup specific collection
-mongodump --db $DB_NAME --collection users --gzip --archive=$BACKUP_DIR/users_\${DATE}.gz
+Example:
+   mongodump --db ConfigurationDB --out C:\\Backups\\Jan2026
 
-# Restore from backup
-mongorestore --db $DB_NAME --gzip --archive=$BACKUP_DIR/\${DB_NAME}_\${DATE}.gz
+-- Part 2: Restore (mongorestore)
+-- Use this to restore data from backup files into a database.
 
-# Restore to different database
-mongorestore --db \${DB_NAME}_restored --gzip --archive=$BACKUP_DIR/\${DB_NAME}_\${DATE}.gz
+1. Navigate to the same Tools folder:
+   cd "C:\\Program Files\\MongoDB\\Tools\\100\\bin"
 
-# Clean old backups (keep last 7 days)
-find $BACKUP_DIR -name "*.gz" -mtime +7 -delete
+2. Run the restore command:
+   mongorestore --db [DatabaseName] "[PathToBackupFolder]" --drop
 
-echo "Backup completed: \${DB_NAME}_\${DATE}.gz"`,
+Example:
+   mongorestore --db ConfigurationDB C:\\Backups\\Jan2026\\ConfigurationDB --drop`,
     category: "MongoDB",
     language: "Shell",
     icon: "Database",
     color: "bg-green-600",
-    tags: ["backup", "restore", "mongodb", "compression", "automation"],
-    lastUsed: new Date("2024-01-04"),
+    tags: ["backup", "restore", "mongodb", "cmd", "windows", "automation"],
+    lastUsed: new Date("2026-01-08"),
   },
+
   {
     id: "tdps-truncate-tables",
     title: "TDPS Database Table Cleanup",
-    description: "Truncate all tables in TDPS database for fresh data import",
-    content: `-- TDPS Database Table Truncation Script
--- Use with caution - this will delete all data
+    description:
+      "Truncate all tables in TDPS, IdentityDB, Esign, and Message Center databases for fresh data import",
+    content: `-- =====================================================================================================
+-- ===================================== TDPS Database ===============================================
+-- =====================================================================================================
 
-USE TDPS_Database;
+-- Truncate tables in TDPS database
+TRUNCATE TABLE dbo.Alert_Data2;
+TRUNCATE TABLE dbo.Alert_Grammar_Mapping;
+TRUNCATE TABLE dbo.Alert_Push_Notification;
+TRUNCATE TABLE dbo.Alert_Users;
+TRUNCATE TABLE dbo.Alerts_Devices;
+TRUNCATE TABLE AttplusUsers;
+TRUNCATE TABLE dbo.CampaignAnalytics;
+TRUNCATE TABLE dbo.CampainTemplateInfo;
+TRUNCATE TABLE dbo.CampaignFiles;
+TRUNCATE TABLE dbo.CampaignTemplateLayoutDetails;
+TRUNCATE TABLE dbo.CampaignTemplateTypes;
+TRUNCATE TABLE dbo.CampaignUploadedTemplatesData;
+TRUNCATE TABLE dbo.CampaignUserTemplateData;
+TRUNCATE TABLE dbo.CAMPUS_DAILY_ENROLLMENT_Staging;
+TRUNCATE TABLE dbo.CAMPUS_DAILY_ENROLLMENT;
+TRUNCATE TABLE ConcernReasons;
+TRUNCATE TABLE dbo.CampusUser;
+TRUNCATE TABLE dbo.COUNSELOR_INFO;
+TRUNCATE TABLE dbo.CourseTeacher;
+TRUNCATE TABLE dbo.DAILY_MEMBERSHIP_Delta;
+TRUNCATE TABLE dbo.DAILY_MEMBERSHIP_Production;
+TRUNCATE TABLE dbo.DAILY_MEMBERSHIP_Staging;
+TRUNCATE TABLE dbo.EmailAlertLog;
+TRUNCATE TABLE dbo.EmailToStudent;
+TRUNCATE TABLE dbo.Error_Absent_Days;
+TRUNCATE TABLE dbo.Error_Action_Board;
+TRUNCATE TABLE dbo.Error_Membership;
+TRUNCATE TABLE dbo.Error_Period_Skipped;
+TRUNCATE TABLE dbo.Error_Request_Action_Details;
+TRUNCATE TABLE dbo.Error_Student_DemoGraphic;
+TRUNCATE TABLE dbo.Error_Student_Requests;
+TRUNCATE TABLE dbo.Error_Summer_Notes;
+TRUNCATE TABLE dbo.Error_Tardys;
+TRUNCATE TABLE iApp_Config;
+TRUNCATE TABLE iApp_DownloadMenu;
+TRUNCATE TABLE iApp_Interventions;
+TRUNCATE TABLE iApp_MainMenu;
+TRUNCATE TABLE ManagePrintQueues;
+TRUNCATE TABLE dbo.PI_Documents;
+TRUNCATE TABLE dbo.PI_Devices;
+TRUNCATE TABLE dbo.PI_Reasons;
+TRUNCATE TABLE dbo.Print_Completion_Record;
+TRUNCATE TABLE dbo.ScheduleInterventions;
+TRUNCATE TABLE dbo.Sent_Completion_Record;
+TRUNCATE TABLE dbo.STUDENT_ABSENT_DAYS;
+TRUNCATE TABLE dbo.STUDENT_ABSENT_DAYS_ADA;
+TRUNCATE TABLE dbo.STUDENT_ABSENT_DAYS_ADA_BAK;
+TRUNCATE TABLE dbo.STUDENT_ABSENT_DAYS_ADA_Production;
+TRUNCATE TABLE dbo.STUDENT_ABSENT_DAYS_ADA_Test;
+TRUNCATE TABLE dbo.STUDENT_ABSENT_DAYS_BAK;
+TRUNCATE TABLE dbo.STUDENT_ABSENT_DAYS_Delta;
+TRUNCATE TABLE dbo.STUDENT_ABSENT_DAYS_Production;
+TRUNCATE TABLE dbo.STUDENT_ABSENT_DAYS_Staging;
+TRUNCATE TABLE dbo.STUDENT_ABSENT_DAYS_Staging_Test;
+TRUNCATE TABLE dbo.STUDENT_CAMPUS_INFO_LOG;
+TRUNCATE TABLE dbo.STUDENT_CAMPUS_INFO_LOG_LY;
+TRUNCATE TABLE dbo.STUDENT_DEMOGRAPHIC_INFO;
+TRUNCATE TABLE dbo.STUDENT_DEMOGRAPHIC_INFO_bak;
+TRUNCATE TABLE dbo.STUDENT_DEMOGRAPHIC_INFO_Delta;
+TRUNCATE TABLE dbo.STUDENT_DEMOGRAPHIC_INFO_Production;
+TRUNCATE TABLE dbo.STUDENT_DEMOGRAPHIC_INFO_Staging;
+TRUNCATE TABLE Student_Enrollment_Info;
+TRUNCATE TABLE dbo.STUDENT_GUARDIAN_INFO;
+TRUNCATE TABLE StudentInterventionHold;
+TRUNCATE TABLE StudentInterventionSuppressed;
+TRUNCATE TABLE dbo.STUDENT_PERIODS_SKIPPED;
+TRUNCATE TABLE dbo.STUDENT_PERIODS_SKIPPED_Bak;
+TRUNCATE TABLE dbo.STUDENT_PERIODS_SKIPPED_Delta;
+TRUNCATE TABLE dbo.STUDENT_PERIODS_SKIPPED_Production;
+TRUNCATE TABLE dbo.STUDENT_PERIODS_SKIPPED_Staging;
+TRUNCATE TABLE dbo.STUDENT_PERIODS_SKIPPED_Staging_Test;
+TRUNCATE TABLE dbo.STUDENT_RECOVERY_INFO;
+TRUNCATE TABLE dbo.STUDENT_TARDY;
+TRUNCATE TABLE dbo.STUDENT_TARDY_Delta;
+TRUNCATE TABLE dbo.STUDENT_TARDY_bak;
+TRUNCATE TABLE dbo.STUDENT_TARDY_Production;
+TRUNCATE TABLE dbo.STUDENT_TARDY_Staging;
+TRUNCATE TABLE dbo.STUDENT_TARDY_Staging_Test;
+TRUNCATE TABLE STUDENT_LAT_LONG;
+TRUNCATE TABLE dbo.STUDENT_TYPES;
+TRUNCATE TABLE dbo.SummerNotes;
+TRUNCATE TABLE dbo.TDPS_5X5_Test;
+TRUNCATE TABLE dbo.TDPS_ABSENCECALENDER_EMAILLOG;
+TRUNCATE TABLE dbo.TDPS_ACTION_BOARD;
+TRUNCATE TABLE dbo.TDPS_ACTION_BOARD_MENU_CONFIGURATION;
+TRUNCATE TABLE dbo.TDPS_ACTION_BOARD_USERFILTER;
+TRUNCATE TABLE TDPS_AdminBlock_Logs;
+TRUNCATE TABLE TDPS_Alert_Push_Notifications;
+TRUNCATE TABLE TDPS_Alert_Push_Notifications_Error;
+TRUNCATE TABLE dbo.TDPS_ARCSchedules;
+TRUNCATE TABLE TDPS_BARRIER_RESOURCES;
+TRUNCATE TABLE TDPS_Bookmark;
+TRUNCATE TABLE TDPS_CalendarEvent;
+TRUNCATE TABLE dbo.TDPS_Campaigns_Data;
+TRUNCATE TABLE dbo.TDPS_ChecklistSetup;
+TRUNCATE TABLE dbo.TDPS_CommunicationOptout;
+TRUNCATE TABLE TDPS_ConcernDepartment;
+TRUNCATE TABLE dbo.TDPS_Communications;
+TRUNCATE TABLE dbo.TDPS_ContinuousAbsences;
+TRUNCATE TABLE dbo.TDPS_CurrentYear_Comparison;
+TRUNCATE TABLE dbo.TDPS_Daily_Comparison;
+TRUNCATE TABLE dbo.TDPS_DailyPeriodsSkippedNotifier;
+TRUNCATE TABLE dbo.TDPS_DeletedInputComments;
+TRUNCATE TABLE dbo.TDPS_Department;
+TRUNCATE TABLE dbo.TDPS_DepartmentEmailAddress;
+TRUNCATE TABLE dbo.TDPS_Discipline;
+TRUNCATE TABLE dbo.TDPS_DuplicateData_Logs;
+TRUNCATE TABLE dbo.TDPS_DisableEmail;
+TRUNCATE TABLE dbo.TDPS_EmailSMSConfiguration;
+TRUNCATE TABLE dbo.TDPS_Emails_Log;
+TRUNCATE TABLE dbo.TDPS_EnrollmentType;
+TRUNCATE TABLE dbo.TDPS_EnrollmentTypeData;
+TRUNCATE TABLE dbo.TDPS_EnrollmentTypeDataTemp;
+TRUNCATE TABLE dbo.TDPS_ErrorLog_PeridoSkippedToAbsentDays;
+TRUNCATE TABLE dbo.TDPS_FeederPattern;
+TRUNCATE TABLE dbo.TDPS_GradeWiseEnrollment;
+TRUNCATE TABLE dbo.TDPS_InterventionsChecklistData;
+TRUNCATE TABLE dbo.TDPS_InterventionsChecklistSetup;
+TRUNCATE TABLE dbo.TDPS_LessThanFiveAlertLog;
+TRUNCATE TABLE dbo.TDPS_LessThanFiveCampaignSetup;
+TRUNCATE TABLE dbo.TDPS_MeetingDates;
+TRUNCATE TABLE dbo.TDPS_Messaging_Campaign;
+TRUNCATE TABLE dbo.TDPS_NotesFromAeries;
+TRUNCATE TABLE dbo.TDPS_ParentInvolvementCenter;
+TRUNCATE TABLE dbo.TDPS_PARENTALERT_LOG;
+TRUNCATE TABLE dbo.TDPS_Perfect_Attendance_Star_Log;
+TRUNCATE TABLE dbo.TDPS_PostCardLog;
+TRUNCATE TABLE dbo.TDPS_ProvidedInterventions;
+TRUNCATE TABLE dbo.TDPS_REGISTERED_DEVICES;
+TRUNCATE TABLE dbo.TDPS_ReversedScheduledMeeting;
+TRUNCATE TABLE dbo.TDPS_Request_Action_Details;
+TRUNCATE TABLE TDPS_SetupDynamicTables;
+TRUNCATE TABLE TDPS_SetupDynamicTablesColumns;
+TRUNCATE TABLE TDPS_Shoutouts;
+TRUNCATE TABLE TDPS_ShoutoutsStudentsDetails;
+TRUNCATE TABLE TDPS_STUDENT_DOCUMENT_LIBRARY;
+TRUNCATE TABLE dbo.TDPS_STUDENT_HOLD_INFO;
+TRUNCATE TABLE dbo.TDPS_STUDENT_MONITORING;
+TRUNCATE TABLE dbo.TDPS_STUDENT_REQUESTS;
+TRUNCATE TABLE TDPS_StudentEnrolledDays;
+TRUNCATE TABLE dbo.TDPS_StudentWhiteList;
+TRUNCATE TABLE dbo.TDPS_ThoughtOfTheDay;
+TRUNCATE TABLE dbo.TDPS_User_Students;
+TRUNCATE TABLE dbo.TDPS_USER_ROLE_CONFIGURATION_DETAILS;
+TRUNCATE TABLE dbo.TDPS_WebPart_Setting;
+TRUNCATE TABLE dbo.TDPS_YTDAbsencesComparisonData;
+TRUNCATE TABLE UnsubscribeEmail;
+TRUNCATE TABLE dbo.TIPI_Message;
+TRUNCATE TABLE dbo.TIPI_Subject;
+TRUNCATE TABLE dbo.TI_Comments;
+TRUNCATE TABLE dbo.TI_CommentsTemplate;
+TRUNCATE TABLE dbo.TI_CommentCategory;
+TRUNCATE TABLE dbo.TI_Devices;
+TRUNCATE TABLE dbo.TI_Setup;
 
--- Disable foreign key constraints
-EXEC sp_MSforeachtable "ALTER TABLE ? NOCHECK CONSTRAINT all"
+-- =====================================================================================================
+-- IdentityDB Database
+-- =====================================================================================================
 
--- Truncate all tables
-TRUNCATE TABLE Students;
-TRUNCATE TABLE Teachers;
-TRUNCATE TABLE Classes;
-TRUNCATE TABLE Attendance;
-TRUNCATE TABLE Subjects;
-TRUNCATE TABLE Schedules;
-TRUNCATE TABLE Grades;
-TRUNCATE TABLE Parents;
-TRUNCATE TABLE Fees;
-TRUNCATE TABLE Announcements;
+TRUNCATE TABLE AspNetRoleClaims;
+TRUNCATE TABLE AspNetUserClaims;
+TRUNCATE TABLE AspNetUserLogins;
+TRUNCATE TABLE AspNetUserRoles;
+TRUNCATE TABLE AspNetUsers;
+TRUNCATE TABLE AspNetUserTokens;
 
--- Re-enable foreign key constraints
-EXEC sp_MSforeachtable "ALTER TABLE ? WITH CHECK CHECK CONSTRAINT all"
+-- =====================================================================================================
+-- Esign Database
+-- =====================================================================================================
 
--- Verify tables are empty
-SELECT 
-    TABLE_NAME,
-    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES t2 WHERE t2.TABLE_NAME = t1.TABLE_NAME) as RecordCount
-FROM INFORMATION_SCHEMA.TABLES t1
-WHERE TABLE_TYPE = 'BASE TABLE';`,
+TRUNCATE TABLE DocumentStudentMapping;
+TRUNCATE TABLE Reminder;
+TRUNCATE TABLE RequestActionDetails;
+TRUNCATE TABLE TDPS_Communications;
+TRUNCATE TABLE tracking_log;
+TRUNCATE TABLE ClickTracking;
+TRUNCATE TABLE Participant;
+TRUNCATE TABLE WorkflowPersistenceDetail;
+TRUNCATE TABLE WorkflowPersistenceMaster;
+TRUNCATE TABLE Conversation;
+TRUNCATE TABLE ESignContractUpload;
+TRUNCATE TABLE dbo.UtilityExceptionLog;
+
+-- =====================================================================================================
+-- Message Center Database
+-- =====================================================================================================
+
+TRUNCATE TABLE ConversationMessages;
+TRUNCATE TABLE ConversationParticipants;
+TRUNCATE TABLE Conversations;
+TRUNCATE TABLE ParticipantMessageTracking;
+TRUNCATE TABLE Participants;`,
     category: "SQL Server",
     language: "SQL",
     icon: "Database",
     color: "bg-red-600",
-    tags: ["truncate", "cleanup", "tdps", "database", "reset"],
-    lastUsed: new Date("2024-01-02"),
+    tags: [
+      "truncate",
+      "cleanup",
+      "tdps",
+      "identitydb",
+      "esign",
+      "messagecenter",
+      "database",
+      "reset",
+    ],
+    lastUsed: new Date("2026-01-08"),
   },
   {
     id: "tdps-client-dependent-select",
-    title: "TDPS Client-Dependent Data Query",
-    description: "Query TDPS data based on client/campus specific requirements",
-    content: `-- TDPS Client-Dependent Data Queries
--- Filter data based on campus/client assignments
+    title: "TDPS SchoolOpenDates Setup",
+    description:
+      "Query TDPS data based on client/campus specific requirements and generate School Open Dates",
+    content: `-- ====================================================================
+-- TDPS SchoolOpenDates Table Setup
+-- ====================================================================
+
+-- Drop the table if it exists
+IF OBJECT_ID('dbo.TDPS_SchoolOpenDates', 'U') IS NOT NULL
+    DROP TABLE dbo.TDPS_SchoolOpenDates;
+
+-- Create the table if it does not exist
+IF NOT EXISTS (
+   SELECT * 
+   FROM INFORMATION_SCHEMA.TABLES 
+   WHERE TABLE_NAME = 'TDPS_SchoolOpenDates' AND TABLE_SCHEMA = 'dbo'
+)
+BEGIN
+   CREATE TABLE dbo.TDPS_SchoolOpenDates (
+       DateValue DATE PRIMARY KEY -- Adjust columns and types as needed
+   );
+
+   -- Populate the table with all school open dates for the current school year
+   WITH DateSeries AS (
+       -- Initial row from configuration, starting the series with the StartDate
+       SELECT CAST(StartDate AS DATE) AS DateValue, CAST(EndDate AS DATE) AS EndDate
+       FROM TDPS_ConfigurationSettings
+       WHERE ConfigurationKey = 'CurrentSchoolYear'
+
+       UNION ALL
+
+       -- Recursive part, adding 1 day at a time
+       SELECT DATEADD(DAY, 1, DateValue) AS DateValue, EndDate
+       FROM DateSeries
+       WHERE DateValue < EndDate
+   )
+   INSERT INTO dbo.TDPS_SchoolOpenDates
+   SELECT DateValue
+   FROM DateSeries
+   WHERE DATENAME(WEEKDAY, DateValue) NOT IN ('Saturday', 'Sunday')
+     AND NOT EXISTS (
+         SELECT 1 
+         FROM TDPS_DesignatedHoliday 
+         WHERE DateValue BETWEEN StartDate AND EndDate
+           AND ForSchoolCloseDayCalculation = 1
+     )
+   OPTION (MAXRECURSION 366);
+END;
+
+-- ====================================================================
+-- TDPS Client-Dependent Queries
+-- ====================================================================
 
 -- Get students by campus
 SELECT s.*, c.CampusName
@@ -523,7 +906,7 @@ JOIN Students s ON a.StudentId = s.Id
 JOIN Classes c ON a.ClassId = c.Id
 JOIN Campus camp ON s.CampusId = camp.Id
 WHERE camp.ClientId = @ClientId
-AND a.AttendanceDate BETWEEN @StartDate AND @EndDate;
+  AND a.AttendanceDate BETWEEN @StartDate AND @EndDate;
 
 -- Get teachers assigned to specific campus
 SELECT t.*, c.CampusName
@@ -549,165 +932,356 @@ GROUP BY c.Id, c.CampusName;`,
     language: "SQL",
     icon: "Database",
     color: "bg-red-600",
-    tags: ["tdps", "client-specific", "campus", "queries", "reporting"],
-    lastUsed: new Date("2024-01-01"),
+    tags: [
+      "tdps",
+      "client-specific",
+      "campus",
+      "queries",
+      "school-open-dates",
+      "reporting",
+    ],
+    lastUsed: new Date("2026-01-08"),
   },
   {
     id: "latest-bookmarks",
-    title: "Development Bookmarks",
-    description: "Essential development resources and documentation links for quick reference",
+    title: "Template Bookmarks",
+    description:
+      "Essential development resources, documentation links, and merge field placeholders for quick reference",
     content: `# Development Bookmarks & Resources
 
-## Documentation
-- ASP.NET Core: https://docs.microsoft.com/en-us/aspnet/core/
-- Angular: https://angular.io/docs
-- MongoDB: https://docs.mongodb.com/
-- SQL Server: https://docs.microsoft.com/en-us/sql/
-
-## Tools & Utilities
-- Postman: https://www.postman.com/
-- MongoDB Compass: https://www.mongodb.com/products/compass
-- SQL Server Management Studio: https://docs.microsoft.com/en-us/sql/ssms/
-- Visual Studio Code: https://code.visualstudio.com/
-
-## Libraries & Frameworks
-- Bootstrap: https://getbootstrap.com/
-- jQuery: https://jquery.com/
-- Chart.js: https://www.chartjs.org/
-- Moment.js: https://momentjs.com/
-
-## Learning Resources
-- Stack Overflow: https://stackoverflow.com/
-- GitHub: https://github.com/
-- CodePen: https://codepen.io/
-- MDN Web Docs: https://developer.mozilla.org/
-
-## Deployment & Hosting
-- IIS Configuration: https://docs.microsoft.com/en-us/iis/
-- Azure: https://azure.microsoft.com/
-- Docker: https://docs.docker.com/
-- Nginx: https://nginx.org/en/docs/`,
+## Placeholders
+<<ACTIVEISD>>
+<<ABSENCESDATE>>
+<<ACTIONTYPE>>
+<<ACTIVESEMESTER>>
+<<ALLABSENCESCOUNT>>
+<<ALLABSENCESCOUNTFROMINTDATE>>
+<<ALLABSENCESCOUNTTILLLETTERPRINTED>>
+<<ALLABSENCESCOUNTTILLLETTERPRINTEDFROMINTDATE>>
+<<ALLABSENCESDATES>>
+<<ALLABSENCESDATESFROMINTDATE>>
+<<ALLABSENCESDATESTILLLETTERPRINTED>>
+<<ALLABSENCESDATESTILLLETTERPRINTEDFROMINTDATE>>
+<<ALLFULLABSENCESCOUNT>>
+<<ALLFULLABSENCESCOUNTFROMINTDATE>>
+<<ALLFULLABSENCESDATES>>
+<<ALLFULLABSENCESDATESBULLETS>>
+<<ALLABSENCESDATESBULLETS>>
+<<ALLFULLABSENCESDATESFROMINTDATE>>
+<<ASSISTANTPRINCIPALNAME>>
+<<ATTENDANCEOFFICERNAME>>
+<<ATTENDANCEOFFICERNAMEASCURRENTUSER>>
+<<ATTENDANCERATE>>
+<<AVGSPEEDDAYS>>
+<<CAMPUSSTATE>>
+<<CAMPUSTYPE>>
+<<CAMPUSZIPCODE>>
+<<CAMPUSID>>
+<<CREATEDDATE>>
+<<CAMPUSCITYSTATEZIP>>
+<<CAMPUSCOMPLETEADDRESS>>
+<<CAMPUSEMAILADDRESS>>
+<<CAMPUSADDRESS>>
+<<CAMPUSNAME>>
+<<CAMPUSPHONENO>>
+<<CURRENTDATEWITHMONTHNAMEANDDASH>>
+<<CURRENTDATEWITHMONTHNAMEANDSLASH>>
+<<CURRENTDATEWITHMONTHNAMEANDSPACE>>
+<<CURRENTDATEWITHMONTHNUMBER>>
+<<CURRENTFORMATTEDDATE>>
+<<CURRENTUSERNAME>>
+<<CAUSENUMBER>>
+<<COURTACTIONVALIDITY>>
+<<CAMPUSSTARTTIME>>
+<<CONFERENCEROOMANDCAMPUSADDRESS>>
+<<CONFERENCELOCATION>>
+<<CONFERENCEROOM>>
+<<DATEOFBIRTH>>
+<<DAYSENROLLED>>
+<<DAYSPRESENT>>
+<<EXABSENCESCOUNT>>
+<<EXABSENCESCOUNTFROMINTDATE>>
+<<EXABSENCESCOUNTTILLLETTERPRINTED>>
+<<EXABSENCESCOUNTTILLLETTERPRINTEDFROMINTDATE>>
+<<EXABSENCESDATES>>
+<<EXABSENCESDATESFROMINTDATE>>
+<<EXABSENCESDATESTILLLETTERPRINTED>>
+<<EXABSENCESDATESTILLLETTERPRINTEDFROMINTDATE>>
+<<EXFULLABSENCESCOUNT>>
+<<EXFULLABSENCESCOUNTFROMINTDATE>>
+<<EXFULLABSENCESDATES>>
+<<EXFULLABSENCESDATESFROMINTDATE>>
+<<EXABSENCESCOUNTINWORDS>>
+<<EXFULLABSENCESDATESBULLETS>>
+<<EXABSENCESDATESBULLETS>>
+<<ENROLLMENTDATE>>
+<<FIRSTCONTACTNAME>>
+<<FIRSTCONTACTPHONE>>
+<<FIRSTCONTACTEMAIL>>
+<<FIRSTWLDATE>>
+<<GRADEABSENCESSUMMARYENGLISH>>
+<<GUARDIANZIPCODE>>
+<<GRADE>>
+<<GUARDIANADDRESS>>
+<<GUARDIANDOB>>
+<<GUARDIANEMAIL>>
+<<GUARDIANGENDER-1>>
+<<GUARDIANNAME>>
+<<GUARDIANRELATIONSHIP>>
+<<GUARDIANHOMELANGUAGE>>
+<<HEARINGDATE>>
+<<LASTABSENCEDATE>>
+<<LASTSCHOOLYEAR>>
+<<LOSSEXCUSEDINSTRUCTIONSHOURS>>
+<<LOSSINSTRUCTIONSHOURS>>
+<<LOSSUNEXCUSEDINSTRUCTIONSHOURS>>
+<<LYABSENCESCOUNT>>
+<<LYEXCCOUNT>>
+<<LYGRADE>>
+<<LYLT30>>
+<<LYMT30>>
+<<LYSUSPENSIONCOUNT>>
+<<LYTARDYCOUNT>>
+<<LYUNEXCOUNT>>
+<<MONITERINGDATEEND>>
+<<MONITERINGDATESTART>>
+<<MODIFIEDDATE>>
+<<MONTHNAME>>
+<<NOTICEDATE>>
+<<PARENTEMAILADDRESS>>
+<<PARENTPHONENUMBER>>
+<<PARENTCITY>>
+<<PARENTCITYSTATEZIP>>
+<<PARENTCURRENTADDRESS>>
+<<PARENTORCURRENTADDRESS>>
+<<PARENTORCURRENTCITYSTATEZIP>>
+<<PARENTFIRSTANDLASTNAME>>
+<<PARENTFIRSTNAME>>
+<<PARENTFULLADDRESS>>
+<<PARENTFULLNAME>>
+<<PARENTNAME>>
+<<PARENTLASTANDFIRSTNAME>>
+<<PARENTLASTNAME>>
+<<PARENTMIDDLENAME>>
+<<PARENTPHONENO>>
+<<PARENTSTATE>>
+<<PARENTZIPCODE>>
+<<PRINCIPALNAME>>
+<<PICPHONE>>
+<<PICSPECIALIST>>
+<<REQUESTATTENDACEOFFICERNAME>>
+<<REQUESTFORMDATE>>
+<<STUDENTID>>
+<<STUDENTNAME>>
+<<STUDENTCURRENTADDRESS>>
+<<STUDENTSOCIALSECURITYNO>>
+<<STUDENTCURRENTCITYSTATEZIP>>
+<<STUDENTDATEOFBIRTH>>
+<<STUDENTFIRSTANDLASTNAME>>
+<<STUDENTFIRSTNAME>>
+<<STUDENTFULLNAME>>
+<<STUDENTGENDER>>
+<<STUDENTAGE>>
+<<STUDENTGRADE>>
+<<STUDENTLASTANDFIRSTNAME>>
+<<STUDENTLASTNAME>>
+<<STUDENTMIDDLENAME>>
+<<STUDENTNAMEANDID>>
+<<STUDENTPHONENUMBER>>
+<<STUDENTRACE>>
+<<SCHOOLDISTRICT>>
+<<STUDENTZIPCODE>>
+<<SARTDATE>>
+<<SCHOOLYEAR>>
+<<SECONDCONTACTNAME>>
+<<SECONDCONTACTPHONE>>
+<<SECONDNOTLETTERDATE>>
+<<SCHEDULEDDATE>>
+<<SCHEDULEDDATEWITHMONTHNAMEANDSPACE>>
+<<SCHEDULEDTIME>>
+<<SCHEDULEDMONTH>>
+<<TODAYSDATE>>
+<<USERNAME>>
+<<UNXABSENCESCOUNT>>
+<<UNXABSENCESCOUNTFROMINTDATE>>
+<<UNXABSENCESCOUNTTILLLETTERPRINTED>>
+<<UNXABSENCESCOUNTTILLLETTERPRINTEDFROMINTDATE>>
+<<UNXABSENCESDATES>>
+<<UNXABSENCESDATESFROMINTDATE>>
+<<UNXABSENCESDATESTILLLETTERPRINTED>>
+<<UNXABSENCESDATESTILLLETTERPRINTEDFROMINTDATE>>
+<<UNXFULLABSENCESCOUNT>>
+<<UNXFULLABSENCESCOUNTFROMINTDATE>>
+<<UNXFULLABSENCESDATES>>
+<<UNXFULLABSENCESDATESFROMINTDATE>>
+<<UNXFULLABSENCESDATESBULLETS>>
+<<UNXABSENCESDATESBULLETS>>
+<<SARBDATE>>
+<<LYUNEXCOUNT>>`,
     category: "Documentation",
     language: "Markdown",
     icon: "BookOpen",
     color: "bg-indigo-600",
-    tags: ["bookmarks", "resources", "documentation", "tools", "learning"],
+    tags: [
+      "bookmarks",
+      "resources",
+      "documentation",
+      "tools",
+      "learning",
+      "placeholders",
+    ],
     lastUsed: new Date("2023-12-31"),
   },
   {
     id: "admin-user-creation",
-    title: "Admin User Creation Script",
-    description: "Create administrative user accounts with full permissions and proper role assignments",
-    content: `-- Create Admin User with Full Permissions
-DECLARE @AdminUserId NVARCHAR(450) = NEWID();
-DECLARE @AdminEmail NVARCHAR(256) = 'admin@attendanceplus.com';
-DECLARE @AdminUserName NVARCHAR(256) = 'admin@attendanceplus.com';
-
--- Insert Admin User
-INSERT INTO AspNetUsers (
-    Id, UserName, NormalizedUserName, Email, NormalizedEmail,
-    EmailConfirmed, PasswordHash, SecurityStamp, ConcurrencyStamp,
-    PhoneNumberConfirmed, TwoFactorEnabled, LockoutEnabled, AccessFailedCount
+    title: "System Admin Creation Script",
+    description:
+      "Comprehensive setup for SystemAdmin role, administrative user account, and TDPS_SETUP key synchronization.",
+    content: `use [TDPS]
+ 
+DECLARE @NewId UNIQUEIDENTIFIER = NEWID();
+ 
+IF NOT EXISTS (
+    SELECT 1 FROM AttplusUsers 
+    WHERE UserName = 'Attplus.Admin' 
+       OR Email = 'attplusadmin@raaweek12.com'
 )
-VALUES (
-    @AdminUserId, @AdminUserName, UPPER(@AdminUserName), @AdminEmail, UPPER(@AdminEmail),
-    1, 'AQAAAAEAACcQAAAAEAdminHashedPassword...', NEWID(), NEWID(),
-    0, 0, 0, 0
-);
-
--- Assign Admin Role
-INSERT INTO AspNetUserRoles (UserId, RoleId)
-SELECT @AdminUserId, Id FROM AspNetRoles WHERE Name = 'SuperAdmin';
-
--- Add Admin Claims
-INSERT INTO AspNetUserClaims (UserId, ClaimType, ClaimValue)
-VALUES 
-    (@AdminUserId, 'FirstName', 'System'),
-    (@AdminUserId, 'LastName', 'Administrator'),
-    (@AdminUserId, 'CampusId', 'ALL'),
-    (@AdminUserId, 'Department', 'IT'),
-    (@AdminUserId, 'CanManageUsers', 'true'),
-    (@AdminUserId, 'CanManageSystem', 'true');
-
--- Verify Admin User Creation
-SELECT u.Email, r.Name as Role, uc.ClaimType, uc.ClaimValue
-FROM AspNetUsers u
-LEFT JOIN AspNetUserRoles ur ON u.Id = ur.UserId
-LEFT JOIN AspNetRoles r ON ur.RoleId = r.Id
-LEFT JOIN AspNetUserClaims uc ON u.Id = uc.UserId
-WHERE u.Email = @AdminEmail;`,
+BEGIN
+    INSERT INTO AttplusUsers 
+    (Id, UserName, NormalizedUserName, Email, NormalizedEmail, EmailConfirmed, 
+     PasswordHash, SecurityStamp, ConcurrencyStamp, PhoneNumber, PhoneNumberConfirmed, 
+     TwoFactorEnabled, LockoutEnd, LockoutEnabled, AccessFailedCount, FirstName, LastName, 
+     RoleId, ActionTakenBy, ActionTakenId) 
+    VALUES 
+    (@NewId, 'Attplus.Admin', 'ATTPLUS.ADMIN', 'attplusadmin@raaweek12.com', 'ATTPLUSADMIN@RAAWEEK12.COM', 1, 
+     NEWID(), NEWID(), NEWID(), '1234567890', 1, 
+     0, NULL, 1, 0, 'Attplus', 'Admin', 
+     12, 'Attplus Admin', @NewId);
+END
+ 
+-- Entry in TDPS AttplusUserRoles Table
+IF NOT EXISTS (
+    SELECT 1 FROM AttplusUserRoles 
+    WHERE Name = 'SystemAdmin' 
+       OR NormalizedName = 'SYSTEMADMIN'
+)
+BEGIN
+    INSERT INTO AttplusUserRoles (Id, ConcurrencyStamp, Name, NormalizedName, Active, CampusSelection)
+    VALUES (12, NULL, 'SystemAdmin', 'SYSTEMADMIN', 1, 2);
+END
+ 
+-- Entry in TDPS TDPS_SETUP Table
+DECLARE @AdminId UNIQUEIDENTIFIER;
+ 
+-- Fetch the ID of Attplus.Admin from AttPlusUser
+SELECT @AdminId = Id 
+FROM AttplusUsers 
+WHERE Email = 'attplusadmin@raaweek12.com';
+ 
+-- Check if 'AttplusAdminID' key exists in TDPS_SETUP
+IF EXISTS (SELECT 1 FROM TDPS_SETUP WHERE [Key] = 'AttplusAdminID')
+BEGIN
+    -- Update the existing record
+    UPDATE TDPS_SETUP 
+    SET [Value] = CAST(@AdminId AS NVARCHAR(MAX)) -- Ensuring type compatibility if Value is string-based
+    WHERE [Key] = 'AttplusAdminID';
+END
+ELSE
+BEGIN
+    -- Insert a new record if it doesn't exist
+    INSERT INTO TDPS_SETUP ([Key], [Value])
+    VALUES ('AttplusAdminID', CAST(@AdminId AS NVARCHAR(MAX)));
+END`,
     category: "User Management",
     language: "SQL",
     icon: "Shield",
     color: "bg-purple-600",
-    tags: ["admin", "user-creation", "permissions", "roles", "system"],
-    lastUsed: new Date("2023-12-30"),
+    tags: ["tdps", "system-admin", "setup", "attplus", "initialization"],
+    lastUsed: new Date("2026-01-08"),
   },
   {
-    id: "abdul-basit-apps",
-    title: "Abdul Basit Applications List",
+    id: "v-tdps-user-role-view",
+    title: "TDPS User Role View",
     description:
-      "List of applications and tools commonly used by Abdul Basit for development and system administration",
-    content: `# Abdul Basit's Essential Applications & Tools
+      "SQL View to aggregate Campus, User, and Role data, providing a unified look at user permissions and action logs.",
+    content: `USE [TDPS]
+GO
 
-## Development Environment
-- Visual Studio 2022 Professional
-- Visual Studio Code
-- SQL Server Management Studio (SSMS)
-- MongoDB Compass
-- Postman API Testing Tool
-- Git for Windows
-- Node.js LTS
-- Angular CLI
+/****** Object:  View [dbo].[vTDPS_UserRoleView]    Script Date: 2/24/2025 12:34:40 PM ******/
+SET ANSI_NULLS ON
+GO
 
-## Database Tools
-- SQL Server 2019/2022
-- MongoDB Community Server
-- Redis Server
-- MySQL Workbench
-- phpMyAdmin
+SET QUOTED_IDENTIFIER ON
+GO
 
-## System Administration
-- IIS Manager
-- Windows Admin Center
-- PowerShell ISE
-- Remote Desktop Manager
-- PuTTY SSH Client
-- WinSCP File Transfer
-- 7-Zip Archive Manager
-
-## Productivity Tools
-- Microsoft Office 365
-- Notepad++
-- Beyond Compare
-- TeamViewer
-- Skype for Business
-
-## Design & Documentation
-- Draw.io (Diagrams)
-- Snagit (Screenshots)
-- Adobe Acrobat Reader
-- Markdown Editor
-- Confluence (Documentation)
-
-## Communication
-- Microsoft Teams
-- Slack
-- WhatsApp Desktop
-- Zoom Client
-
-## Utilities
-- Windows Terminal
-- PowerToys
-- Everything Search
-- CCleaner
-- Malwarebytes
-- Windows Defender`,
-    category: "Tools & Apps",
-    language: "Markdown",
-    icon: "Wrench",
-    color: "bg-teal-600",
-    tags: ["applications", "tools", "development", "productivity", "utilities"],
-    lastUsed: new Date("2023-12-29"),
+CREATE VIEW [dbo].[vTDPS_UserRoleView] AS
+SELECT
+    c.CampusId,
+    c.CampusName,
+    u.RoleId,
+    r.Name AS RoleName,
+    r.NormalizedName,
+    u.Id AS UserId,
+    u.Email,
+    u.NormalizedEmail,
+    u.Username,
+    u.FirstName,
+    u.LastName,
+    u.NormalizedUserName,
+    u.ActionTakenBy,
+    u.ActionTakenId,
+    cu.CreatedDate AS ActionTakenDate
+FROM
+    [AttplusUsers] u
+LEFT JOIN
+    [AttplusUserRoles] r
+    ON u.RoleId = r.Id -- Match RoleId with the roles table
+LEFT JOIN
+    [CampusUser] cu
+    ON u.Id = cu.UserId
+LEFT JOIN
+    [Campuses] c
+    ON cu.CampusId = c.CampusId;
+GO`,
+    category: "Database Views",
+    language: "SQL",
+    icon: "Table",
+    color: "bg-blue-600",
+    tags: ["sql-view", "user-management", "reporting", "tdps", "schema"],
+    lastUsed: new Date("2025-02-24"),
   },
-]
+  {
+    id: "vm-activation-commands",
+    title: "VM & Windows Activation Commands",
+    description:
+      "Quick reference for Windows activation and VM management commands",
+    content: `# VM & Windows Activation Commands
+
+## Windows Activation
+1. **Rearm Windows Activation Timer**  
+_(Run as Administrator)_ 
+
+slmgr /rearm
+
+2. **Display License Information**  
+_(Run as Administrator)_  
+
+slmgr /dlv
+
+## VM Operations
+
+3. **Restart Virtual Machine**  
+
+_Can be run inside the VM or via PowerShell on host_
+
+Restart-Computer
+
+> Tip: Always save your work before restarting the VM.`,
+    category: "Quick Scripts",
+    language: "Markdown",
+    icon: "Cpu",
+    color: "bg-yellow-600",
+    tags: ["vm", "windows", "activation", "commands", "restart"],
+    lastUsed: new Date(),
+  },
+];
