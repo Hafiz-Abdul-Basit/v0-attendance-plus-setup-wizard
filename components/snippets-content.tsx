@@ -687,8 +687,8 @@ export function SnippetsContent({
                     }
                     className={`group relative p-4 rounded-xl border-2 transition-all duration-200 text-left ${
                       isSelected
-                        ? "border-purple-300 bg-purple-50 shadow-lg scale-[1.02]"
-                        : "border-gray-300 hover:border-purple-300 hover:bg-purple-25 hover:shadow-md"
+                        ? "border-purple-200 bg-purple-50 shadow-lg scale-[1.02]"
+                        : "border-purple-200 hover:border-purple-300 hover:bg-purple-25 hover:shadow-md"
                     }`}
                   >
                     <div className="flex items-center gap-3 mb-2">
