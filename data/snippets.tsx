@@ -887,47 +887,7 @@ BEGIN
            AND ForSchoolCloseDayCalculation = 1
      )
    OPTION (MAXRECURSION 366);
-END;
-
--- ====================================================================
--- TDPS Client-Dependent Queries
--- ====================================================================
-
--- Get students by campus
-SELECT s.*, c.CampusName
-FROM Students s
-JOIN Campus c ON s.CampusId = c.Id
-WHERE c.ClientId = @ClientId;
-
--- Get attendance by campus and date range
-SELECT a.*, s.StudentName, c.ClassName
-FROM Attendance a
-JOIN Students s ON a.StudentId = s.Id
-JOIN Classes c ON a.ClassId = c.Id
-JOIN Campus camp ON s.CampusId = camp.Id
-WHERE camp.ClientId = @ClientId
-  AND a.AttendanceDate BETWEEN @StartDate AND @EndDate;
-
--- Get teachers assigned to specific campus
-SELECT t.*, c.CampusName
-FROM Teachers t
-JOIN TeacherCampusAssignment tca ON t.Id = tca.TeacherId
-JOIN Campus c ON tca.CampusId = c.Id
-WHERE c.ClientId = @ClientId;
-
--- Summary report by campus
-SELECT 
-    c.CampusName,
-    COUNT(DISTINCT s.Id) as TotalStudents,
-    COUNT(DISTINCT t.Id) as TotalTeachers,
-    COUNT(DISTINCT cl.Id) as TotalClasses
-FROM Campus c
-LEFT JOIN Students s ON c.Id = s.CampusId
-LEFT JOIN TeacherCampusAssignment tca ON c.Id = tca.CampusId
-LEFT JOIN Teachers t ON tca.TeacherId = t.Id
-LEFT JOIN Classes cl ON c.Id = cl.CampusId
-WHERE c.ClientId = @ClientId
-GROUP BY c.Id, c.CampusName;`,
+END;`,
     category: "SQL Server",
     language: "SQL",
     icon: "Database",

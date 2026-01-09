@@ -682,15 +682,15 @@ export function SnippetsContent({
                 const isSelected = selectedFolder === folderName;
 
                 return (
-                  <button
+                   <button
                     key={folderName}
                     onClick={() =>
                       setSelectedFolder(isSelected ? null : folderName)
                     }
                     className={`group relative p-4 rounded-xl border-2 transition-all duration-200 text-left ${
                       isSelected
-                        ? "border-purple-200 bg-purple-50 shadow-lg scale-[1.02]"
-                        : "border-purple-200 hover:border-purple-300 hover:bg-purple-25 hover:shadow-md"
+                        ? "border-purple-300 bg-gray-50 shadow-lg scale-[1.02]"
+                        : "border-purple-200 bg-gray-50 hover:border-purple-300 hover:bg-gray-100 hover:shadow-md"
                     }`}
                   >
                     <div className="flex items-center gap-3 mb-2">
