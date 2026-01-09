@@ -116,75 +116,30 @@ c. Open Command Prompt, navigate to the folder, and run:
     lastUsed: new Date("2024-01-13"),
   },
 
-  {
-    id: "angular-dev-setup",
-    title: "Angular Development Setup",
-    description:
-      "Complete Angular development environment setup with all necessary dependencies",
-    content: `#!/bin/bash
+ {
+  id: "sql-update-table-paths",
+  title: "Update History Tables File Paths",
+  description:
+    "Update document file paths in SQL Server by replacing the base directory with a new academic year path",
+  content: `-- Update SQL Table Paths
+-- Replaces old base path with new academic year directory
 
-# Angular Development Environment Setup
+--Example
 
-# Install Node.js (if not installed)
-curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
-sudo apt-get install -y nodejs
-
-# Install Angular CLI globally
-npm install -g @angular/cli@latest
-
-# Create new Angular project
-ng new my-angular-app --routing --style=scss
-
-# Navigate to project directory
-cd my-angular-app
-
-# Install additional dependencies
-npm install bootstrap@latest
-npm install @angular/material @angular/cdk @angular/animations
-npm install rxjs@latest
-
-# Install development dependencies
-npm install --save-dev @types/node
-npm install --save-dev typescript@latest
-
-# Start development server
-ng serve --open`,
-    category: "Development",
-    language: "Shell",
-    icon: "Code2",
-    color: "bg-orange-600",
-    tags: ["angular", "setup", "development", "cli", "dependencies"],
-    lastUsed: new Date("2024-01-12"),
-  },
-  {
-    id: "sql-server-cmdline",
-    title: "SQL Server Command Line Execution",
-    description:
-      "Execute SQL scripts using sqlcmd with various authentication methods and parameters",
-    content: `-- Execute SQL script with SQL Server Authentication
-sqlcmd -S <ServerName> -d <DatabaseName> -U <UserName> -P <Password> -i "C:\\Path\\To\\YourScript.sql"
-
--- Execute SQL script with Windows Authentication
-sqlcmd -S localhost -d MyDatabase -E -i "C:\\Scripts\\BigScript.sql"
-
--- Execute with output to file
-sqlcmd -S localhost -d MyDatabase -E -i "C:\\Scripts\\Query.sql" -o "C:\\Output\\Results.txt"
-
--- Execute inline query
-sqlcmd -S localhost -d MyDatabase -E -Q "SELECT TOP 10 * FROM Users"
-
--- Execute with variables
-sqlcmd -S localhost -d MyDatabase -E -v DatabaseName="MyDB" -i "C:\\Scripts\\Script.sql"
-
--- Batch execution with error handling
-sqlcmd -S localhost -d MyDatabase -E -i "C:\\Scripts\\Migration.sql" -b -V 16`,
-    category: "SQL Server",
-    language: "SQL",
-    icon: "Terminal",
-    color: "bg-red-600",
-    tags: ["sqlcmd", "command-line", "sql-server", "batch", "authentication"],
-    lastUsed: new Date("2024-01-11"),
-  },
+UPDATE History_StudentDocuments
+SET DocPath = REPLACE(
+    DocPath,
+    'C:\\Raawee\\Sent Letters',
+    'C:\\Raawee\\History_StudentDocuments\\2024-2025'
+)
+WHERE DocPath LIKE 'C:\\Raawee\\Sent Letters%';`,
+  category: "SQL Server",
+  language: "SQL",
+  icon: "Database",
+  color: "bg-red-600",
+  tags: ["sql", "update", "file-paths", "migration", "maintenance"],
+  lastUsed: new Date("2024-01-12"),
+},
   {
     id: "user-data-table",
     title: "User Management Data Table",
