@@ -1284,12 +1284,12 @@ Restart-Computer
     tags: ["vm", "windows", "activation", "commands", "restart"],
     lastUsed: new Date(),
   },
-    {
-    id: "iis-ssl-multi-site-setup",
-    title: "IIS Site Setup (PowerShell)",
-    description:
-      "PowerShell script to automatically create IIS sites, app pools, HTTPS bindings, and apply SSL certificates using a friendly name",
-    content: `Import-Module WebAdministration
+  {
+  id: "iis-ssl-multi-site-setup",
+  title: "IIS Site Setup (PowerShell)",
+  description:
+    "PowerShell script to automatically create IIS sites, app pools, HTTPS bindings, and apply SSL certificates using a friendly name",
+  content: `Import-Module WebAdministration
 
 # --- SSL Certificate Friendly Name ---
 $certFriendlyName = "*raaweek12_24-25"
@@ -1362,11 +1362,12 @@ foreach ($s in $sites) {
 }
 
 Write-Host "🎉 All AttendancePlus sites created with HTTPS and started successfully!"`,
-    category: "IIS & Web Server",
-    language: "PowerShell",
-    icon: "Server",
-    color: "bg-purple-600",
-    tags: ["iis", "powershell", "ssl", "https", "automation", "deployment"],
-    lastUsed: new Date("2024-01-20"),
-  },
+  category: "IIS & Web Server",
+  language: "PowerShell",
+  icon: "Server",
+  color: "bg-purple-600",
+  tags: ["iis", "powershell", "ssl", "https", "automation", "deployment"],
+  lastUsed: new Date("2024-01-20"),
+}
+
 ];

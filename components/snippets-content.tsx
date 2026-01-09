@@ -579,12 +579,14 @@ export function SnippetsContent({
           )}
 
           {/* Search shortcuts hint */}
-          <div className="absolute right-14 top-1/2 -translate-y-1/2 hidden md:flex items-center gap-1 text-xs text-gray-500">
-            <kbd className="px-1.5 py-0.5 bg-gray-100 rounded text-xs">
+          <div className="absolute right-14 top-1/2 -translate-y-1/2 hidden md:flex items-center gap-1 text-xs text-gray-700">
+            <kbd className="px-1.5 py-0.5 bg-purple-500 text-white rounded text-xs">
               Ctrl
             </kbd>
             <span>+</span>
-            <kbd className="px-1.5 py-0.5 bg-gray-100 rounded text-xs">K</kbd>
+            <kbd className="px-1.5 py-0.5 bg-purple-500 text-white rounded text-xs">
+              K
+            </kbd>
           </div>
         </div>
 
@@ -734,47 +736,7 @@ export function SnippetsContent({
           </div>
         )}
 
-        {/* Active Filters */}
-        {(selectedFolder || localSearchQuery) && (
-          <div className="mb-6 flex items-center gap-2">
-            <span className="text-sm text-gray-600">Active filters:</span>
-            {selectedFolder && (
-              <div className="flex items-center gap-1 bg-purple-100 text-purple-800 px-3 py-1 rounded-full text-sm">
-                <Tag className="w-3 h-3" />
-                {selectedFolder}
-                <button
-                  onClick={() => setSelectedFolder(null)}
-                  className="ml-1 hover:bg-purple-200 rounded-full p-0.5"
-                >
-                  <X className="w-3 h-3" />
-                </button>
-              </div>
-            )}
-            {localSearchQuery && (
-              <div className="flex items-center gap-1 bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm">
-                <Search className="w-3 h-3" />"{localSearchQuery}"
-                <button
-                  onClick={() => setLocalSearchQuery("")}
-                  className="ml-1 hover:bg-blue-200 rounded-full p-0.5"
-                >
-                  <X className="w-3 h-3" />
-                </button>
-              </div>
-            )}
-            {filteredSnippetId && onClearFilter && (
-              <div className="flex items-center gap-1 bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm">
-                <Search className="w-3 h-3" />
-                Filtered View
-                <button
-                  onClick={onClearFilter}
-                  className="ml-1 hover:bg-green-200 rounded-full p-0.5"
-                >
-                  <X className="w-3 h-3" />
-                </button>
-              </div>
-            )}
-          </div>
-        )}
+       
       </div>
 
       {/* Snippets Display */}
