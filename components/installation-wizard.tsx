@@ -898,7 +898,7 @@ export function InstallationWizard() {
       )}
 
       {/* Main Content Area */}
-      <main
+       <main
         className={`flex-1 ${
           !showSnippets && !showGuides ? "ml-80" : "ml-0"
         } flex flex-col h-screen overflow-hidden`}
@@ -1011,27 +1011,7 @@ export function InstallationWizard() {
               )}
             </div>
           </div>
-          {/* Modern Minimal Footer */}
-          <footer className="w-full border-t border-gray-200 bg-white p-6 mt-8 flex flex-col sm:flex-row justify-between items-center text-sm text-gray-600 gap-2 sm:gap-0">
-            <span>
-              © {new Date().getFullYear()}{" "}
-              <span className="font-semibold text-purple-600">
-                Develop By Abdul Basit
-              </span>
-            </span>
-
-            {/* Right: Shortcut info & optional links */}
-            <div className="flex flex-wrap items-center gap-4 text-gray-500">
-              <span className="flex items-center gap-1">
-                <kbd className="px-2 py-1 bg-purple-600 rounded text-xs text-white font-medium">
-                  Ctrl+K
-                </kbd>
-                <span className="font-semibold text-purple-600">
-                  Search Snippets Fast
-                </span>
-              </span>
-            </div>
-          </footer>
+       
         </div>
       </main>
 
