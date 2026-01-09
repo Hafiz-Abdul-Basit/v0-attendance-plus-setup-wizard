@@ -1284,4 +1284,89 @@ Restart-Computer
     tags: ["vm", "windows", "activation", "commands", "restart"],
     lastUsed: new Date(),
   },
+    {
+    id: "iis-ssl-multi-site-setup",
+    title: "IIS Site Setup (PowerShell)",
+    description:
+      "PowerShell script to automatically create IIS sites, app pools, HTTPS bindings, and apply SSL certificates using a friendly name",
+    content: `Import-Module WebAdministration
+
+# --- SSL Certificate Friendly Name ---
+$certFriendlyName = "*raaweek12_24-25"
+
+# --- Find SSL Certificate ---
+$cert = Get-ChildItem -Path Cert:\\LocalMachine\\My | Where-Object { $_.FriendlyName -eq $certFriendlyName }
+
+if (-not $cert) {
+    Write-Host "❌ SSL Certificate '$certFriendlyName' not found in LocalMachine\\My store." -ForegroundColor Red
+    exit 1
+}
+
+$thumbprint = $cert.Thumbprint -replace " ", ""
+Write-Host "🔍 Found SSL Certificate '$certFriendlyName' with Thumbprint: $thumbprint"
+Write-Host ""
+
+# --- Base Path for Projects ---
+$basePath = "D:\\myNGApp\\Deployments\\Rk12.AttPlus.Integration"
+
+# --- Hosts ---
+$commonHost = "attplusgv.raaweek12.com"
+$gatewayHost = "gatewaygv.raaweek12.com"
+
+# --- Site List ---
+$sites = @(
+    @{ Name = "Rk12.AttPlus.Intervention.API"; Port = 7189; Path = "$basePath\\Rk12.AttPlus.Intervention.API"; Host = $commonHost },
+    @{ Name = "Rk12.AttPlus.Analysis.API"; Port = 7296; Path = "$basePath\\Rk12.AttPlus.Analysis.API"; Host = $commonHost },
+    @{ Name = "Rk12.AttPlus.Administration.API"; Port = 7239; Path = "$basePath\\Rk12.AttPlus.Administration.API"; Host = $commonHost },
+    @{ Name = "Rk12.AttPlus.CourtManagement.API"; Port = 7007; Path = "$basePath\\Rk12.AttPlus.CourtManagement.API"; Host = $commonHost },
+    @{ Name = "Rk12.AttPlus.Identity.API"; Port = 7206; Path = "$basePath\\Rk12.AttPlus.Identity.API"; Host = $commonHost },
+    @{ Name = "Rk12.AttPlus.SentLetter.API"; Port = 7101; Path = "$basePath\\RK12.AttPlus.Intervention.SendLetter.QConsumer"; Host = $commonHost },
+    @{ Name = "Rk12.AttPlus.LetterDispatch.API"; Port = 7119; Path = "$basePath\\Rk12.AttPlus.LetterDispatch.API"; Host = $commonHost },
+    @{ Name = "Rk12.AttPlus.MessageHub.API"; Port = 7120; Path = "$basePath\\Rk12.AttPlus.MessageHub"; Host = $commonHost },
+    @{ Name = "Rk12.AttPlus.Miscellaneous.API"; Port = 7061; Path = "$basePath\\Rk12.AttPlus.Miscellaneous.API"; Host = $commonHost },
+    @{ Name = "Rk12.AttPlus.ApiGateway"; Port = 443; Path = "$basePath\\Rk12.AttPlus.ApiGateway"; Host = $gatewayHost },
+    @{ Name = "Rk12.AttPlus.Angular.Web"; Port = 443; Path = "$basePath\\Rk12.AttPlus.Angular.Web"; Host = $commonHost }
+)
+
+# --- Loop through all sites ---
+foreach ($s in $sites) {
+    $siteName = $s.Name
+    $appPool = $siteName
+    $physicalPath = $s.Path
+    $port = $s.Port
+    $siteHost = $s.Host
+
+    Write-Host "⚙️ Configuring $siteName ($siteHost:$port)..."
+
+    if (-not (Test-Path "IIS:\\AppPools\\$appPool")) {
+        New-WebAppPool -Name $appPool | Out-Null
+    }
+
+    Set-ItemProperty "IIS:\\AppPools\\$appPool" -Name processModel.identityType -Value "LocalSystem"
+    Set-ItemProperty "IIS:\\AppPools\\$appPool" -Name managedRuntimeVersion -Value ""
+    Set-ItemProperty "IIS:\\AppPools\\$appPool" -Name managedPipelineMode -Value "Integrated"
+    Set-ItemProperty "IIS:\\AppPools\\$appPool" -Name startMode -Value "AlwaysRunning"
+
+    if (-not (Test-Path "IIS:\\Sites\\$siteName")) {
+        New-Website -Name $siteName -Port 99999 -PhysicalPath $physicalPath -ApplicationPool $appPool | Out-Null
+        Remove-WebBinding -Name $siteName -Protocol http -Port 99999 -ErrorAction SilentlyContinue
+    }
+
+    $bindingPath = "IIS:\\SslBindings\\0.0.0.0!$port!$siteHost"
+    if (Test-Path $bindingPath) { Remove-Item $bindingPath -ErrorAction SilentlyContinue }
+
+    New-WebBinding -Name $siteName -Protocol https -Port $port -HostHeader $siteHost -SslFlags 0 | Out-Null
+    New-Item -Path $bindingPath -Thumbprint $thumbprint -SSLFlags 0 | Out-Null
+
+    Start-Website -Name $siteName
+}
+
+Write-Host "🎉 All AttendancePlus sites created with HTTPS and started successfully!"`,
+    category: "IIS & Web Server",
+    language: "PowerShell",
+    icon: "Server",
+    color: "bg-purple-600",
+    tags: ["iis", "powershell", "ssl", "https", "automation", "deployment"],
+    lastUsed: new Date("2024-01-20"),
+  },
 ];
