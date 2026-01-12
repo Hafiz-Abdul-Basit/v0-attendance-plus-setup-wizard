@@ -1283,6 +1283,38 @@ Write-Host "🎉 All AttendancePlus sites created with HTTPS and started success
   color: "bg-purple-600",
   tags: ["iis", "powershell", "ssl", "https", "automation", "deployment"],
   lastUsed: new Date("2024-01-20"),
+},
+{
+  id: "hosts-file-configuration",
+  title: "Windows Hosts File Configuration",
+  description:
+    "Steps to update the Windows hosts file with client, API gateway, and docs URLs to avoid loopback issues",
+  content: `Update the hosts file
+
+Update the IP and Client URLs in the hosts file to avoid loopback issues. Please follow the steps below:
+
+1. Open File Explorer.
+2. Navigate to the folder:
+   C:\\Windows\\System32\\drivers\\etc
+3. Open the "hosts" file in any text editor (run the editor as Administrator).
+4. Add the following entries to the hosts file:
+
+   a. <Local IP>    <clientname>.raaweek12.com
+   b. <Local IP>    apigateway<clientname>.raaweek12.com
+   c. <Local IP>    <clientname>docs.raaweek12.com
+
+5. Save the file and close the editor.
+
+Note:
+- Replace <Local IP> with your machine or server IP address.
+- Replace <clientname> with the actual client identifier.`,
+  category: "Quick Scripts",
+  language: "Text",
+  icon: "Zap",
+  color: "bg-yellow-600",
+  tags: ["hosts-file", "dns", "loopback", "api-gateway", "windows"],
+  lastUsed: new Date("2024-01-14"),
 }
+
 
 ];

@@ -509,7 +509,7 @@ export function SnippetsContent({
             <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-white animate-pulse"></div>
           </div>
           <div className="flex-1">
-            <h3 className="text-xl font-bold text-gray-900 mb-2">
+            <h3 className="text-xl font-bold text-gray-900">
               🔍 Search Snippets
             </h3>
             <p className="text-sm text-gray-700 leading-relaxed">
