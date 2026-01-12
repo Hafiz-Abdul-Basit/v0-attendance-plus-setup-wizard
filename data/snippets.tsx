@@ -122,17 +122,48 @@ c. Open Command Prompt, navigate to the folder, and run:
   description:
     "Update document file paths in SQL Server by replacing the base directory with a new academic year path",
   content: `-- Update SQL Table Paths
--- Replaces old base path with new academic year directory
+-- Purpose:
+-- Move file references from rollover directory (E:\RaaWee\RollOver\2024-2025)
+-- to local application storage (D:\myNGApp\Raawee)
 
---Example
+------------------------------------------------------------
+-- 1. Update History_StudentFiles paths
+------------------------------------------------------------
+UPDATE History_StudentFiles
+SET DocumentPath = REPLACE(
+    DocumentPath,
+    'E:\RaaWee\RollOver\2024-2025\DocumentLibrary\History_StudentFiles',
+    'D:\myNGApp\Raawee\History_StudentFiles'
+)
+WHERE DocumentPath LIKE
+    'E:\RaaWee\RollOver\2024-2025\DocumentLibrary\History_StudentFiles%';
 
+------------------------------------------------------------
+-- 2. Update History_StudentDocuments paths
+------------------------------------------------------------
 UPDATE History_StudentDocuments
 SET DocPath = REPLACE(
     DocPath,
-    'C:\\Raawee\\Sent Letters',
-    'C:\\Raawee\\History_StudentDocuments\\2024-2025'
+    'E:\RaaWee\RollOver\2024-2025\DocumentLibrary\History_StudentDocuments\StudentsDocumentLibrary-',
+    'D:\myNGApp\Raawee\History_StudentDocuments\'
 )
-WHERE DocPath LIKE 'C:\\Raawee\\Sent Letters%';`,
+WHERE DocPath LIKE
+    'E:\RaaWee\RollOver\2024-2025\DocumentLibrary\History_StudentDocuments\StudentsDocumentLibrary-%';
+
+------------------------------------------------------------
+-- 3. Preview changes BEFORE running UPDATE (Best Practice)
+------------------------------------------------------------
+SELECT 
+    DocPath AS OldPath,
+    REPLACE(
+        DocPath,
+        'E:\RaaWee\RollOver\2024-2025\DocumentLibrary\History_StudentDocuments\StudentsDocumentLibrary-',
+        'D:\myNGApp\Raawee\History_StudentDocuments\'
+    ) AS NewPath
+FROM History_StudentDocuments
+WHERE DocPath LIKE
+    'E:\RaaWee\RollOver\2024-2025\DocumentLibrary\History_StudentDocuments\StudentsDocumentLibrary-%';
+`,
   category: "SQL Server",
   language: "SQL",
   icon: "Database",
