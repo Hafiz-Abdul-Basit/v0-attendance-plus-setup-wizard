@@ -1310,7 +1310,7 @@ Note:
 - Replace <clientname> with the actual client identifier.`,
   category: "Quick Scripts",
   language: "Text",
-  icon: "Zap",
+  icon: "Cpu",
   color: "bg-yellow-600",
   tags: ["hosts-file", "dns", "loopback", "api-gateway", "windows"],
   lastUsed: new Date("2024-01-14"),
