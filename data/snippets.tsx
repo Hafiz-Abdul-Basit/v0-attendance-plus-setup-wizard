@@ -2,8 +2,7 @@ export const snippetsData = [
   {
     id: "frontend-webconfig",
     title: "Frontend Web.config",
-    description:
-      "Complete web.config file for Angular frontend application with proper routing and MIME types",
+    description: "Complete web.config file for Angular frontend application with proper routing and MIME types",
     content: `<?xml version="1.0" encoding="utf-8"?>
 <configuration>
 
@@ -37,8 +36,7 @@ export const snippetsData = [
   {
     id: "backend-webconfig",
     title: "Backend Web.config",
-    description:
-      "Complete web.config for .NET Core backend API with CORS, authentication, and security headers",
+    description: "Complete web.config for .NET Core backend API with CORS, authentication, and security headers",
     content: `<?xml version="1.0" encoding="utf-8"?>
 <configuration>
   <location path="." inheritInChildApplications="false">
@@ -106,25 +104,19 @@ c. Open Command Prompt, navigate to the folder, and run:
     language: "Shell",
     icon: "Database",
     color: "bg-green-600",
-    tags: [
-      "mongodb",
-      "replica-set",
-      "high-availability",
-      "clustering",
-      "windows",
-    ],
+    tags: ["mongodb", "replica-set", "high-availability", "clustering", "windows"],
     lastUsed: new Date("2024-01-13"),
   },
 
- {
-  id: "sql-update-table-paths",
-  title: "Update History Tables File Paths",
-  description:
-    "Update document file paths in SQL Server by replacing the base directory with a new academic year path",
-  content: `-- Update SQL Table Paths
+  {
+    id: "sql-update-table-paths",
+    title: "Update History Tables File Paths",
+    description:
+      "Update document file paths in SQL Server by replacing the base directory with a new academic year path",
+    content: `-- Update SQL Table Paths
 -- Purpose:
--- Move file references from rollover directory (E:\RaaWee\RollOver\2024-2025)
--- to local application storage (D:\myNGApp\Raawee)
+-- Move file references from rollover directory (E:\\RaaWee\\RollOver\\2024-2025)
+-- to local application storage (D:\\myNGApp\\Raawee)
 
 ------------------------------------------------------------
 -- 1. Update History_StudentFiles paths
@@ -132,11 +124,11 @@ c. Open Command Prompt, navigate to the folder, and run:
 UPDATE History_StudentFiles
 SET DocumentPath = REPLACE(
     DocumentPath,
-    'E:\RaaWee\RollOver\2024-2025\DocumentLibrary\History_StudentFiles',
-    'D:\myNGApp\Raawee\History_StudentFiles'
+    'E:\\RaaWee\\RollOver\\2024-2025\\DocumentLibrary\\History_StudentFiles',
+    'D:\\myNGApp\\Raawee\\History_StudentFiles'
 )
 WHERE DocumentPath LIKE
-    'E:\RaaWee\RollOver\2024-2025\DocumentLibrary\History_StudentFiles%';
+    'E:\\RaaWee\\RollOver\\2024-2025\\DocumentLibrary\\History_StudentFiles%';
 
 ------------------------------------------------------------
 -- 2. Update History_StudentDocuments paths
@@ -144,11 +136,11 @@ WHERE DocumentPath LIKE
 UPDATE History_StudentDocuments
 SET DocPath = REPLACE(
     DocPath,
-    'E:\RaaWee\RollOver\2024-2025\DocumentLibrary\History_StudentDocuments\StudentsDocumentLibrary-',
-    'D:\myNGApp\Raawee\History_StudentDocuments\'
+    'E:\\RaaWee\\RollOver\\2024-2025\\DocumentLibrary\\History_StudentDocuments\\StudentsDocumentLibrary-',
+    'D:\\myNGApp\\Raawee\\History_StudentDocuments\\'
 )
 WHERE DocPath LIKE
-    'E:\RaaWee\RollOver\2024-2025\DocumentLibrary\History_StudentDocuments\StudentsDocumentLibrary-%';
+    'E:\\RaaWee\\RollOver\\2024-2025\\DocumentLibrary\\History_StudentDocuments\\StudentsDocumentLibrary-%';
 
 ------------------------------------------------------------
 -- 3. Preview changes BEFORE running UPDATE (Best Practice)
@@ -157,25 +149,36 @@ SELECT
     DocPath AS OldPath,
     REPLACE(
         DocPath,
-        'E:\RaaWee\RollOver\2024-2025\DocumentLibrary\History_StudentDocuments\StudentsDocumentLibrary-',
-        'D:\myNGApp\Raawee\History_StudentDocuments\'
+        'E:\\RaaWee\\RollOver\\2024-2025\\DocumentLibrary\\History_StudentDocuments\\StudentsDocumentLibrary-',
+        'D:\\myNGApp\\Raawee\\History_StudentDocuments\\'
     ) AS NewPath
 FROM History_StudentDocuments
 WHERE DocPath LIKE
-    'E:\RaaWee\RollOver\2024-2025\DocumentLibrary\History_StudentDocuments\StudentsDocumentLibrary-%';
+    'E:\\RaaWee\\RollOver\\2024-2025\\DocumentLibrary\\History_StudentDocuments\\StudentsDocumentLibrary-%';
+
+------------------------------------------------------------
+-- 4. Reverse preview changes for verification
+------------------------------------------------------------
+SELECT
+    REPLACE(
+        'D:\\myNGApp\\Raawee\\History_StudentDocuments\\',
+        'E:\\RaaWee\\RollOver\\2024-2025\\DocumentLibrary\\History_StudentDocuments\\StudentsDocumentLibrary-'
+    ) AS NewPath
+FROM History_StudentDocuments
+WHERE DocPath LIKE
+    'E:\\RaaWee\\RollOver\\2024-2025\\DocumentLibrary\\History_StudentDocuments\\StudentsDocumentLibrary-%';
 `,
-  category: "SQL Server",
-  language: "SQL",
-  icon: "Database",
-  color: "bg-red-600",
-  tags: ["sql", "update", "file-paths", "migration", "maintenance"],
-  lastUsed: new Date("2024-01-12"),
-},
+    category: "SQL Server",
+    language: "SQL",
+    icon: "Database",
+    color: "bg-red-600",
+    tags: ["sql", "update", "file-paths", "migration", "maintenance"],
+    lastUsed: new Date("2024-01-12"),
+  },
   {
     id: "user-data-table",
     title: "User Management Data Table",
-    description:
-      "Interactive table with sample user data - view, edit, and download as Excel/CSV",
+    description: "Interactive table with sample user data - view, edit, and download as Excel/CSV",
     content: `INTERACTIVE_TABLE`,
     category: "User Management",
     language: "Interactive",
@@ -270,8 +273,7 @@ WHERE DocPath LIKE
   {
     id: "user-roles-setup",
     title: "User Roles Setup",
-    description:
-      "Complete setup for user roles and permissions in ASP.NET Identity system",
+    description: "Complete setup for user roles and permissions in ASP.NET Identity system",
     content: `USE [IdentityDB]
 GO
 INSERT [dbo].[AspNetRoles] ([Id], [ConcurrencyStamp], [Name], [NormalizedName], [CampusSelection], [Active]) VALUES (N'1', NULL, N'Campus Officer', N'CAMPUSOFFICER', N'2', 1)
@@ -609,8 +611,7 @@ Example:
   {
     id: "tdps-truncate-tables",
     title: "TDPS Database Table Cleanup",
-    description:
-      "Truncate all tables in TDPS, IdentityDB, Esign, and Message Center databases for fresh data import",
+    description: "Truncate all tables in TDPS, IdentityDB, Esign, and Message Center databases for fresh data import",
     content: `-- =====================================================================================================
 -- ===================================== TDPS Database ===============================================
 -- =====================================================================================================
@@ -755,7 +756,7 @@ TRUNCATE TABLE TDPS_STUDENT_DOCUMENT_LIBRARY;
 TRUNCATE TABLE dbo.TDPS_STUDENT_HOLD_INFO;
 TRUNCATE TABLE dbo.TDPS_STUDENT_MONITORING;
 TRUNCATE TABLE dbo.TDPS_STUDENT_REQUESTS;
-TRUNCATE TABLE TDPS_StudentEnrolledDays;
+TRUNCATE TABLE StudentEnrolledDays;
 TRUNCATE TABLE dbo.TDPS_StudentWhiteList;
 TRUNCATE TABLE dbo.TDPS_ThoughtOfTheDay;
 TRUNCATE TABLE dbo.TDPS_User_Students;
@@ -812,23 +813,13 @@ TRUNCATE TABLE Participants;`,
     language: "SQL",
     icon: "Database",
     color: "bg-red-600",
-    tags: [
-      "truncate",
-      "cleanup",
-      "tdps",
-      "identitydb",
-      "esign",
-      "messagecenter",
-      "database",
-      "reset",
-    ],
+    tags: ["truncate", "cleanup", "tdps", "identitydb", "esign", "messagecenter", "database", "reset"],
     lastUsed: new Date("2026-01-08"),
   },
   {
     id: "tdps-client-dependent-select",
     title: "TDPS SchoolOpenDates Setup",
-    description:
-      "Query TDPS data based on client/campus specific requirements and generate School Open Dates",
+    description: "Query TDPS data based on client/campus specific requirements and generate School Open Dates",
     content: `-- ====================================================================
 -- TDPS SchoolOpenDates Table Setup
 -- ====================================================================
@@ -878,14 +869,72 @@ END;`,
     language: "SQL",
     icon: "Database",
     color: "bg-red-600",
-    tags: [
-      "tdps",
-      "client-specific",
-      "campus",
-      "queries",
-      "school-open-dates",
-      "reporting",
-    ],
+    tags: ["tdps", "client-specific", "campus", "queries", "school-open-dates", "reporting"],
+    lastUsed: new Date("2026-01-08"),
+  },
+  {
+    id: "sql-server-file-migration",
+    title: "SQL Server - Migrate File References",
+    description:
+      "Move file references from rollover directory to local application storage using SQL UPDATE and REPLACE",
+    content: `
+------------------------------------------------------------
+-- SQL Server Migration Script
+------------------------------------------------------------
+-- Move file references from rollover directory (E:\\RaaWee\\RollOver\\2024-2025)
+-- to local application storage (D:\\myNGApp\\Raawee)
+
+------------------------------------------------------------
+-- 1. Update History_StudentFiles paths
+------------------------------------------------------------
+UPDATE History_StudentFiles
+SET FilePath = REPLACE(
+    FilePath,
+    'E:\\RaaWee\\RollOver\\2024-2025\\DocumentLibrary\\History_StudentFiles',
+    'D:\\myNGApp\\Raawee\\History_StudentFiles'
+)
+WHERE FilePath LIKE
+    'E:\\RaaWee\\RollOver\\2024-2025\\DocumentLibrary\\History_StudentFiles%';
+
+------------------------------------------------------------
+-- 2. Update History_StudentDocuments paths
+------------------------------------------------------------
+UPDATE History_StudentDocuments
+SET DocPath = REPLACE(
+    DocPath,
+    'E:\\RaaWee\\RollOver\\2024-2025\\DocumentLibrary\\History_StudentDocuments\\StudentsDocumentLibrary-',
+    'D:\\myNGApp\\Raawee\\History_StudentDocuments\\'
+)
+WHERE DocPath LIKE
+    'E:\\RaaWee\\RollOver\\2024-2025\\DocumentLibrary\\History_StudentDocuments\\StudentsDocumentLibrary-%';
+
+------------------------------------------------------------
+-- 3. Verify updated paths
+------------------------------------------------------------
+SELECT TOP 10
+    FileID,
+    FilePath
+FROM History_StudentFiles
+WHERE FilePath LIKE
+    'E:\\RaaWee\\RollOver\\2024-2025\\DocumentLibrary\\History_StudentDocuments\\StudentsDocumentLibrary-%';
+
+------------------------------------------------------------
+-- 4. Reverse preview changes for verification
+------------------------------------------------------------
+SELECT
+    REPLACE(
+        'D:\\myNGApp\\Raawee\\History_StudentDocuments\\',
+        'E:\\RaaWee\\RollOver\\2024-2025\\DocumentLibrary\\History_StudentDocuments\\StudentsDocumentLibrary-'
+    ) AS NewPath
+FROM History_StudentDocuments
+WHERE DocPath LIKE
+    'E:\\RaaWee\\RollOver\\2024-2025\\DocumentLibrary\\History_StudentDocuments\\StudentsDocumentLibrary-%';
+`,
+    category: "SQL Server",
+    language: "SQL",
+    icon: "Database",
+    color: "bg-red-600",
+    tags: ["sql", "update", "file-paths", "migration", "maintenance"],
     lastUsed: new Date("2026-01-08"),
   },
   {
@@ -1020,7 +1069,7 @@ END;`,
 <<STUDENTID>>
 <<STUDENTNAME>>
 <<STUDENTCURRENTADDRESS>>
-<<STUDENTSOCIALSECURITYNO>>
+<<STUDENTSOCIALSecurityNO>>
 <<STUDENTCURRENTCITYSTATEZIP>>
 <<STUDENTDATEOFBIRTH>>
 <<STUDENTFIRSTANDLASTNAME>>
@@ -1068,14 +1117,7 @@ END;`,
     language: "Markdown",
     icon: "BookOpen",
     color: "bg-indigo-600",
-    tags: [
-      "bookmarks",
-      "resources",
-      "documentation",
-      "tools",
-      "learning",
-      "placeholders",
-    ],
+    tags: ["bookmarks", "resources", "documentation", "tools", "learning", "placeholders"],
     lastUsed: new Date("2023-12-31"),
   },
   {
@@ -1199,8 +1241,7 @@ GO`,
   {
     id: "vm-activation-commands",
     title: "VM & Windows Activation Commands",
-    description:
-      "Quick reference for Windows activation and VM management commands",
+    description: "Quick reference for Windows activation and VM management commands",
     content: `# VM & Windows Activation Commands
 
 ## Windows Activation
@@ -1231,11 +1272,11 @@ Restart-Computer
     lastUsed: new Date(),
   },
   {
-  id: "iis-ssl-multi-site-setup",
-  title: "IIS Site Setup (PowerShell)",
-  description:
-    "PowerShell script to automatically create IIS sites, app pools, HTTPS bindings, and apply SSL certificates using a friendly name",
-  content: `Import-Module WebAdministration
+    id: "iis-ssl-multi-site-setup",
+    title: "IIS Site Setup (PowerShell)",
+    description:
+      "PowerShell script to automatically create IIS sites, app pools, HTTPS bindings, and apply SSL certificates using a friendly name",
+    content: `Import-Module WebAdministration
 
 # --- SSL Certificate Friendly Name ---
 $certFriendlyName = "*raaweek12_24-25"
@@ -1308,19 +1349,19 @@ foreach ($s in $sites) {
 }
 
 Write-Host "🎉 All AttendancePlus sites created with HTTPS and started successfully!"`,
-  category: "IIS & Web Server",
-  language: "PowerShell",
-  icon: "Server",
-  color: "bg-purple-600",
-  tags: ["iis", "powershell", "ssl", "https", "automation", "deployment"],
-  lastUsed: new Date("2024-01-20"),
-},
-{
-  id: "hosts-file-configuration",
-  title: "Windows Hosts File Configuration",
-  description:
-    "Steps to update the Windows hosts file with client, API gateway, and docs URLs to avoid loopback issues",
-  content: `Update the hosts file
+    category: "IIS & Web Server",
+    language: "PowerShell",
+    icon: "Server",
+    color: "bg-purple-600",
+    tags: ["iis", "powershell", "ssl", "https", "automation", "deployment"],
+    lastUsed: new Date("2024-01-20"),
+  },
+  {
+    id: "hosts-file-configuration",
+    title: "Windows Hosts File Configuration",
+    description:
+      "Steps to update the Windows hosts file with client, API gateway, and docs URLs to avoid loopback issues",
+    content: `Update the hosts file
 
 Update the IP and Client URLs in the hosts file to avoid loopback issues. Please follow the steps below:
 
@@ -1339,13 +1380,11 @@ Update the IP and Client URLs in the hosts file to avoid loopback issues. Please
 Note:
 - Replace <Local IP> with your machine or server IP address.
 - Replace <clientname> with the actual client identifier.`,
-  category: "Quick Scripts",
-  language: "Text",
-  icon: "Cpu",
-  color: "bg-yellow-600",
-  tags: ["hosts-file", "dns", "loopback", "api-gateway", "windows"],
-  lastUsed: new Date("2024-01-14"),
-}
-
-
-];
+    category: "Quick Scripts",
+    language: "Text",
+    icon: "Cpu",
+    color: "bg-yellow-600",
+    tags: ["hosts-file", "dns", "loopback", "api-gateway", "windows"],
+    lastUsed: new Date("2024-01-14"),
+  },
+]
