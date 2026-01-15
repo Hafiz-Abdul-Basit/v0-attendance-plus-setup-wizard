@@ -1581,7 +1581,7 @@ BEGIN
         RETURN -1;
     END CATCH
 END;`,
-  category: "Database Scripts",
+  category: "SQL Server",
   language: "SQL",
   icon: "Database",
   color: "bg-blue-600",
@@ -1600,7 +1600,7 @@ END;`,
     [CreatedDate] DATETIME NULL,
     [CreatedBy] NVARCHAR(50) NULL
 );`,
-  category: "Database Scripts",
+  category: "SQL Server",
   language: "SQL",
   icon: "Table",
   color: "bg-green-600",
