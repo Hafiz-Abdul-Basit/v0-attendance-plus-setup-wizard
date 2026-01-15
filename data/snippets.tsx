@@ -1387,4 +1387,225 @@ Note:
     tags: ["hosts-file", "dns", "loopback", "api-gateway", "windows"],
     lastUsed: new Date("2024-01-14"),
   },
+  {
+  id: "sp-revert-student-action",
+  title: "Revert Student Action Stored Procedure",
+  description:
+    "SQL Server stored procedure to safely revert student actions across TDPS and eSignature databases with transactional integrity and logging",
+  content: `USE [TDPS]
+GO
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+
+ALTER PROCEDURE [dbo].[spTDPS_RevertStudentAction]
+(
+    @StudentID VARCHAR(MAX),       -- Single or comma-separated list (e.g. '12083372,12081234')
+    @ActionType VARCHAR(MAX),       -- Single or comma-separated list (e.g. 'AC,DC,WC')
+    @UserName VARCHAR(MAX)          -- User performing the revert (e.g. 'Ibtesam')
+)
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    BEGIN TRY
+        BEGIN TRANSACTION;
+
+        ------------------------------------------------------------
+        -- Convert comma-separated values into table variables
+        ------------------------------------------------------------
+        DECLARE @StudentTable TABLE (StudentID VARCHAR(50));
+        DECLARE @ActionTypeTable TABLE (ActionType VARCHAR(50));
+
+        INSERT INTO @StudentTable (StudentID)
+        SELECT TRIM(value) FROM STRING_SPLIT(@StudentID, ',');
+
+        INSERT INTO @ActionTypeTable (ActionType)
+        SELECT TRIM(value) FROM STRING_SPLIT(@ActionType, ',');
+
+        ------------------------------------------------------------
+        -- RESET MAIN ACTION BOARD
+        ------------------------------------------------------------
+        UPDATE TDPS_ACTION_BOARD
+        SET ActionTakenBy = NULL,
+            ActionTakenId = NULL,
+            ActionTakenDate = NULL,
+            ActionDate = NULL,
+            RequestId = NULL,
+            IsWarningLetterPrinted = 0,
+            WarningLetterPrintedDate = NULL,
+            EXPIRE = 0,
+            IsDismissed = 0,
+            IsSupress = 0,
+            SuppressedBy = NULL,
+            SuppressedId = NULL,
+            SuppressedOn = NULL,
+            SupressComments = NULL,
+            IsExempt = 0,
+            IsScheduled = 0,
+            ScheduledDate = NULL,
+            ScheduledTime = NULL,
+            Comments = NULL,
+            ModifiedBy = NULL,
+            IsRescheduled = NULL,
+            IsHold = NULL,
+            HoldComments = NULL,
+            HoldId = NULL,
+            HoldOn = NULL,
+            HoldExpireOn = NULL,
+            InterventionInitiatedId = NULL,
+            InterventionInitiatedDate = NULL,
+            InterventionInitiatedBy = NULL,
+            InterventionInitiatedByRole = NULL,
+            IsCompleted = 0,
+            isQueued = 0,
+            RescheduledCount = NULL
+        WHERE StudentID IN (SELECT StudentID FROM @StudentTable)
+          AND ActionType IN (SELECT ActionType FROM @ActionTypeTable);
+
+        ------------------------------------------------------------
+        -- CLEAN RELATED TABLES
+        ------------------------------------------------------------
+        DELETE FROM TDPS_Communications
+        WHERE StudentId IN (SELECT StudentID FROM @StudentTable)
+          AND ActionType IN (SELECT ActionType FROM @ActionTypeTable);
+
+        DELETE RAD
+        FROM TDPS_REQUEST_ACTION_DETAILS RAD
+        WHERE RAD.StudentId IN (SELECT StudentID FROM @StudentTable)
+          AND EXISTS (
+              SELECT 1
+              FROM @ActionTypeTable A
+              WHERE RAD.Abbrev LIKE '%' + A.ActionType + '%'
+          );
+
+        DELETE FROM TDPS_STUDENT_DOCUMENT_LIBRARY
+        WHERE StudentId IN (SELECT StudentID FROM @StudentTable)
+          AND ActionType IN (SELECT ActionType FROM @ActionTypeTable);
+
+        DELETE FROM ScheduleInterventions
+        WHERE StudentId IN (SELECT StudentID FROM @StudentTable)
+          AND ActionType IN (SELECT ActionType FROM @ActionTypeTable);
+
+        DELETE FROM TDPS_STUDENT_MONITORING
+        WHERE StudentId IN (SELECT StudentID FROM @StudentTable)
+          AND ActionType IN (SELECT ActionType FROM @ActionTypeTable);
+
+        ------------------------------------------------------------
+        -- CLEAN eSignature DATABASE RECORDS
+        ------------------------------------------------------------
+        DELETE FROM [Raaweek12.eSignature].dbo.WorkflowPersistenceDetail
+        WHERE WorkflowPersistenceMasterID IN (
+            SELECT WorkflowPersistenceMasterID
+            FROM [Raaweek12.eSignature].dbo.WorkflowPersistenceMaster
+            WHERE StudentID IN (SELECT StudentID FROM @StudentTable)
+              AND ActionType IN (SELECT ActionType FROM @ActionTypeTable)
+        );
+
+        DELETE FROM [Raaweek12.eSignature].dbo.ClickTracking
+        WHERE TrackingLogId IN (
+            SELECT TrackingId
+            FROM [Raaweek12.eSignature].dbo.tracking_log
+            WHERE StudentID IN (SELECT StudentID FROM @StudentTable)
+        );
+
+        DELETE FROM [Raaweek12.eSignature].dbo.tracking_log
+        WHERE StudentID IN (SELECT StudentID FROM @StudentTable);
+
+        DELETE FROM [Raaweek12.eSignature].dbo.TDPS_Communications
+        WHERE StudentID IN (SELECT StudentID FROM @StudentTable)
+          AND ActionType IN (SELECT ActionType FROM @ActionTypeTable);
+
+        DELETE FROM [Raaweek12.eSignature].dbo.RequestActionDetails
+        WHERE StudentID IN (SELECT StudentID FROM @StudentTable)
+          AND Abbrev IN (SELECT ActionType FROM @ActionTypeTable);
+
+        DELETE FROM [Raaweek12.eSignature].dbo.[Conversation]
+        WHERE TrackingLogId IN (
+            SELECT TrackingId
+            FROM [Raaweek12.eSignature].dbo.tracking_log
+            WHERE StudentID IN (SELECT StudentID FROM @StudentTable)
+        );
+
+        DELETE FROM [Raaweek12.eSignature].dbo.DocumentStudentMapping
+        WHERE StudentID IN (SELECT StudentID FROM @StudentTable);
+
+        DELETE FROM [Raaweek12.eSignature].dbo.ESignContractUpload
+        WHERE WorkflowPersistenceMasterID IN (
+            SELECT WorkflowPersistenceMasterID
+            FROM [Raaweek12.eSignature].dbo.WorkflowPersistenceMaster
+            WHERE StudentID IN (SELECT StudentID FROM @StudentTable)
+              AND ActionType IN (SELECT ActionType FROM @ActionTypeTable)
+        );
+
+        DELETE FROM [Raaweek12.eSignature].dbo.Reminder
+        WHERE TrackingLogId IN (
+            SELECT TrackingId
+            FROM [Raaweek12.eSignature].dbo.tracking_log
+            WHERE StudentID IN (SELECT StudentID FROM @StudentTable)
+        );
+
+        DELETE FROM [Raaweek12.eSignature].dbo.WorkflowPersistenceMaster
+        WHERE StudentID IN (SELECT StudentID FROM @StudentTable)
+          AND ActionType IN (SELECT ActionType FROM @ActionTypeTable);
+
+        ------------------------------------------------------------
+        -- LOG REVERT ACTION
+        ------------------------------------------------------------
+        INSERT INTO dbo.RevertInterventionLogs (StudentId, ActionType, CreatedDate, CreatedBy)
+        SELECT DISTINCT
+            @StudentID,
+            A.ActionType,
+            GETDATE(),
+            @UserName
+        FROM @ActionTypeTable A;
+
+        COMMIT TRANSACTION;
+        PRINT 'Student action(s) reverted successfully.';
+        RETURN 1;
+    END TRY
+    BEGIN CATCH
+        ROLLBACK TRANSACTION;
+
+        DECLARE @ErrorMessage NVARCHAR(4000),
+                @ErrorSeverity INT,
+                @ErrorState INT;
+
+        SELECT
+            @ErrorMessage = ERROR_MESSAGE(),
+            @ErrorSeverity = ERROR_SEVERITY(),
+            @ErrorState = ERROR_STATE();
+
+        RAISERROR(@ErrorMessage, @ErrorSeverity, @ErrorState);
+        RETURN -1;
+    END CATCH
+END;`,
+  category: "Database Scripts",
+  language: "SQL",
+  icon: "Database",
+  color: "bg-blue-600",
+  tags: ["sql-server", "stored-procedure", "rollback", "tdps", "esignature"],
+  lastUsed: new Date("2025-12-11"),
+},
+{
+  id: "table-revert-intervention-logs",
+  title: "Revert Intervention Logs Table",
+  description:
+    "SQL script to create a logging table for tracking reverted student interventions, including action type, user, and timestamp",
+  content: `CREATE TABLE [dbo].[RevertInterventionLogs] (
+    [UniqueRowID] INT IDENTITY(1,1) NOT NULL,
+    [StudentId] NVARCHAR(500) NULL,
+    [ActionType] NVARCHAR(250) NULL,
+    [CreatedDate] DATETIME NULL,
+    [CreatedBy] NVARCHAR(50) NULL
+);`,
+  category: "Database Scripts",
+  language: "SQL",
+  icon: "Table",
+  color: "bg-green-600",
+  tags: ["sql-server", "table", "logging", "audit", "tdps"],
+  lastUsed: new Date("2025-12-11"),
+},
+
 ]
