@@ -8,7 +8,7 @@ export function ESignSetupGuide() {
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.ctrlKey && e.key === "e") {
+      if (e.key === "F7") {
         e.preventDefault()
         setIsOpen(!isOpen)
       }
@@ -165,7 +165,7 @@ export function ESignSetupGuide() {
 
           <div className="border-t pt-6">
             <p className="text-xs text-gray-500">
-              Press <kbd className="px-2 py-1 bg-gray-100 rounded">Ctrl + E</kbd> to toggle this guide
+              Press <kbd className="px-2 py-1 bg-gray-100 rounded">F7</kbd> to toggle this guide
             </p>
           </div>
         </div>
