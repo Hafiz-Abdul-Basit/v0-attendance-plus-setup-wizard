@@ -2,7 +2,7 @@ import type React from "react"
 import type { Metadata } from "next"
 import { Inter } from "next/font/google"
 import "./globals.css"
-import { Toaster } from "sonner"
+import ClientLayout from "./ClientLayout" // Import the client component
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -28,7 +28,7 @@ export const metadata: Metadata = {
       },
     ],
   },
-    generator: 'v0.app'
+  generator: "v0.app",
 }
 
 export default function RootLayout({
@@ -38,14 +38,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <head>
-        <link rel="icon" href="/favicon.png" sizes="any" />
-        <link rel="icon" href="/icon.png" type="image/png" />
-        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-      </head>
+      <head>{/* Removed duplicate link tags for icons */}</head>
       <body className={inter.className}>
-        {children}
-        <Toaster />
+        <ClientLayout>{children}</ClientLayout>
       </body>
     </html>
   )
