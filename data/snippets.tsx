@@ -2,7 +2,8 @@ export const snippetsData = [
   {
     id: "frontend-webconfig",
     title: "Frontend Web.config",
-    description: "Complete web.config file for Angular frontend application with proper routing and MIME types",
+    description:
+      "Complete web.config file for Angular frontend application with proper routing and MIME types",
     content: `<?xml version="1.0" encoding="utf-8"?>
 <configuration>
 
@@ -36,7 +37,8 @@ export const snippetsData = [
   {
     id: "backend-webconfig",
     title: "Backend Web.config",
-    description: "Complete web.config for .NET Core backend API with CORS, authentication, and security headers",
+    description:
+      "Complete web.config for .NET Core backend API with CORS, authentication, and security headers",
     content: `<?xml version="1.0" encoding="utf-8"?>
 <configuration>
   <location path="." inheritInChildApplications="false">
@@ -104,7 +106,13 @@ c. Open Command Prompt, navigate to the folder, and run:
     language: "Shell",
     icon: "Database",
     color: "bg-green-600",
-    tags: ["mongodb", "replica-set", "high-availability", "clustering", "windows"],
+    tags: [
+      "mongodb",
+      "replica-set",
+      "high-availability",
+      "clustering",
+      "windows",
+    ],
     lastUsed: new Date("2024-01-13"),
   },
 
@@ -178,7 +186,8 @@ WHERE DocPath LIKE
   {
     id: "user-data-table",
     title: "User Management Data Table",
-    description: "Interactive table with sample user data - view, edit, and download as Excel/CSV",
+    description:
+      "Interactive table with sample user data - view, edit, and download as Excel/CSV",
     content: `INTERACTIVE_TABLE`,
     category: "User Management",
     language: "Interactive",
@@ -273,7 +282,8 @@ WHERE DocPath LIKE
   {
     id: "user-roles-setup",
     title: "User Roles Setup",
-    description: "Complete setup for user roles and permissions in ASP.NET Identity system",
+    description:
+      "Complete setup for user roles and permissions in ASP.NET Identity system",
     content: `USE [IdentityDB]
 GO
 INSERT [dbo].[AspNetRoles] ([Id], [ConcurrencyStamp], [Name], [NormalizedName], [CampusSelection], [Active]) VALUES (N'1', NULL, N'Campus Officer', N'CAMPUSOFFICER', N'2', 1)
@@ -608,218 +618,219 @@ Example:
     lastUsed: new Date("2026-01-08"),
   },
 
-  {
-    id: "tdps-truncate-tables",
-    title: "TDPS Database Table Cleanup",
-    description: "Truncate all tables in TDPS, IdentityDB, Esign, and Message Center databases for fresh data import",
-    content: `-- =====================================================================================================
--- ===================================== TDPS Database ===============================================
--- =====================================================================================================
+  //   {
+  //     id: "tdps-truncate-tables",
+  //     title: "TDPS Database Table Cleanup",
+  //     description: "Truncate all tables in TDPS, IdentityDB, Esign, and Message Center databases for fresh data import",
+  //     content: `-- =====================================================================================================
+  // -- ===================================== TDPS Database ===============================================
+  // -- =====================================================================================================
 
--- Truncate tables in TDPS database
-TRUNCATE TABLE dbo.Alert_Data2;
-TRUNCATE TABLE dbo.Alert_Grammar_Mapping;
-TRUNCATE TABLE dbo.Alert_Push_Notification;
-TRUNCATE TABLE dbo.Alert_Users;
-TRUNCATE TABLE dbo.Alerts_Devices;
-TRUNCATE TABLE AttplusUsers;
-TRUNCATE TABLE dbo.CampaignAnalytics;
-TRUNCATE TABLE dbo.CampainTemplateInfo;
-TRUNCATE TABLE dbo.CampaignFiles;
-TRUNCATE TABLE dbo.CampaignTemplateLayoutDetails;
-TRUNCATE TABLE dbo.CampaignTemplateTypes;
-TRUNCATE TABLE dbo.CampaignUploadedTemplatesData;
-TRUNCATE TABLE dbo.CampaignUserTemplateData;
-TRUNCATE TABLE dbo.CAMPUS_DAILY_ENROLLMENT_Staging;
-TRUNCATE TABLE dbo.CAMPUS_DAILY_ENROLLMENT;
-TRUNCATE TABLE ConcernReasons;
-TRUNCATE TABLE dbo.CampusUser;
-TRUNCATE TABLE dbo.COUNSELOR_INFO;
-TRUNCATE TABLE dbo.CourseTeacher;
-TRUNCATE TABLE dbo.DAILY_MEMBERSHIP_Delta;
-TRUNCATE TABLE dbo.DAILY_MEMBERSHIP_Production;
-TRUNCATE TABLE dbo.DAILY_MEMBERSHIP_Staging;
-TRUNCATE TABLE dbo.EmailAlertLog;
-TRUNCATE TABLE dbo.EmailToStudent;
-TRUNCATE TABLE dbo.Error_Absent_Days;
-TRUNCATE TABLE dbo.Error_Action_Board;
-TRUNCATE TABLE dbo.Error_Membership;
-TRUNCATE TABLE dbo.Error_Period_Skipped;
-TRUNCATE TABLE dbo.Error_Request_Action_Details;
-TRUNCATE TABLE dbo.Error_Student_DemoGraphic;
-TRUNCATE TABLE dbo.Error_Student_Requests;
-TRUNCATE TABLE dbo.Error_Summer_Notes;
-TRUNCATE TABLE dbo.Error_Tardys;
-TRUNCATE TABLE iApp_Config;
-TRUNCATE TABLE iApp_DownloadMenu;
-TRUNCATE TABLE iApp_Interventions;
-TRUNCATE TABLE iApp_MainMenu;
-TRUNCATE TABLE ManagePrintQueues;
-TRUNCATE TABLE dbo.PI_Documents;
-TRUNCATE TABLE dbo.PI_Devices;
-TRUNCATE TABLE dbo.PI_Reasons;
-TRUNCATE TABLE dbo.Print_Completion_Record;
-TRUNCATE TABLE dbo.ScheduleInterventions;
-TRUNCATE TABLE dbo.Sent_Completion_Record;
-TRUNCATE TABLE dbo.STUDENT_ABSENT_DAYS;
-TRUNCATE TABLE dbo.STUDENT_ABSENT_DAYS_ADA;
-TRUNCATE TABLE dbo.STUDENT_ABSENT_DAYS_ADA_BAK;
-TRUNCATE TABLE dbo.STUDENT_ABSENT_DAYS_ADA_Production;
-TRUNCATE TABLE dbo.STUDENT_ABSENT_DAYS_ADA_Test;
-TRUNCATE TABLE dbo.STUDENT_ABSENT_DAYS_BAK;
-TRUNCATE TABLE dbo.STUDENT_ABSENT_DAYS_Delta;
-TRUNCATE TABLE dbo.STUDENT_ABSENT_DAYS_Production;
-TRUNCATE TABLE dbo.STUDENT_ABSENT_DAYS_Staging;
-TRUNCATE TABLE dbo.STUDENT_ABSENT_DAYS_Staging_Test;
-TRUNCATE TABLE dbo.STUDENT_CAMPUS_INFO_LOG;
-TRUNCATE TABLE dbo.STUDENT_CAMPUS_INFO_LOG_LY;
-TRUNCATE TABLE dbo.STUDENT_DEMOGRAPHIC_INFO;
-TRUNCATE TABLE dbo.STUDENT_DEMOGRAPHIC_INFO_bak;
-TRUNCATE TABLE dbo.STUDENT_DEMOGRAPHIC_INFO_Delta;
-TRUNCATE TABLE dbo.STUDENT_DEMOGRAPHIC_INFO_Production;
-TRUNCATE TABLE dbo.STUDENT_DEMOGRAPHIC_INFO_Staging;
-TRUNCATE TABLE Student_Enrollment_Info;
-TRUNCATE TABLE dbo.STUDENT_GUARDIAN_INFO;
-TRUNCATE TABLE StudentInterventionHold;
-TRUNCATE TABLE StudentInterventionSuppressed;
-TRUNCATE TABLE dbo.STUDENT_PERIODS_SKIPPED;
-TRUNCATE TABLE dbo.STUDENT_PERIODS_SKIPPED_Bak;
-TRUNCATE TABLE dbo.STUDENT_PERIODS_SKIPPED_Delta;
-TRUNCATE TABLE dbo.STUDENT_PERIODS_SKIPPED_Production;
-TRUNCATE TABLE dbo.STUDENT_PERIODS_SKIPPED_Staging;
-TRUNCATE TABLE dbo.STUDENT_PERIODS_SKIPPED_Staging_Test;
-TRUNCATE TABLE dbo.STUDENT_RECOVERY_INFO;
-TRUNCATE TABLE dbo.STUDENT_TARDY;
-TRUNCATE TABLE dbo.STUDENT_TARDY_Delta;
-TRUNCATE TABLE dbo.STUDENT_TARDY_bak;
-TRUNCATE TABLE dbo.STUDENT_TARDY_Production;
-TRUNCATE TABLE dbo.STUDENT_TARDY_Staging;
-TRUNCATE TABLE dbo.STUDENT_TARDY_Staging_Test;
-TRUNCATE TABLE STUDENT_LAT_LONG;
-TRUNCATE TABLE dbo.STUDENT_TYPES;
-TRUNCATE TABLE dbo.SummerNotes;
-TRUNCATE TABLE dbo.TDPS_5X5_Test;
-TRUNCATE TABLE dbo.TDPS_ABSENCECALENDER_EMAILLOG;
-TRUNCATE TABLE dbo.TDPS_ACTION_BOARD;
-TRUNCATE TABLE dbo.TDPS_ACTION_BOARD_MENU_CONFIGURATION;
-TRUNCATE TABLE dbo.TDPS_ACTION_BOARD_USERFILTER;
-TRUNCATE TABLE TDPS_AdminBlock_Logs;
-TRUNCATE TABLE TDPS_Alert_Push_Notifications;
-TRUNCATE TABLE TDPS_Alert_Push_Notifications_Error;
-TRUNCATE TABLE dbo.TDPS_ARCSchedules;
-TRUNCATE TABLE TDPS_BARRIER_RESOURCES;
-TRUNCATE TABLE TDPS_Bookmark;
-TRUNCATE TABLE TDPS_CalendarEvent;
-TRUNCATE TABLE dbo.TDPS_Campaigns_Data;
-TRUNCATE TABLE dbo.TDPS_ChecklistSetup;
-TRUNCATE TABLE dbo.TDPS_CommunicationOptout;
-TRUNCATE TABLE TDPS_ConcernDepartment;
-TRUNCATE TABLE dbo.TDPS_Communications;
-TRUNCATE TABLE dbo.TDPS_ContinuousAbsences;
-TRUNCATE TABLE dbo.TDPS_CurrentYear_Comparison;
-TRUNCATE TABLE dbo.TDPS_Daily_Comparison;
-TRUNCATE TABLE dbo.TDPS_DailyPeriodsSkippedNotifier;
-TRUNCATE TABLE dbo.TDPS_DeletedInputComments;
-TRUNCATE TABLE dbo.TDPS_Department;
-TRUNCATE TABLE dbo.TDPS_DepartmentEmailAddress;
-TRUNCATE TABLE dbo.TDPS_Discipline;
-TRUNCATE TABLE dbo.TDPS_DuplicateData_Logs;
-TRUNCATE TABLE dbo.TDPS_DisableEmail;
-TRUNCATE TABLE dbo.TDPS_EmailSMSConfiguration;
-TRUNCATE TABLE dbo.TDPS_Emails_Log;
-TRUNCATE TABLE dbo.TDPS_EnrollmentType;
-TRUNCATE TABLE dbo.TDPS_EnrollmentTypeData;
-TRUNCATE TABLE dbo.TDPS_EnrollmentTypeDataTemp;
-TRUNCATE TABLE dbo.TDPS_ErrorLog_PeridoSkippedToAbsentDays;
-TRUNCATE TABLE dbo.TDPS_FeederPattern;
-TRUNCATE TABLE dbo.TDPS_GradeWiseEnrollment;
-TRUNCATE TABLE dbo.TDPS_InterventionsChecklistData;
-TRUNCATE TABLE dbo.TDPS_InterventionsChecklistSetup;
-TRUNCATE TABLE dbo.TDPS_LessThanFiveAlertLog;
-TRUNCATE TABLE dbo.TDPS_LessThanFiveCampaignSetup;
-TRUNCATE TABLE dbo.TDPS_MeetingDates;
-TRUNCATE TABLE dbo.TDPS_Messaging_Campaign;
-TRUNCATE TABLE dbo.TDPS_NotesFromAeries;
-TRUNCATE TABLE dbo.TDPS_ParentInvolvementCenter;
-TRUNCATE TABLE dbo.TDPS_PARENTALERT_LOG;
-TRUNCATE TABLE dbo.TDPS_Perfect_Attendance_Star_Log;
-TRUNCATE TABLE dbo.TDPS_PostCardLog;
-TRUNCATE TABLE dbo.TDPS_ProvidedInterventions;
-TRUNCATE TABLE dbo.TDPS_REGISTERED_DEVICES;
-TRUNCATE TABLE dbo.TDPS_ReversedScheduledMeeting;
-TRUNCATE TABLE dbo.TDPS_Request_Action_Details;
-TRUNCATE TABLE TDPS_SetupDynamicTables;
-TRUNCATE TABLE TDPS_SetupDynamicTablesColumns;
-TRUNCATE TABLE TDPS_Shoutouts;
-TRUNCATE TABLE TDPS_ShoutoutsStudentsDetails;
-TRUNCATE TABLE TDPS_STUDENT_DOCUMENT_LIBRARY;
-TRUNCATE TABLE dbo.TDPS_STUDENT_HOLD_INFO;
-TRUNCATE TABLE dbo.TDPS_STUDENT_MONITORING;
-TRUNCATE TABLE dbo.TDPS_STUDENT_REQUESTS;
-TRUNCATE TABLE StudentEnrolledDays;
-TRUNCATE TABLE dbo.TDPS_StudentWhiteList;
-TRUNCATE TABLE dbo.TDPS_ThoughtOfTheDay;
-TRUNCATE TABLE dbo.TDPS_User_Students;
-TRUNCATE TABLE dbo.TDPS_USER_ROLE_CONFIGURATION_DETAILS;
-TRUNCATE TABLE dbo.TDPS_WebPart_Setting;
-TRUNCATE TABLE dbo.TDPS_YTDAbsencesComparisonData;
-TRUNCATE TABLE UnsubscribeEmail;
-TRUNCATE TABLE dbo.TIPI_Message;
-TRUNCATE TABLE dbo.TIPI_Subject;
-TRUNCATE TABLE dbo.TI_Comments;
-TRUNCATE TABLE dbo.TI_CommentsTemplate;
-TRUNCATE TABLE dbo.TI_CommentCategory;
-TRUNCATE TABLE dbo.TI_Devices;
-TRUNCATE TABLE dbo.TI_Setup;
+  // -- Truncate tables in TDPS database
+  // TRUNCATE TABLE dbo.Alert_Data2;
+  // TRUNCATE TABLE dbo.Alert_Grammar_Mapping;
+  // TRUNCATE TABLE dbo.Alert_Push_Notification;
+  // TRUNCATE TABLE dbo.Alert_Users;
+  // TRUNCATE TABLE dbo.Alerts_Devices;
+  // TRUNCATE TABLE AttplusUsers;
+  // TRUNCATE TABLE dbo.CampaignAnalytics;
+  // TRUNCATE TABLE dbo.CampainTemplateInfo;
+  // TRUNCATE TABLE dbo.CampaignFiles;
+  // TRUNCATE TABLE dbo.CampaignTemplateLayoutDetails;
+  // TRUNCATE TABLE dbo.CampaignTemplateTypes;
+  // TRUNCATE TABLE dbo.CampaignUploadedTemplatesData;
+  // TRUNCATE TABLE dbo.CampaignUserTemplateData;
+  // TRUNCATE TABLE dbo.CAMPUS_DAILY_ENROLLMENT_Staging;
+  // TRUNCATE TABLE dbo.CAMPUS_DAILY_ENROLLMENT;
+  // TRUNCATE TABLE ConcernReasons;
+  // TRUNCATE TABLE dbo.CampusUser;
+  // TRUNCATE TABLE dbo.COUNSELOR_INFO;
+  // TRUNCATE TABLE dbo.CourseTeacher;
+  // TRUNCATE TABLE dbo.DAILY_MEMBERSHIP_Delta;
+  // TRUNCATE TABLE dbo.DAILY_MEMBERSHIP_Production;
+  // TRUNCATE TABLE dbo.DAILY_MEMBERSHIP_Staging;
+  // TRUNCATE TABLE dbo.EmailAlertLog;
+  // TRUNCATE TABLE dbo.EmailToStudent;
+  // TRUNCATE TABLE dbo.Error_Absent_Days;
+  // TRUNCATE TABLE dbo.Error_Action_Board;
+  // TRUNCATE TABLE dbo.Error_Membership;
+  // TRUNCATE TABLE dbo.Error_Period_Skipped;
+  // TRUNCATE TABLE dbo.Error_Request_Action_Details;
+  // TRUNCATE TABLE dbo.Error_Student_DemoGraphic;
+  // TRUNCATE TABLE dbo.Error_Student_Requests;
+  // TRUNCATE TABLE dbo.Error_Summer_Notes;
+  // TRUNCATE TABLE dbo.Error_Tardys;
+  // TRUNCATE TABLE iApp_Config;
+  // TRUNCATE TABLE iApp_DownloadMenu;
+  // TRUNCATE TABLE iApp_Interventions;
+  // TRUNCATE TABLE iApp_MainMenu;
+  // TRUNCATE TABLE ManagePrintQueues;
+  // TRUNCATE TABLE dbo.PI_Documents;
+  // TRUNCATE TABLE dbo.PI_Devices;
+  // TRUNCATE TABLE dbo.PI_Reasons;
+  // TRUNCATE TABLE dbo.Print_Completion_Record;
+  // TRUNCATE TABLE dbo.ScheduleInterventions;
+  // TRUNCATE TABLE dbo.Sent_Completion_Record;
+  // TRUNCATE TABLE dbo.STUDENT_ABSENT_DAYS;
+  // TRUNCATE TABLE dbo.STUDENT_ABSENT_DAYS_ADA;
+  // TRUNCATE TABLE dbo.STUDENT_ABSENT_DAYS_ADA_BAK;
+  // TRUNCATE TABLE dbo.STUDENT_ABSENT_DAYS_ADA_Production;
+  // TRUNCATE TABLE dbo.STUDENT_ABSENT_DAYS_ADA_Test;
+  // TRUNCATE TABLE dbo.STUDENT_ABSENT_DAYS_BAK;
+  // TRUNCATE TABLE dbo.STUDENT_ABSENT_DAYS_Delta;
+  // TRUNCATE TABLE dbo.STUDENT_ABSENT_DAYS_Production;
+  // TRUNCATE TABLE dbo.STUDENT_ABSENT_DAYS_Staging;
+  // TRUNCATE TABLE dbo.STUDENT_ABSENT_DAYS_Staging_Test;
+  // TRUNCATE TABLE dbo.STUDENT_CAMPUS_INFO_LOG;
+  // TRUNCATE TABLE dbo.STUDENT_CAMPUS_INFO_LOG_LY;
+  // TRUNCATE TABLE dbo.STUDENT_DEMOGRAPHIC_INFO;
+  // TRUNCATE TABLE dbo.STUDENT_DEMOGRAPHIC_INFO_bak;
+  // TRUNCATE TABLE dbo.STUDENT_DEMOGRAPHIC_INFO_Delta;
+  // TRUNCATE TABLE dbo.STUDENT_DEMOGRAPHIC_INFO_Production;
+  // TRUNCATE TABLE dbo.STUDENT_DEMOGRAPHIC_INFO_Staging;
+  // TRUNCATE TABLE Student_Enrollment_Info;
+  // TRUNCATE TABLE dbo.STUDENT_GUARDIAN_INFO;
+  // TRUNCATE TABLE StudentInterventionHold;
+  // TRUNCATE TABLE StudentInterventionSuppressed;
+  // TRUNCATE TABLE dbo.STUDENT_PERIODS_SKIPPED;
+  // TRUNCATE TABLE dbo.STUDENT_PERIODS_SKIPPED_Bak;
+  // TRUNCATE TABLE dbo.STUDENT_PERIODS_SKIPPED_Delta;
+  // TRUNCATE TABLE dbo.STUDENT_PERIODS_SKIPPED_Production;
+  // TRUNCATE TABLE dbo.STUDENT_PERIODS_SKIPPED_Staging;
+  // TRUNCATE TABLE dbo.STUDENT_PERIODS_SKIPPED_Staging_Test;
+  // TRUNCATE TABLE dbo.STUDENT_RECOVERY_INFO;
+  // TRUNCATE TABLE dbo.STUDENT_TARDY;
+  // TRUNCATE TABLE dbo.STUDENT_TARDY_Delta;
+  // TRUNCATE TABLE dbo.STUDENT_TARDY_bak;
+  // TRUNCATE TABLE dbo.STUDENT_TARDY_Production;
+  // TRUNCATE TABLE dbo.STUDENT_TARDY_Staging;
+  // TRUNCATE TABLE dbo.STUDENT_TARDY_Staging_Test;
+  // TRUNCATE TABLE STUDENT_LAT_LONG;
+  // TRUNCATE TABLE dbo.STUDENT_TYPES;
+  // TRUNCATE TABLE dbo.SummerNotes;
+  // TRUNCATE TABLE dbo.TDPS_5X5_Test;
+  // TRUNCATE TABLE dbo.TDPS_ABSENCECALENDER_EMAILLOG;
+  // TRUNCATE TABLE dbo.TDPS_ACTION_BOARD;
+  // TRUNCATE TABLE dbo.TDPS_ACTION_BOARD_MENU_CONFIGURATION;
+  // TRUNCATE TABLE dbo.TDPS_ACTION_BOARD_USERFILTER;
+  // TRUNCATE TABLE TDPS_AdminBlock_Logs;
+  // TRUNCATE TABLE TDPS_Alert_Push_Notifications;
+  // TRUNCATE TABLE TDPS_Alert_Push_Notifications_Error;
+  // TRUNCATE TABLE dbo.TDPS_ARCSchedules;
+  // TRUNCATE TABLE TDPS_BARRIER_RESOURCES;
+  // TRUNCATE TABLE TDPS_Bookmark;
+  // TRUNCATE TABLE TDPS_CalendarEvent;
+  // TRUNCATE TABLE dbo.TDPS_Campaigns_Data;
+  // TRUNCATE TABLE dbo.TDPS_ChecklistSetup;
+  // TRUNCATE TABLE dbo.TDPS_CommunicationOptout;
+  // TRUNCATE TABLE TDPS_ConcernDepartment;
+  // TRUNCATE TABLE dbo.TDPS_Communications;
+  // TRUNCATE TABLE dbo.TDPS_ContinuousAbsences;
+  // TRUNCATE TABLE dbo.TDPS_CurrentYear_Comparison;
+  // TRUNCATE TABLE dbo.TDPS_Daily_Comparison;
+  // TRUNCATE TABLE dbo.TDPS_DailyPeriodsSkippedNotifier;
+  // TRUNCATE TABLE dbo.TDPS_DeletedInputComments;
+  // TRUNCATE TABLE dbo.TDPS_Department;
+  // TRUNCATE TABLE dbo.TDPS_DepartmentEmailAddress;
+  // TRUNCATE TABLE dbo.TDPS_Discipline;
+  // TRUNCATE TABLE dbo.TDPS_DuplicateData_Logs;
+  // TRUNCATE TABLE dbo.TDPS_DisableEmail;
+  // TRUNCATE TABLE dbo.TDPS_EmailSMSConfiguration;
+  // TRUNCATE TABLE dbo.TDPS_Emails_Log;
+  // TRUNCATE TABLE dbo.TDPS_EnrollmentType;
+  // TRUNCATE TABLE dbo.TDPS_EnrollmentTypeData;
+  // TRUNCATE TABLE dbo.TDPS_EnrollmentTypeDataTemp;
+  // TRUNCATE TABLE dbo.TDPS_ErrorLog_PeridoSkippedToAbsentDays;
+  // TRUNCATE TABLE dbo.TDPS_FeederPattern;
+  // TRUNCATE TABLE dbo.TDPS_GradeWiseEnrollment;
+  // TRUNCATE TABLE dbo.TDPS_InterventionsChecklistData;
+  // TRUNCATE TABLE dbo.TDPS_InterventionsChecklistSetup;
+  // TRUNCATE TABLE dbo.TDPS_LessThanFiveAlertLog;
+  // TRUNCATE TABLE dbo.TDPS_LessThanFiveCampaignSetup;
+  // TRUNCATE TABLE dbo.TDPS_MeetingDates;
+  // TRUNCATE TABLE dbo.TDPS_Messaging_Campaign;
+  // TRUNCATE TABLE dbo.TDPS_NotesFromAeries;
+  // TRUNCATE TABLE dbo.TDPS_ParentInvolvementCenter;
+  // TRUNCATE TABLE dbo.TDPS_PARENTALERT_LOG;
+  // TRUNCATE TABLE dbo.TDPS_Perfect_Attendance_Star_Log;
+  // TRUNCATE TABLE dbo.TDPS_PostCardLog;
+  // TRUNCATE TABLE dbo.TDPS_ProvidedInterventions;
+  // TRUNCATE TABLE dbo.TDPS_REGISTERED_DEVICES;
+  // TRUNCATE TABLE dbo.TDPS_ReversedScheduledMeeting;
+  // TRUNCATE TABLE dbo.TDPS_Request_Action_Details;
+  // TRUNCATE TABLE TDPS_SetupDynamicTables;
+  // TRUNCATE TABLE TDPS_SetupDynamicTablesColumns;
+  // TRUNCATE TABLE TDPS_Shoutouts;
+  // TRUNCATE TABLE TDPS_ShoutoutsStudentsDetails;
+  // TRUNCATE TABLE TDPS_STUDENT_DOCUMENT_LIBRARY;
+  // TRUNCATE TABLE dbo.TDPS_STUDENT_HOLD_INFO;
+  // TRUNCATE TABLE dbo.TDPS_STUDENT_MONITORING;
+  // TRUNCATE TABLE dbo.TDPS_STUDENT_REQUESTS;
+  // TRUNCATE TABLE StudentEnrolledDays;
+  // TRUNCATE TABLE dbo.TDPS_StudentWhiteList;
+  // TRUNCATE TABLE dbo.TDPS_ThoughtOfTheDay;
+  // TRUNCATE TABLE dbo.TDPS_User_Students;
+  // TRUNCATE TABLE dbo.TDPS_USER_ROLE_CONFIGURATION_DETAILS;
+  // TRUNCATE TABLE dbo.TDPS_WebPart_Setting;
+  // TRUNCATE TABLE dbo.TDPS_YTDAbsencesComparisonData;
+  // TRUNCATE TABLE UnsubscribeEmail;
+  // TRUNCATE TABLE dbo.TIPI_Message;
+  // TRUNCATE TABLE dbo.TIPI_Subject;
+  // TRUNCATE TABLE dbo.TI_Comments;
+  // TRUNCATE TABLE dbo.TI_CommentsTemplate;
+  // TRUNCATE TABLE dbo.TI_CommentCategory;
+  // TRUNCATE TABLE dbo.TI_Devices;
+  // TRUNCATE TABLE dbo.TI_Setup;
 
--- =====================================================================================================
--- IdentityDB Database
--- =====================================================================================================
+  // -- =====================================================================================================
+  // -- IdentityDB Database
+  // -- =====================================================================================================
 
-TRUNCATE TABLE AspNetRoleClaims;
-TRUNCATE TABLE AspNetUserClaims;
-TRUNCATE TABLE AspNetUserLogins;
-TRUNCATE TABLE AspNetUserRoles;
-TRUNCATE TABLE AspNetUsers;
-TRUNCATE TABLE AspNetUserTokens;
+  // TRUNCATE TABLE AspNetRoleClaims;
+  // TRUNCATE TABLE AspNetUserClaims;
+  // TRUNCATE TABLE AspNetUserLogins;
+  // TRUNCATE TABLE AspNetUserRoles;
+  // TRUNCATE TABLE AspNetUsers;
+  // TRUNCATE TABLE AspNetUserTokens;
 
--- =====================================================================================================
--- Esign Database
--- =====================================================================================================
+  // -- =====================================================================================================
+  // -- Esign Database
+  // -- =====================================================================================================
 
-TRUNCATE TABLE DocumentStudentMapping;
-TRUNCATE TABLE Reminder;
-TRUNCATE TABLE RequestActionDetails;
-TRUNCATE TABLE TDPS_Communications;
-TRUNCATE TABLE tracking_log;
-TRUNCATE TABLE ClickTracking;
-TRUNCATE TABLE Participant;
-TRUNCATE TABLE WorkflowPersistenceDetail;
-TRUNCATE TABLE WorkflowPersistenceMaster;
-TRUNCATE TABLE Conversation;
-TRUNCATE TABLE ESignContractUpload;
-TRUNCATE TABLE dbo.UtilityExceptionLog;
+  // TRUNCATE TABLE DocumentStudentMapping;
+  // TRUNCATE TABLE Reminder;
+  // TRUNCATE TABLE RequestActionDetails;
+  // TRUNCATE TABLE TDPS_Communications;
+  // TRUNCATE TABLE tracking_log;
+  // TRUNCATE TABLE ClickTracking;
+  // TRUNCATE TABLE Participant;
+  // TRUNCATE TABLE WorkflowPersistenceDetail;
+  // TRUNCATE TABLE WorkflowPersistenceMaster;
+  // TRUNCATE TABLE Conversation;
+  // TRUNCATE TABLE ESignContractUpload;
+  // TRUNCATE TABLE dbo.UtilityExceptionLog;
 
--- =====================================================================================================
--- Message Center Database
--- =====================================================================================================
+  // -- =====================================================================================================
+  // -- Message Center Database
+  // -- =====================================================================================================
 
-TRUNCATE TABLE ConversationMessages;
-TRUNCATE TABLE ConversationParticipants;
-TRUNCATE TABLE Conversations;
-TRUNCATE TABLE ParticipantMessageTracking;
-TRUNCATE TABLE Participants;`,
-    category: "SQL Server",
-    language: "SQL",
-    icon: "Database",
-    color: "bg-red-600",
-    tags: ["truncate", "cleanup", "tdps", "identitydb", "esign", "messagecenter", "database", "reset"],
-    lastUsed: new Date("2026-01-08"),
-  },
+  // TRUNCATE TABLE ConversationMessages;
+  // TRUNCATE TABLE ConversationParticipants;
+  // TRUNCATE TABLE Conversations;
+  // TRUNCATE TABLE ParticipantMessageTracking;
+  // TRUNCATE TABLE Participants;`,
+  //     category: "SQL Server",
+  //     language: "SQL",
+  //     icon: "Database",
+  //     color: "bg-red-600",
+  //     tags: ["truncate", "cleanup", "tdps", "identitydb", "esign", "messagecenter", "database", "reset"],
+  //     lastUsed: new Date("2026-01-08"),
+  //   },
   {
     id: "tdps-client-dependent-select",
     title: "TDPS SchoolOpenDates Setup",
-    description: "Query TDPS data based on client/campus specific requirements and generate School Open Dates",
+    description:
+      "Query TDPS data based on client/campus specific requirements and generate School Open Dates",
     content: `-- ====================================================================
 -- TDPS SchoolOpenDates Table Setup
 -- ====================================================================
@@ -869,7 +880,14 @@ END;`,
     language: "SQL",
     icon: "Database",
     color: "bg-red-600",
-    tags: ["tdps", "client-specific", "campus", "queries", "school-open-dates", "reporting"],
+    tags: [
+      "tdps",
+      "client-specific",
+      "campus",
+      "queries",
+      "school-open-dates",
+      "reporting",
+    ],
     lastUsed: new Date("2026-01-08"),
   },
   {
@@ -1117,7 +1135,14 @@ WHERE DocPath LIKE
     language: "Markdown",
     icon: "BookOpen",
     color: "bg-indigo-600",
-    tags: ["bookmarks", "resources", "documentation", "tools", "learning", "placeholders"],
+    tags: [
+      "bookmarks",
+      "resources",
+      "documentation",
+      "tools",
+      "learning",
+      "placeholders",
+    ],
     lastUsed: new Date("2023-12-31"),
   },
   {
@@ -1241,7 +1266,8 @@ GO`,
   {
     id: "vm-activation-commands",
     title: "VM & Windows Activation Commands",
-    description: "Quick reference for Windows activation and VM management commands",
+    description:
+      "Quick reference for Windows activation and VM management commands",
     content: `# VM & Windows Activation Commands
 
 ## Windows Activation
@@ -1388,11 +1414,11 @@ Note:
     lastUsed: new Date("2024-01-14"),
   },
   {
-  id: "sp-revert-student-action",
-  title: "Revert Student Action Stored Procedure",
-  description:
-    "SQL Server stored procedure to safely revert student actions across TDPS and eSignature databases with transactional integrity and logging",
-  content: `USE [TDPS]
+    id: "sp-revert-student-action",
+    title: "Revert Student Action Stored Procedure",
+    description:
+      "SQL Server stored procedure to safely revert student actions across TDPS and eSignature databases with transactional integrity and logging",
+    content: `USE [TDPS]
 GO
 SET ANSI_NULLS ON
 GO
@@ -1581,31 +1607,30 @@ BEGIN
         RETURN -1;
     END CATCH
 END;`,
-  category: "SQL Server",
-  language: "SQL",
-  icon: "Database",
-  color: "bg-blue-600",
-  tags: ["sql-server", "stored-procedure", "rollback", "tdps", "esignature"],
-  lastUsed: new Date("2025-12-11"),
-},
-{
-  id: "table-revert-intervention-logs",
-  title: "Revert Intervention Logs Table",
-  description:
-    "SQL script to create a logging table for tracking reverted student interventions, including action type, user, and timestamp",
-  content: `CREATE TABLE [dbo].[RevertInterventionLogs] (
+    category: "SQL Server",
+    language: "SQL",
+    icon: "Database",
+    color: "bg-blue-600",
+    tags: ["sql-server", "stored-procedure", "rollback", "tdps", "esignature"],
+    lastUsed: new Date("2025-12-11"),
+  },
+  {
+    id: "table-revert-intervention-logs",
+    title: "Revert Intervention Logs Table",
+    description:
+      "SQL script to create a logging table for tracking reverted student interventions, including action type, user, and timestamp",
+    content: `CREATE TABLE [dbo].[RevertInterventionLogs] (
     [UniqueRowID] INT IDENTITY(1,1) NOT NULL,
     [StudentId] NVARCHAR(500) NULL,
     [ActionType] NVARCHAR(250) NULL,
     [CreatedDate] DATETIME NULL,
     [CreatedBy] NVARCHAR(50) NULL
 );`,
-  category: "SQL Server",
-  language: "SQL",
-  icon: "Table",
-  color: "bg-green-600",
-  tags: ["sql-server", "table", "logging", "audit", "tdps"],
-  lastUsed: new Date("2025-12-11"),
-},
-
-]
+    category: "SQL Server",
+    language: "SQL",
+    icon: "Table",
+    color: "bg-green-600",
+    tags: ["sql-server", "table", "logging", "audit", "tdps"],
+    lastUsed: new Date("2025-12-11"),
+  },
+];
