@@ -8,6 +8,7 @@ import { toast } from "sonner"
 import { StepContent } from "@/components/step-content"
 import { SnippetsContent, snippets } from "@/components/snippets-content"
 import { InteractiveGuides } from "@/components/interactive-guides"
+import { ClientSetupAgent } from "@/components/ClientSetupAgent"
 import logo from "../public/Develop by Abdul Basit.png"
 import Image from "next/image"
 
@@ -280,6 +281,7 @@ export function InstallationWizard() {
 
   const [selectedResultIndex, setSelectedResultIndex] = useState(0)
   const [showGuides, setShowGuides] = useState(false) // New state for Guides
+  const [showSetupAgent, setShowSetupAgent] = useState(false) // New state for Setup Agent
 
   const exportProgress = () => {
     const completedSections = sections.filter((s) => getSectionProgress(s.id).percentage === 100)
@@ -690,8 +692,8 @@ export function InstallationWizard() {
 
   return (
     <div className="flex h-screen bg-white overflow-hidden">
-      {/* Fixed Sidebar - Only shown when not viewing Snippets or Guides */}
-      {!showSnippets && !showGuides && (
+      {/* Fixed Sidebar - Only shown when not viewing Snippets, Guides, or Setup Agent */}
+      {!showSnippets && !showGuides && !showSetupAgent && (
         <aside className="w-80 bg-white border-r border-gray-200 shadow-lg flex flex-col fixed left-0 top-0 h-full z-10">
           {/* Sidebar Header */}
           <div className="p-6 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50">
@@ -834,7 +836,7 @@ export function InstallationWizard() {
 
       {/* Main Content Area */}
       <main
-        className={`flex-1 ${!showSnippets && !showGuides ? "ml-80" : "ml-0"} flex flex-col h-screen overflow-hidden`}
+        className={`flex-1 ${!showSnippets && !showGuides && !showSetupAgent ? "ml-80" : "ml-0"} flex flex-col h-screen overflow-hidden`}
       >
         {/* Fixed Header */}
         <header className="bg-white border-b border-gray-200 shadow-sm z-20">
@@ -845,11 +847,30 @@ export function InstallationWizard() {
             </div>
 
             <div className="flex items-center gap-4">
+              {/* Setup Agent Button */}
+              <Button
+                onClick={() => {
+                  setShowSetupAgent(!showSetupAgent)
+                  setShowSnippets(false)
+                  setShowGuides(false)
+                }}
+                variant={showSetupAgent ? "default" : "outline"}
+                className={`gap-2 ${
+                  showSetupAgent
+                    ? "bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white shadow-lg"
+                    : "border-green-200 text-green-700 hover:bg-green-50"
+                }`}
+              >
+                <Code className="w-4 h-4" />
+                {showSetupAgent ? "View Installation Steps" : "Setup Agent"}
+              </Button>
+
               {/* View Snippets Button */}
               <Button
                 onClick={() => {
                   setShowSnippets(!showSnippets)
                   setShowGuides(false) // Close guides when opening snippets
+                  setShowSetupAgent(false) // Close setup agent when opening snippets
                   if (!showSnippets) {
                     setFilteredSnippetId(null)
                     setSnippetFilter("")
@@ -874,8 +895,8 @@ export function InstallationWizard() {
           <div className="p-8">
             <div className="max-w-[95rem] mx-auto">
               {/* Progress Header */}
-              {/* Progress Header - Only show for installation steps, not snippets or guides */}
-              {!showSnippets && !showGuides && (
+              {/* Progress Header - Only show for installation steps, not snippets, guides, or setup agent */}
+              {!showSnippets && !showGuides && !showSetupAgent && (
                 <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-6 mb-8">
                   <div className="flex items-center gap-4 mb-4">
                     <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-indigo-500 text-white rounded-xl flex items-center justify-center font-bold text-lg shadow-lg">
@@ -913,7 +934,9 @@ export function InstallationWizard() {
               )}
 
               {/* Content */}
-              {showGuides ? (
+              {showSetupAgent ? (
+                <ClientSetupAgent />
+              ) : showGuides ? (
                 <InteractiveGuides />
               ) : showSnippets ? (
                 <SnippetsContent filteredSnippetId={filteredSnippetId} onClearFilter={clearSnippetFilter} />
