@@ -83,8 +83,7 @@ export function ClientForm({
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="w-full max-w-lg">
+    <div className="w-full max-w-lg px-4 py-12">
         {/* Header */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-12 h-12 rounded-lg bg-blue-100 dark:bg-blue-900/30 mb-4">
@@ -273,7 +272,6 @@ export function ClientForm({
             <span className="font-semibold">Need help?</span> Make sure all URLs are accessible from your server and include the protocol (http:// or https://)
           </p>
         </div>
-      </div>
     </div>
   )
 }
