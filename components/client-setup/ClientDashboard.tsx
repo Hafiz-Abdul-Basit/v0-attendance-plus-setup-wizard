@@ -3,7 +3,7 @@
 import { ClientSetup } from '@/utils/clientSetupStorage'
 import { clientSetupStorage } from '@/utils/clientSetupStorage'
 import { Button } from '@/components/ui/button'
-import { Trash2, Settings, Script } from 'lucide-react'
+import { Trash2, Settings, Code } from 'lucide-react'
 
 interface ClientDashboardProps {
   clients: ClientSetup[]
@@ -118,7 +118,7 @@ export function ClientDashboard({
                     onClick={() => onGenerateScript(client.id)}
                     title="Generate setup scripts"
                   >
-                    <Script className="w-4 h-4" />
+                    <Code className="w-4 h-4" />
                   </Button>
                   <Button
                     size="sm"
