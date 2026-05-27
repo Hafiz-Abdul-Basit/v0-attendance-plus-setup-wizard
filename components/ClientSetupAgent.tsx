@@ -226,8 +226,8 @@ export function ClientSetupAgent() {
       )}
 
       {/* Tab Content */}
-      <div className={`flex-1 overflow-auto ${activeTab === 'new-client' ? 'flex items-center justify-center' : ''}`}>
-        <div className={`${activeTab === 'new-client' ? 'w-full' : 'px-6 py-6'}`}>
+      <div className="flex-1 overflow-auto">
+        <div className={`${activeTab === 'new-client' ? '' : 'px-6 py-6'}`}>
           {activeTab === 'dashboard' && (
             <ClientDashboard
               clients={clients}
