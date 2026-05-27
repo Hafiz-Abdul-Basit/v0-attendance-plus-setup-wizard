@@ -226,8 +226,8 @@ export function ClientSetupAgent() {
       )}
 
       {/* Tab Content */}
-      <div className="flex-1 overflow-auto">
-        <div className="px-6 py-6">
+      <div className={`flex-1 overflow-auto ${activeTab === 'new-client' ? 'flex items-center justify-center' : ''}`}>
+        <div className={`${activeTab === 'new-client' ? 'w-full' : 'px-6 py-6'}`}>
           {activeTab === 'dashboard' && (
             <ClientDashboard
               clients={clients}
@@ -238,25 +238,18 @@ export function ClientSetupAgent() {
           )}
 
           {activeTab === 'new-client' && (
-            <div className="max-w-2xl">
-              <div className="bg-white dark:bg-slate-900 rounded-lg shadow-sm border border-slate-200 dark:border-slate-800 p-6">
-                <h2 className="text-2xl font-bold mb-6 text-slate-900 dark:text-white">
-                  {editingClientId ? 'Edit Client' : 'Create New Client'}
-                </h2>
-                <ClientForm
-                  initialName={editingClient?.name}
-                  initialMainUrl={editingClient?.mainUrl}
-                  initialGatewayUrl={editingClient?.gatewayUrl}
-                  initialDocsUrl={editingClient?.docsUrl}
-                  onSubmit={handleSaveClient}
-                  onCancel={() => {
-                    setEditingClientId(null)
-                    setActiveTab('dashboard')
-                  }}
-                  isLoading={isLoading}
-                />
-              </div>
-            </div>
+            <ClientForm
+              initialName={editingClient?.name}
+              initialMainUrl={editingClient?.mainUrl}
+              initialGatewayUrl={editingClient?.gatewayUrl}
+              initialDocsUrl={editingClient?.docsUrl}
+              onSubmit={handleSaveClient}
+              onCancel={() => {
+                setEditingClientId(null)
+                setActiveTab('dashboard')
+              }}
+              isLoading={isLoading}
+            />
           )}
 
           {activeTab === 'select-installations' && selectedClient && (
