@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
-import { Plus, BarChart3, AlertCircle, CheckCircle2, Clock } from 'lucide-react'
+import { Plus, BarChart3, AlertCircle, CheckCircle2, Clock, TrendingUp, AlertTriangle, Info } from 'lucide-react'
 import { toast } from 'sonner'
 import {
   ClientSetup,
@@ -178,6 +178,23 @@ export function ClientSetupAgent() {
                 New Client
               </Button>
             </div>
+
+            {/* Quick Insights */}
+            {stats.total > 0 && (
+              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/10 dark:to-indigo-900/10 rounded-lg p-4 border border-blue-200 dark:border-blue-800 mb-6">
+                <div className="flex items-start gap-3">
+                  <Info className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-sm font-semibold text-blue-900 dark:text-blue-100 mb-1">Deployment Overview</p>
+                    <p className="text-sm text-blue-800 dark:text-blue-200">
+                      {stats.completed > 0 && `${stats.completed} client${stats.completed !== 1 ? 's' : ''} fully deployed • `}
+                      {stats.inProgress > 0 && `${stats.inProgress} in progress • `}
+                      {stats.notStarted > 0 && `${stats.notStarted} ready to setup`}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Stats Cards */}
             <div className="grid grid-cols-4 gap-4">
