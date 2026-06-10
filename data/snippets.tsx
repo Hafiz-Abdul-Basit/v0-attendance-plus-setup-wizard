@@ -2,7 +2,8 @@ export const snippetsData = [
   {
     id: "frontend-webconfig",
     title: "Frontend Web.config",
-    description: "Complete web.config file for Angular frontend application with proper routing and MIME types",
+    description:
+      "Complete web.config file for Angular frontend application with proper routing and MIME types",
     content: `<?xml version="1.0" encoding="utf-8"?>
 <configuration>
 
@@ -36,7 +37,8 @@ export const snippetsData = [
   {
     id: "backend-webconfig",
     title: "Backend Web.config",
-    description: "Complete web.config for .NET Core backend API with CORS, authentication, and security headers",
+    description:
+      "Complete web.config for .NET Core backend API with CORS, authentication, and security headers",
     content: `<?xml version="1.0" encoding="utf-8"?>
 <configuration>
   <location path="." inheritInChildApplications="false">
@@ -104,7 +106,13 @@ c. Open Command Prompt, navigate to the folder, and run:
     language: "Shell",
     icon: "Database",
     color: "bg-green-600",
-    tags: ["mongodb", "replica-set", "high-availability", "clustering", "windows"],
+    tags: [
+      "mongodb",
+      "replica-set",
+      "high-availability",
+      "clustering",
+      "windows",
+    ],
     lastUsed: new Date("2024-01-13"),
   },
 
@@ -178,7 +186,8 @@ WHERE DocPath LIKE
   {
     id: "user-data-table",
     title: "User Management Data Table",
-    description: "Interactive table with sample user data - view, edit, and download as Excel/CSV",
+    description:
+      "Interactive table with sample user data - view, edit, and download as Excel/CSV",
     content: `INTERACTIVE_TABLE`,
     category: "User Management",
     language: "Interactive",
@@ -273,7 +282,8 @@ WHERE DocPath LIKE
   {
     id: "user-roles-setup",
     title: "User Roles Setup",
-    description: "Complete setup for user roles and permissions in ASP.NET Identity system",
+    description:
+      "Complete setup for user roles and permissions in ASP.NET Identity system",
     content: `USE [IdentityDB]
 GO
 INSERT [dbo].[AspNetRoles] ([Id], [ConcurrencyStamp], [Name], [NormalizedName], [CampusSelection], [Active]) VALUES (N'1', NULL, N'Campus Officer', N'CAMPUSOFFICER', N'2', 1)
@@ -611,7 +621,8 @@ Example:
   {
     id: "tdps-truncate-tables",
     title: "TDPS Database Table Cleanup",
-    description: "Truncate all tables in TDPS, IdentityDB, Esign, and Message Center databases for fresh data import",
+    description:
+      "Truncate all tables in TDPS, IdentityDB, Esign, and Message Center databases for fresh data import",
     content: `-- =====================================================================================================
 -- ===================================== TDPS Database ===============================================
 -- =====================================================================================================
@@ -813,13 +824,23 @@ TRUNCATE TABLE Participants;`,
     language: "SQL",
     icon: "Database",
     color: "bg-red-600",
-    tags: ["truncate", "cleanup", "tdps", "identitydb", "esign", "messagecenter", "database", "reset"],
+    tags: [
+      "truncate",
+      "cleanup",
+      "tdps",
+      "identitydb",
+      "esign",
+      "messagecenter",
+      "database",
+      "reset",
+    ],
     lastUsed: new Date("2026-01-08"),
   },
   {
     id: "tdps-client-dependent-select",
     title: "TDPS SchoolOpenDates Setup",
-    description: "Query TDPS data based on client/campus specific requirements and generate School Open Dates",
+    description:
+      "Query TDPS data based on client/campus specific requirements and generate School Open Dates",
     content: `-- ====================================================================
 -- TDPS SchoolOpenDates Table Setup
 -- ====================================================================
@@ -869,7 +890,14 @@ END;`,
     language: "SQL",
     icon: "Database",
     color: "bg-red-600",
-    tags: ["tdps", "client-specific", "campus", "queries", "school-open-dates", "reporting"],
+    tags: [
+      "tdps",
+      "client-specific",
+      "campus",
+      "queries",
+      "school-open-dates",
+      "reporting",
+    ],
     lastUsed: new Date("2026-01-08"),
   },
   {
@@ -1117,7 +1145,14 @@ WHERE DocPath LIKE
     language: "Markdown",
     icon: "BookOpen",
     color: "bg-indigo-600",
-    tags: ["bookmarks", "resources", "documentation", "tools", "learning", "placeholders"],
+    tags: [
+      "bookmarks",
+      "resources",
+      "documentation",
+      "tools",
+      "learning",
+      "placeholders",
+    ],
     lastUsed: new Date("2023-12-31"),
   },
   {
@@ -1241,7 +1276,8 @@ GO`,
   {
     id: "vm-activation-commands",
     title: "VM & Windows Activation Commands",
-    description: "Quick reference for Windows activation and VM management commands",
+    description:
+      "Quick reference for Windows activation and VM management commands",
     content: `# VM & Windows Activation Commands
 
 ## Windows Activation
@@ -1279,81 +1315,297 @@ Restart-Computer
     content: `Import-Module WebAdministration
 
 # --- SSL Certificate Friendly Name ---
-$certFriendlyName = "*raaweek12_24-25"
+$certFriendlyName = "*.raaweek12_01-2026"
 
-# --- Find SSL Certificate ---
-$cert = Get-ChildItem -Path Cert:\\LocalMachine\\My | Where-Object { $_.FriendlyName -eq $certFriendlyName }
+# --- Find Certificate ---
+$cert = Get-ChildItem Cert:\\LocalMachine\\My |
+    Where-Object { $_.FriendlyName -eq $certFriendlyName }
 
 if (-not $cert) {
-    Write-Host "❌ SSL Certificate '$certFriendlyName' not found in LocalMachine\\My store." -ForegroundColor Red
+    Write-Host "Certificate not found: $certFriendlyName" -ForegroundColor Red
     exit 1
 }
 
 $thumbprint = $cert.Thumbprint -replace " ", ""
-Write-Host "🔍 Found SSL Certificate '$certFriendlyName' with Thumbprint: $thumbprint"
+Write-Host "Certificate found: $thumbprint"
 Write-Host ""
 
-# --- Base Path for Projects ---
-$basePath = "D:\\myNGApp\\Deployments\\Rk12.AttPlus.Integration"
+# --- Base Path ---
+$basePath = "C:\\myNGApp\\Deployments\\Backend"
 
 # --- Hosts ---
 $commonHost = "attplusgv.raaweek12.com"
 $gatewayHost = "gatewaygv.raaweek12.com"
 
-# --- Site List ---
+# --- Sites ---
 $sites = @(
-    @{ Name = "Rk12.AttPlus.Intervention.API"; Port = 7189; Path = "$basePath\\Rk12.AttPlus.Intervention.API"; Host = $commonHost },
-    @{ Name = "Rk12.AttPlus.Analysis.API"; Port = 7296; Path = "$basePath\\Rk12.AttPlus.Analysis.API"; Host = $commonHost },
-    @{ Name = "Rk12.AttPlus.Administration.API"; Port = 7239; Path = "$basePath\\Rk12.AttPlus.Administration.API"; Host = $commonHost },
-    @{ Name = "Rk12.AttPlus.CourtManagement.API"; Port = 7007; Path = "$basePath\\Rk12.AttPlus.CourtManagement.API"; Host = $commonHost },
-    @{ Name = "Rk12.AttPlus.Identity.API"; Port = 7206; Path = "$basePath\\Rk12.AttPlus.Identity.API"; Host = $commonHost },
-    @{ Name = "Rk12.AttPlus.SentLetter.API"; Port = 7101; Path = "$basePath\\RK12.AttPlus.Intervention.SendLetter.QConsumer"; Host = $commonHost },
-    @{ Name = "Rk12.AttPlus.LetterDispatch.API"; Port = 7119; Path = "$basePath\\Rk12.AttPlus.LetterDispatch.API"; Host = $commonHost },
-    @{ Name = "Rk12.AttPlus.MessageHub.API"; Port = 7120; Path = "$basePath\\Rk12.AttPlus.MessageHub"; Host = $commonHost },
-    @{ Name = "Rk12.AttPlus.Miscellaneous.API"; Port = 7061; Path = "$basePath\\Rk12.AttPlus.Miscellaneous.API"; Host = $commonHost },
-    @{ Name = "Rk12.AttPlus.ApiGateway"; Port = 443; Path = "$basePath\\Rk12.AttPlus.ApiGateway"; Host = $gatewayHost },
-    @{ Name = "Rk12.AttPlus.Angular.Web"; Port = 443; Path = "$basePath\\Rk12.AttPlus.Angular.Web"; Host = $commonHost }
+    @{ Name="Rk12.AttPlus.Intervention.API"; Port=7189; Path="$basePath\\Rk12.AttPlus.Intervention.API"; Host=$commonHost },
+    @{ Name="Rk12.AttPlus.Analysis.API"; Port=7296; Path="$basePath\\Rk12.AttPlus.Analysis.API"; Host=$commonHost },
+    @{ Name="Rk12.AttPlus.Administration.API"; Port=7239; Path="$basePath\\Rk12.AttPlus.Administration.API"; Host=$commonHost },
+    @{ Name="Rk12.AttPlus.CourtManagement.API"; Port=7007; Path="$basePath\\Rk12.AttPlus.CourtManagement.API"; Host=$commonHost },
+    @{ Name="Rk12.AttPlus.Identity.API"; Port=7206; Path="$basePath\\Rk12.AttPlus.Identity.API"; Host=$commonHost },
+    @{ Name="Rk12.AttPlus.SentLetter.API"; Port=7101; Path="$basePath\\RK12.AttPlus.Intervention.SendLetter.QConsumer"; Host=$commonHost },
+    @{ Name="Rk12.AttPlus.LetterDispatch.API"; Port=7119; Path="$basePath\\Rk12.AttPlus.LetterDispatch.API"; Host=$commonHost },
+    @{ Name="Rk12.AttPlus.MessageHub.API"; Port=7120; Path="$basePath\\Rk12.AttPlus.MessageHub"; Host=$commonHost },
+    @{ Name="Rk12.AttPlus.Miscellaneous.API"; Port=7061; Path="$basePath\\Rk12.AttPlus.Miscellaneous.API"; Host=$commonHost },
+    @{ Name="Rk12.AttPlus.ApiGateway"; Port=443; Path="$basePath\\Rk12.AttPlus.ApiGateway"; Host=$gatewayHost }
 )
 
-# --- Loop through all sites ---
 foreach ($s in $sites) {
+
     $siteName = $s.Name
     $appPool = $siteName
     $physicalPath = $s.Path
     $port = $s.Port
     $siteHost = $s.Host
 
-    Write-Host "⚙️ Configuring $siteName ($siteHost:$port)..."
+    Write-Host "Configuring $siteName ($siteHost:$port)..."
 
+    # --- Create folder if missing ---
+    if (-not (Test-Path $physicalPath)) {
+        Write-Host "Creating folder: $physicalPath"
+        New-Item -ItemType Directory -Path $physicalPath -Force | Out-Null
+    }
+
+    # --- App Pool ---
     if (-not (Test-Path "IIS:\\AppPools\\$appPool")) {
         New-WebAppPool -Name $appPool | Out-Null
     }
 
     Set-ItemProperty "IIS:\\AppPools\\$appPool" -Name processModel.identityType -Value "LocalSystem"
     Set-ItemProperty "IIS:\\AppPools\\$appPool" -Name managedRuntimeVersion -Value ""
-    Set-ItemProperty "IIS:\\AppPools\\$appPool" -Name managedPipelineMode -Value "Integrated"
     Set-ItemProperty "IIS:\\AppPools\\$appPool" -Name startMode -Value "AlwaysRunning"
 
-    if (-not (Test-Path "IIS:\\Sites\\$siteName")) {
+    # --- Create Website if missing ---
+    if (-not (Get-Website -Name $siteName -ErrorAction SilentlyContinue)) {
         New-Website -Name $siteName -Port 99999 -PhysicalPath $physicalPath -ApplicationPool $appPool | Out-Null
+
         Remove-WebBinding -Name $siteName -Protocol http -Port 99999 -ErrorAction SilentlyContinue
     }
 
-    $bindingPath = "IIS:\\SslBindings\\0.0.0.0!$port!$siteHost"
-    if (Test-Path $bindingPath) { Remove-Item $bindingPath -ErrorAction SilentlyContinue }
+    # --- HTTPS Binding (clean + safe) ---
+    Remove-WebBinding -Name $siteName -Protocol https -Port $port -HostHeader $siteHost -ErrorAction SilentlyContinue
 
     New-WebBinding -Name $siteName -Protocol https -Port $port -HostHeader $siteHost -SslFlags 0 | Out-Null
-    New-Item -Path $bindingPath -Thumbprint $thumbprint -SSLFlags 0 | Out-Null
 
-    Start-Website -Name $siteName
+    # --- SSL Certificate Binding ---
+    $sslPath = "IIS:\\SslBindings\\0.0.0.0!$port"
+
+    if (Test-Path $sslPath) {
+        Remove-Item $sslPath -Force -ErrorAction SilentlyContinue
+    }
+
+    New-Item $sslPath -Thumbprint $thumbprint -SSLFlags 0 -ErrorAction SilentlyContinue | Out-Null
+
+    Start-Sleep -Seconds 2
+
+    # --- Start Site ---
+    $site = Get-Website -Name $siteName -ErrorAction SilentlyContinue
+
+    if ($site) {
+        try {
+            Start-Website -Name $siteName -ErrorAction Stop
+            Write-Host "Successfully started $siteName" -ForegroundColor Green
+        }
+        catch {
+            Write-Host "Failed to start $siteName: $($_.Exception.Message)" -ForegroundColor Red
+        }
+    }
+
+    Write-Host ""
 }
 
-Write-Host "🎉 All AttendancePlus sites created with HTTPS and started successfully!"`,
+Write-Host "Deployment script execution completed"
+`,
     category: "IIS & Web Server",
     language: "PowerShell",
     icon: "Server",
     color: "bg-purple-600",
     tags: ["iis", "powershell", "ssl", "https", "automation", "deployment"],
+    lastUsed: new Date("2024-01-20"),
+  },
+  {
+    id: "cloudflare-tunnel-setup",
+    title: "Cloudflare Tunnel Setup (cloudflared)",
+    description:
+      "Step-by-step setup for Cloudflare Tunnel including cloudflared.exe download, tunnel creation, DNS routing, and config.yml setup",
+
+    content: `# --- Cloudflare Tunnel Setup (Full Guide) ---
+
+# 📦 Step 1: Download cloudflared.exe
+
+# Download official Cloudflare Tunnel client:
+# https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/downloads/
+
+# OR your provided link:
+# https://1drv.ms/u/c/8d81b535b1df4808/IQD3gdJB2cOTTrYJ1xLexoC8AQB_RrtJgLJ_95d5wWtInsY
+
+# Rename file to:
+cloudflared.exe
+
+# -----------------------------------------------------
+
+# 📁 Step 2: Create Folder Structure
+
+# Create folder in C drive:
+C:\\cloudflared
+
+# Place files:
+# C:\\cloudflared\\cloudflared.exe
+# C:\\cloudflared\\config.yml
+# C:\\cloudflared\\<credentials-file>.json
+
+# -----------------------------------------------------
+
+# 🔐 Step 3: Login to Cloudflare
+
+cd C:\\cloudflared
+cloudflared.exe login
+
+# Browser opens:
+# - Select domain
+# - Authorize Cloudflare access
+
+# -----------------------------------------------------
+
+# 🚇 Step 4: Create Tunnel
+
+cloudflared.exe tunnel create b2c-tunnel
+
+# Output:
+# - Tunnel UUID
+# - Credentials JSON file
+
+# Move JSON file to:
+C:\\cloudflared\\
+
+# Example:
+# 6d912993-xxxx-xxxx.json
+
+# -----------------------------------------------------
+
+# 🌐 Step 5: Create DNS Routes
+
+cloudflared.exe tunnel route dns b2c-tunnel auth.yourdomain.com
+cloudflared.exe tunnel route dns b2c-tunnel api.yourdomain.com
+cloudflared.exe tunnel route dns b2c-tunnel web.yourdomain.com
+
+# Cloudflare auto-creates CNAME records
+
+# -----------------------------------------------------
+
+# 🧩 Step 6: config.yml Setup
+
+# File path:
+C:\\cloudflared\\config.yml
+
+tunnel: 6d912993-2b6a-42b0-ba1a-1bebec94019f
+credentials-file: C:\\cloudflared\\6d912993-2b6a-42b0-ba1a-1bebec94019f.json
+
+protocol: http2
+retries: 5
+grace-period: 30s
+icmp-proxy-enabled: false
+
+ingress:
+
+  # Angular App
+  - hostname: humailsaleem.raaweeattendance.com
+    service: http://localhost:4200
+    originRequest:
+      noTLSVerify: true
+      connectTimeout: 30s
+
+  # API Gateway
+  - hostname: humailsaleemgateway.raaweeattendance.com
+    service: http://localhost:8080
+    originRequest:
+      noTLSVerify: true
+      connectTimeout: 60s
+      tcpKeepAlive: 30s
+      keepAliveTimeout: 90s
+
+  # Secure Docs
+  - hostname: humailsaleemsecuredocs.raaweeattendance.com
+    service: http://localhost:5001
+    originRequest:
+      noTLSVerify: true
+      connectTimeout: 60s
+      tcpKeepAlive: 30s
+      keepAliveTimeout: 90s
+
+  # Catch-all fallback
+  - service: http_status:404
+
+# -----------------------------------------------------
+
+# 🚀 Step 7: Run Tunnel
+
+cloudflared.exe tunnel --config "C:\\cloudflared\\config.yml" run b2c-tunnel
+
+# -----------------------------------------------------
+
+# ⚙️ Step 8: Install as Windows Service (Optional)
+
+cloudflared.exe service install
+net start cloudflared
+
+# -----------------------------------------------------
+
+# 🎯 Result:
+# - Secure HTTPS URLs
+# - No port forwarding
+# - Cloudflare protected local services
+`,
+    category: "Cloud & Networking",
+    language: "PowerShell",
+    icon: "Cloud",
+    color: "bg-blue-600",
+    tags: [
+      "cloudflare",
+      "cloudflared",
+      "tunnel",
+      "reverse proxy",
+      "devops",
+      "deployment",
+    ],
+    lastUsed: new Date("2024-01-20"),
+  },
+  {
+    id: "iis-cleanup-reset",
+    title: "IIS Cleanup (Remove Sites & App Pools)",
+    description:
+      "PowerShell script to stop IIS, remove all websites and application pools except DefaultAppPool, and restart IIS safely",
+
+    content: `Import-Module WebAdministration
+
+# Stop IIS first (optional but recommended)
+iisreset /stop
+
+# Remove all websites
+Get-Website | ForEach-Object {
+    Write-Host "Removing website: $($_.Name)"
+    Remove-Website -Name $_.Name
+}
+
+# Remove all App Pools except DefaultAppPool
+Get-ChildItem IIS:\\AppPools | Where-Object {
+    $_.Name -ne "DefaultAppPool"
+} | ForEach-Object {
+    Write-Host "Removing App Pool: $($_.Name)"
+    Remove-WebAppPool -Name $_.Name
+}
+
+# Start IIS again
+iisreset /start
+
+Write-Host "IIS cleanup completed successfully."
+`,
+    category: "IIS & Web Server",
+    language: "PowerShell",
+    icon: "Server",
+    color: "bg-red-600",
+    tags: ["iis", "cleanup", "reset", "powershell", "automation", "devops"],
     lastUsed: new Date("2024-01-20"),
   },
   {
@@ -1388,11 +1640,11 @@ Note:
     lastUsed: new Date("2024-01-14"),
   },
   {
-  id: "sp-revert-student-action",
-  title: "Revert Student Action Stored Procedure",
-  description:
-    "SQL Server stored procedure to safely revert student actions across TDPS and eSignature databases with transactional integrity and logging",
-  content: `USE [TDPS]
+    id: "sp-revert-student-action",
+    title: "Revert Student Action Stored Procedure",
+    description:
+      "SQL Server stored procedure to safely revert student actions across TDPS and eSignature databases with transactional integrity and logging",
+    content: `USE [TDPS]
 GO
 SET ANSI_NULLS ON
 GO
@@ -1581,31 +1833,30 @@ BEGIN
         RETURN -1;
     END CATCH
 END;`,
-  category: "SQL Server",
-  language: "SQL",
-  icon: "Database",
-  color: "bg-blue-600",
-  tags: ["sql-server", "stored-procedure", "rollback", "tdps", "esignature"],
-  lastUsed: new Date("2025-12-11"),
-},
-{
-  id: "table-revert-intervention-logs",
-  title: "Revert Intervention Logs Table",
-  description:
-    "SQL script to create a logging table for tracking reverted student interventions, including action type, user, and timestamp",
-  content: `CREATE TABLE [dbo].[RevertInterventionLogs] (
+    category: "SQL Server",
+    language: "SQL",
+    icon: "Database",
+    color: "bg-blue-600",
+    tags: ["sql-server", "stored-procedure", "rollback", "tdps", "esignature"],
+    lastUsed: new Date("2025-12-11"),
+  },
+  {
+    id: "table-revert-intervention-logs",
+    title: "Revert Intervention Logs Table",
+    description:
+      "SQL script to create a logging table for tracking reverted student interventions, including action type, user, and timestamp",
+    content: `CREATE TABLE [dbo].[RevertInterventionLogs] (
     [UniqueRowID] INT IDENTITY(1,1) NOT NULL,
     [StudentId] NVARCHAR(500) NULL,
     [ActionType] NVARCHAR(250) NULL,
     [CreatedDate] DATETIME NULL,
     [CreatedBy] NVARCHAR(50) NULL
 );`,
-  category: "SQL Server",
-  language: "SQL",
-  icon: "Table",
-  color: "bg-green-600",
-  tags: ["sql-server", "table", "logging", "audit", "tdps"],
-  lastUsed: new Date("2025-12-11"),
-},
-
-]
+    category: "SQL Server",
+    language: "SQL",
+    icon: "Table",
+    color: "bg-green-600",
+    tags: ["sql-server", "table", "logging", "audit", "tdps"],
+    lastUsed: new Date("2025-12-11"),
+  },
+];
