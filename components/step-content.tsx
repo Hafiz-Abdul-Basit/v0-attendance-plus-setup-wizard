@@ -180,13 +180,13 @@ Start-Process -FilePath "ChromeSetup.exe" -ArgumentList "/silent /install" -Wait
               features and bindings.
             </p>
 
-            <StepItem
+            {/* <StepItem
               stepNumber={1}
               title="Enable IIS Features"
               stepId="iis-1"
               isCompleted={completedSteps["iis-1"]}
               onToggle={() => onToggleStep("iis-1")}
-            ></StepItem>
+            ></StepItem> */}
 
             <StepItem
               stepNumber={2}
