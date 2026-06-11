@@ -179,7 +179,33 @@ Start-Process -FilePath "ChromeSetup.exe" -ArgumentList "/silent /install" -Wait
               Configure Internet Information Services (IIS) with required
               features and bindings.
             </p>
+            <StepItem
+              stepNumber={1}
+              title="Enable IIS Features"
+              stepId="iis-1"
+              isCompleted={completedSteps["iis-1"]}
+              onToggle={() => onToggleStep("iis-1")}
+            >
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="space-y-4">
+                  <h4 className="font-medium text-gray-900">
+                    Required IIS Features:
+                  </h4>
+                  <Image
+                    src="/images/iis-web-server-features.png"
+                    alt="IIS Web Server Features Selection"
+                    width={400}
+                    height={300}
+                    className="rounded-lg border shadow-sm w-full"
+                  />
 
+                  <ErrorFix
+                    error="HTTP Error 500.19 - Internal Server Error"
+                    fix="Ensure ASP.NET Core Hosting Bundle is installed and Application Initialization is enabled in IIS features."
+                  />
+                </div>
+              </div>
+            </StepItem>
             {/* <StepItem
               stepNumber={1}
               title="Enable IIS Features"
