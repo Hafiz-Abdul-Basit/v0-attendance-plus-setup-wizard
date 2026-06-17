@@ -442,11 +442,6 @@ Start-Process -FilePath "dotnet-hosting.exe" -ArgumentList "/quiet" -Wait`}
                     <CodeBlock title="List Installed Runtimes">
                       dotnet --list-runtimes
                     </CodeBlock>
-                    <CodeBlock title="Check Hosting Bundle">
-                      reg query
-                      "HKEY_LOCAL_MACHINE\SOFTWARE\dotnet\Setup\InstalledVersions\x64\sharedhost"
-                      /v Version
-                    </CodeBlock>
                   </div>
                 </div>
 
@@ -668,23 +663,6 @@ rabbitmq-plugins enable rabbitmq_management`}
 net start RabbitMQ`}
                     </CodeBlock>
                   </div>
-                </div>
-
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <h4 className="font-semibold text-gray-900">
-                      Alternative Method:
-                    </h4>
-                    <CodeBlock title="RabbitMQ Control Commands">
-                      {`rabbitmqctl stop_app
-rabbitmqctl start_app`}
-                    </CodeBlock>
-                  </div>
-
-                  <ErrorFix
-                    error="Service restart fails"
-                    fix="Check Windows Event Viewer for detailed error messages and ensure no port conflicts exist."
-                  />
                 </div>
               </div>
             </StepItem>
@@ -947,68 +925,6 @@ rs.status()`}
                 </div>
               </div>
             </StepItem>
-
-            <StepItem
-              stepNumber={5}
-              title="Configure Document Paths"
-              stepId="mongodb-5"
-              isCompleted={completedSteps["mongodb-5"]}
-              onToggle={() => onToggleStep("mongodb-5")}
-            >
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div className="space-y-4">
-                  <p className="text-gray-700">
-                    Set up document storage paths in the application
-                    configuration.
-                  </p>
-
-                  <div className="space-y-2">
-                    <h4 className="font-semibold text-gray-900">
-                      Create Document Directory:
-                    </h4>
-                    <CodeBlock title="Create Directory">
-                      {`mkdir C:\\Raawee
-icacls C:\\Raawee /grant "IIS_IUSRS:(OI)(CI)F"`}
-                    </CodeBlock>
-                  </div>
-
-                  <div className="space-y-2">
-                    <h4 className="font-semibold text-gray-900">
-                      Application Configuration:
-                    </h4>
-                    <CodeBlock title="appsettings.json">
-                      {`"DocumentPaths": {
-  "DocumentBasePath": "C:\\\\Raawee"
-}`}
-                    </CodeBlock>
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-                    <h4 className="font-semibold text-amber-900 mb-2">
-                      Important Notes:
-                    </h4>
-                    <ul className="text-sm text-amber-800 space-y-1">
-                      <li>
-                        • Ensure IIS_IUSRS has full control over document
-                        directory
-                      </li>
-                      <li>• Use double backslashes in JSON configuration</li>
-                      <li>
-                        • Consider using a dedicated drive for large document
-                        storage
-                      </li>
-                    </ul>
-                  </div>
-
-                  <ErrorFix
-                    error="Access denied when saving documents"
-                    fix="Grant IIS_IUSRS full control permissions to the document directory using icacls command."
-                  />
-                </div>
-              </div>
-            </StepItem>
           </div>
         );
 
@@ -1134,72 +1050,6 @@ sqlcmd -S localhost -E`}
             </StepItem>
 
             <StepItem
-              stepNumber={3}
-              title="Configure SQL Server"
-              stepId="sqlserver-3"
-              isCompleted={completedSteps["sqlserver-3"]}
-              onToggle={() => onToggleStep("sqlserver-3")}
-            >
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div className="space-y-4">
-                  <p className="text-gray-700">
-                    Configure SQL Server for AttendancePlus System.
-                  </p>
-
-                  <div className="space-y-2">
-                    <h4 className="font-semibold text-gray-900">
-                      Enable TCP/IP Protocol:
-                    </h4>
-                    <CodeBlock title="SQL Server Configuration Manager Steps">
-                      {`1. Open SQL Server Configuration Manager
-2. Navigate to SQL Server Network Configuration
-3. Enable TCP/IP protocol
-4. Set TCP Port to 1433 in IP Addresses tab
-5. Restart SQL Server service`}
-                    </CodeBlock>
-                  </div>
-
-                  <div className="space-y-2">
-                    <h4 className="font-semibold text-gray-900">
-                      PowerShell Configuration:
-                    </h4>
-                    <CodeBlock title="Enable TCP/IP via PowerShell">
-                      {`# Import SQL Server module
-Import-Module SqlServer
-
-# Enable TCP/IP
-$smo = 'Microsoft.SqlServer.Management.Smo.'
-$wmi = new-object ($smo + 'Wmi.ManagedComputer')
-$tcp = $wmi.GetSmoObject("ManagedComputer[@Name='$env:COMPUTERNAME']/ServerInstance[@Name='MSSQLSERVER']/ServerProtocol[@Name='Tcp']")
-$tcp.IsEnabled = $true
-$tcp.Alter()`}
-                    </CodeBlock>
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <h4 className="font-semibold text-gray-900">
-                      Test Connection:
-                    </h4>
-                    <CodeBlock title="Test SQL Server Connection">
-                      {`# Test with Windows Authentication
-sqlcmd -S localhost -E
-
-# Test with SQL Authentication
-sqlcmd -S localhost -U sa -P YourPassword`}
-                    </CodeBlock>
-                  </div>
-
-                  <ErrorFix
-                    error="Login failed for user 'sa'"
-                    fix="Ensure Mixed Mode authentication is enabled and SA account is not disabled. Reset SA password if needed."
-                  />
-                </div>
-              </div>
-            </StepItem>
-
-            <StepItem
               stepNumber={4}
               title="Create AttendancePlus Database"
               stepId="sqlserver-4"
@@ -1296,8 +1146,8 @@ GO`}
                       Create Base Directory:
                     </h4>
                     <CodeBlock title="Create Solution Directory">
-                      {`mkdir "C:\\RK12.AttPlus.Solution.US"
-cd "C:\\RK12.AttPlus.Solution.US"`}
+                      {`mkdir "C:\\myNGApp\\RK12.AttPlus.Solution.US"
+cd "C:\\myNGApp\\RK12.AttPlus.Solution.US"`}
                     </CodeBlock>
                   </div>
 
@@ -1375,208 +1225,6 @@ cd "C:\\RK12.AttPlus.Solution.US"`}
                     </div>
                   </div>
                 </div>
-
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <h4 className="font-semibold text-gray-900">
-                      Extract API Files:
-                    </h4>
-                    <CodeBlock title="PowerShell Extraction">
-                      {`# Extract all API services
-Expand-Archive -Path "AttendancePlus-APIs.zip" -DestinationPath "C:\\RK12.AttPlus.Solution.US\\"
-
-# Set permissions for IIS
-icacls "C:\\RK12.AttPlus.Solution.US" /grant "IIS_IUSRS:(OI)(CI)F"`}
-                    </CodeBlock>
-                  </div>
-
-                  <ErrorFix
-                    error="Access denied when extracting files"
-                    fix="Run PowerShell as Administrator and ensure the destination directory exists with proper permissions."
-                  />
-                </div>
-              </div>
-            </StepItem>
-
-            <StepItem
-              stepNumber={2}
-              title="Deploy to IIS"
-              stepId="webapi-2"
-              isCompleted={completedSteps["webapi-2"]}
-              onToggle={() => onToggleStep("webapi-2")}
-            >
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div className="space-y-4">
-                  <p className="text-gray-700">
-                    Deploy each API service to IIS with correct configuration.
-                  </p>
-
-                  <div className="space-y-2">
-                    <h4 className="font-semibold text-gray-900">
-                      PowerShell IIS Deployment:
-                    </h4>
-                    <CodeBlock title="Create IIS Applications">
-                      {`# Import IIS module
-Import-Module WebAdministration
-
-# Create application pools and sites
-$apis = @(
-    @{Name="RK12.AttPlus.Identity.API"; Port=7206; Path="C:\\RK12.AttPlus.Solution.US\\RK12.AttPlus.Identity.API"},
-    @{Name="RK12.AttPlus.APIGateway"; Port=443; Path="C:\\RK12.AttPlus.Solution.US\\RK12.AttPlus.APIGateway"},
-    @{Name="RK12.AttPlus.Administration.API"; Port=7239; Path="C:\\RK12.AttPlus.Solution.US\\RK12.AttPlus.Administration.API"}
-)
-
-foreach ($api in $apis) {
-    # Create Application Pool
-    New-WebAppPool -Name $api.Name
-    Set-ItemProperty -Path "IIS:\\AppPools\\$($api.Name)" -Name managedRuntimeVersion -Value ""
-    Set-ItemProperty -Path "IIS:\\AppPools\\$($api.Name)" -Name processModel.identityType -Value LocalSystem
-    
-    # Create Website
-    New-Website -Name $api.Name -PhysicalPath $api.Path -Port $api.Port -ApplicationPool $api.Name
-}`}
-                    </CodeBlock>
-                  </div>
-
-                  <Alert className="bg-blue-50 border-blue-200">
-                    <Info className="h-4 w-4 text-blue-600" />
-                    <AlertDescription className="text-blue-800">
-                      Each API service runs on its designated port with "No
-                      Managed Code" application pool.
-                    </AlertDescription>
-                  </Alert>
-                </div>
-
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <h4 className="font-semibold text-gray-900">
-                      Manual IIS Configuration:
-                    </h4>
-                    <CodeBlock title="IIS Manager Steps">
-                      {`1. Open IIS Manager
-2. Right-click "Sites" → "Add Website"
-3. Site name: RK12.AttPlus.Identity.API
-4. Physical path: C:\\RK12.AttPlus.Solution.US\\RK12.AttPlus.Identity.API
-5. Port: 7206
-6. Application pool: RK12.AttPlus.Identity.API (No Managed Code)
-7. Repeat for all API services`}
-                    </CodeBlock>
-                  </div>
-
-                  <ErrorFix
-                    error="HTTP Error 502.5 - Process Failure"
-                    fix="Ensure .NET 8 Hosting Bundle is installed and application pool is set to 'No Managed Code'."
-                  />
-                </div>
-              </div>
-            </StepItem>
-
-            <StepItem
-              stepNumber={3}
-              title="Configure Connection Strings"
-              stepId="webapi-3"
-              isCompleted={completedSteps["webapi-3"]}
-              onToggle={() => onToggleStep("webapi-3")}
-            >
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div className="space-y-4">
-                  <p className="text-gray-700">
-                    Update appsettings.json files with correct connection
-                    strings.
-                  </p>
-
-                  <div className="space-y-2">
-                    <h4 className="font-semibold text-gray-900">
-                      Update Configuration Files:
-                    </h4>
-                    <CodeBlock title="PowerShell Configuration Update">
-                      {`# Update all appsettings.json files
-$configTemplate = @"
-{
-  "ConnectionStrings": {
-    "DefaultConnection": "Server=localhost;Database=AttendancePlusDB;User Id=AttendancePlusUser;Password=YourSecurePassword123!;TrustServerCertificate=true;",
-    "MongoConnection": "mongodb://localhost:27017/?replicaSet=rs0"
-  },
-  "RabbitMQ": {
-    "HostName": "localhost",
-    "Port": 5672,
-    "UserName": "attendanceplus",
-    "Password": "SecurePassword123"
-  }
-}
-"@
-
-# Apply to all API services
-Get-ChildItem "C:\\RK12.AttPlus.Solution.US\\*\\appsettings.json" | ForEach-Object {
-    $configTemplate | Out-File -FilePath $_.FullName -Encoding UTF8
-}`}
-                    </CodeBlock>
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <h4 className="font-semibold text-gray-900">
-                      Sample appsettings.json:
-                    </h4>
-                    <CodeBlock title="Complete Configuration">{`{
-  "ConnectionStrings": {
-    "DefaultConnection": "Server=localhost;Database=AttendancePlusDB;User Id=AttendancePlusUser;Password=YourSecurePassword123!;TrustServerCertificate=true;",
-    "MongoConnection": "mongodb://localhost:27017/?replicaSet=rs0"
-  },
-  "RabbitMQ": {
-    "HostName": "localhost",
-    "Port": 5672,
-    "UserName": "attendanceplus",
-    "Password": "SecurePassword123"
-  }
-}`}</CodeBlock>
-                  </div>
-                </div>
-              </div>
-            </StepItem>
-
-            <StepItem
-              stepNumber={4}
-              title="Test API Services"
-              stepId="webapi-4"
-              isCompleted={completedSteps["webapi-4"]}
-              onToggle={() => onToggleStep("webapi-4")}
-            >
-              <div className="space-y-4">
-                <p className="text-gray-700">
-                  Verify all API services are running correctly:
-                </p>
-                <div className="grid grid-cols-2 gap-4">
-                  <Button
-                    variant="outline"
-                    asChild
-                    className="gap-2 bg-transparent"
-                  >
-                    <a
-                      href="https://localhost:7206/swagger"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      <ExternalLink className="w-4 h-4" />
-                      Identity API Swagger
-                    </a>
-                  </Button>
-                  <Button
-                    variant="outline"
-                    asChild
-                    className="gap-2 bg-transparent"
-                  >
-                    <a
-                      href="https://localhost:443/swagger"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      <ExternalLink className="w-4 h-4" />
-                      API Gateway Swagger
-                    </a>
-                  </Button>
-                </div>
               </div>
             </StepItem>
           </div>
@@ -1588,6 +1236,18 @@ Get-ChildItem "C:\\RK12.AttPlus.Solution.US\\*\\appsettings.json" | ForEach-Obje
             <p className="text-gray-600 mb-6 text-lg">
               Build and deploy the AttendancePlus Angular frontend application.
             </p>
+
+            <div className="mt-4">
+              <h3 className="font-semibold text-lg mb-2">URL Rewrite</h3>
+              <a
+                href="https://download.microsoft.com/download/1/2/8/128E2E22-C1B9-44A4-BE2A-5859ED1D4592/rewrite_amd64_en-US.msi"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-600 hover:underline"
+              >
+                Download URL Rewrite Module
+              </a>
+            </div>
           </div>
         );
 
