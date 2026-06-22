@@ -694,8 +694,8 @@ export function InstallationWizard() {
 
   return (
     <div className="flex h-screen bg-white overflow-hidden">
-      {/* Fixed Sidebar - Only shown when not viewing Snippets, Guides, or Setup Agent */}
-      {!showSnippets && !showGuides && !showSetupAgent && (
+      {/* Fixed Sidebar - Only shown when not viewing Snippets, Guides, Setup Agent, or Setups */}
+      {!showSnippets && !showGuides && !showSetupAgent && !showSetups && (
         <aside className="w-80 bg-white border-r border-gray-200 shadow-lg flex flex-col fixed left-0 top-0 h-full z-10">
           {/* Sidebar Header */}
           <div className="p-6 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50">
