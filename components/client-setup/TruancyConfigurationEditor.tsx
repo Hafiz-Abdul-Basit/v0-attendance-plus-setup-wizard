@@ -60,6 +60,7 @@ export function TruancyConfigurationEditor() {
   const [data, setData] = useState<TruancyRecord[]>(defaultData)
   const [editMode, setEditMode] = useState(false)
   const [previewMode, setPreviewMode] = useState(false)
+  const [templateMode, setTemplateMode] = useState(false)
 
   // Bulk edit fields
   const [bulkEdits, setBulkEdits] = useState<Partial<TruancyRecord>>({
@@ -70,6 +71,28 @@ export function TruancyConfigurationEditor() {
     UserType: '',
     Description: '',
     CategoryTitle: '',
+  })
+
+  // Template generation fields
+  const [template, setTemplate] = useState({
+    Period: 'SchoolYear',
+    Action: 'Warning Letter 1',
+    Category: 'Unexcused Absence',
+    CampusType: "'Elementary School'; 'Middle School'; 'High School'",
+    ChooseAction: 'Warning Letter 1:WL1',
+    IsConsecutive: false,
+    HighlightColor: '#fff297',
+    UserType: 'campus',
+    Description: 'Interventions to be proposed on 3 absences in school year',
+    CategoryTitle: 'Unexcused Absence',
+    OccuranceNumber: 1,
+    TrauncySequence: 3,
+  })
+  
+  const [generateCount, setGenerateCount] = useState(1)
+  const [autoIncrement, setAutoIncrement] = useState({
+    OccuranceNumber: false,
+    TrauncySequence: false,
   })
 
   const changes = useMemo(() => {
@@ -83,6 +106,48 @@ export function TruancyConfigurationEditor() {
     })
     return changed
   }, [bulkEdits, data])
+
+  const handleGenerateFromTemplate = () => {
+    if (generateCount < 1) {
+      toast.error('Count must be at least 1')
+      return
+    }
+
+    const generated: TruancyRecord[] = []
+    for (let i = 0; i < generateCount; i++) {
+      const record: TruancyRecord = {
+        _id: { $oid: `generated_${Date.now()}_${i}` },
+        Title: '',
+        ClientID: 1,
+        Role: '',
+        TotalAbsences: '',
+        FilterCriteriaTitle: '',
+        FilterCriteria: '',
+        FilterCriteriaForPeriodTitle: '',
+        FilterCriteriaForPeriod: '',
+        DependentInterventionsFilterCriteriaTitle: '',
+        DependentInterventionsFilterCriteria: '',
+        SortOrder: '',
+        IsEnable: true,
+        GracePeriod: 3,
+        ...template,
+      }
+
+      // Auto-increment fields if enabled
+      if (autoIncrement.OccuranceNumber) {
+        record.OccuranceNumber = template.OccuranceNumber + i
+      }
+      if (autoIncrement.TrauncySequence) {
+        record.TrauncySequence = template.TrauncySequence + i
+      }
+
+      generated.push(record)
+    }
+
+    setData(generated)
+    setTemplateMode(false)
+    toast.success(`Generated ${generateCount} records from template`)
+  }
 
   const handleBulkUpdate = () => {
     const updatedData = data.map((record) => {
@@ -138,14 +203,188 @@ export function TruancyConfigurationEditor() {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="bg-white rounded-lg border border-slate-200 p-6">
-        <h2 className="text-2xl font-bold text-slate-900 mb-2">Truancy Configuration Manager</h2>
-        <p className="text-slate-600">
-          Bulk update truancy configuration properties for all records at once. See real-time changes below.
-        </p>
+    <div className="p-8 max-w-7xl space-y-8">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">
+            Configuration Manager
+          </h2>
+          <p className="text-sm text-slate-600 dark:text-slate-400">
+            {templateMode 
+              ? 'Define properties once and generate multiple records'
+              : 'Modify truancy configuration properties for all records at once. See real-time changes below.'
+            }
+          </p>
+        </div>
+        <Button
+          onClick={() => setTemplateMode(!templateMode)}
+          variant={templateMode ? 'default' : 'outline'}
+          className={templateMode ? 'bg-blue-600 hover:bg-blue-700 text-white' : ''}
+        >
+          {templateMode ? 'Back to Editor' : 'Use Template Generator'}
+        </Button>
       </div>
+
+      {/* Template Generator Mode */}
+      {templateMode && (
+        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border-2 border-blue-200 dark:border-blue-800 rounded-lg p-6 space-y-6">
+          <div>
+            <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">
+              Define Template Properties
+            </h3>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-2">Period</label>
+                <Input
+                  value={template.Period}
+                  onChange={(e) => setTemplate({ ...template, Period: e.target.value })}
+                  placeholder="e.g., SchoolYear"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-2">Action</label>
+                <Input
+                  value={template.Action}
+                  onChange={(e) => setTemplate({ ...template, Action: e.target.value })}
+                  placeholder="e.g., Warning Letter 1"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-2">Category</label>
+                <Input
+                  value={template.Category}
+                  onChange={(e) => setTemplate({ ...template, Category: e.target.value })}
+                  placeholder="e.g., Unexcused Absence"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-2">ChooseAction</label>
+                <Input
+                  value={template.ChooseAction}
+                  onChange={(e) => setTemplate({ ...template, ChooseAction: e.target.value })}
+                  placeholder="e.g., Warning Letter 1:WL1"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-2">UserType</label>
+                <Input
+                  value={template.UserType}
+                  onChange={(e) => setTemplate({ ...template, UserType: e.target.value })}
+                  placeholder="e.g., campus"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-2">HighlightColor</label>
+                <div className="flex gap-2">
+                  <input
+                    type="color"
+                    value={template.HighlightColor}
+                    onChange={(e) => setTemplate({ ...template, HighlightColor: e.target.value })}
+                    className="w-12 h-10 rounded border border-slate-300 dark:border-slate-600 cursor-pointer"
+                  />
+                  <Input
+                    value={template.HighlightColor}
+                    onChange={(e) => setTemplate({ ...template, HighlightColor: e.target.value })}
+                    placeholder="#fff297"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 gap-4 mb-6">
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-2">CampusType</label>
+                <Input
+                  value={template.CampusType}
+                  onChange={(e) => setTemplate({ ...template, CampusType: e.target.value })}
+                  placeholder="e.g., 'Elementary School'; 'Middle School'; 'High School'"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-2">Description</label>
+                <Input
+                  value={template.Description}
+                  onChange={(e) => setTemplate({ ...template, Description: e.target.value })}
+                  placeholder="e.g., Interventions to be proposed on 3 absences in school year"
+                  className="h-auto min-h-12 py-2"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-2">CategoryTitle</label>
+                <Input
+                  value={template.CategoryTitle}
+                  onChange={(e) => setTemplate({ ...template, CategoryTitle: e.target.value })}
+                  placeholder="e.g., Unexcused Absence"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 bg-white dark:bg-slate-800 p-4 rounded">
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-2">Number of Records to Generate</label>
+                <Input
+                  type="number"
+                  min="1"
+                  value={generateCount}
+                  onChange={(e) => setGenerateCount(Math.max(1, parseInt(e.target.value) || 1))}
+                  className="font-semibold text-lg"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-2">OccuranceNumber</label>
+                <Input
+                  type="number"
+                  value={template.OccuranceNumber}
+                  onChange={(e) => setTemplate({ ...template, OccuranceNumber: parseInt(e.target.value) || 1 })}
+                />
+                <div className="flex items-center gap-2 mt-2">
+                  <input
+                    type="checkbox"
+                    id="increment-occurrence"
+                    checked={autoIncrement.OccuranceNumber}
+                    onChange={(e) => setAutoIncrement({ ...autoIncrement, OccuranceNumber: e.target.checked })}
+                    className="w-4 h-4 rounded"
+                  />
+                  <label htmlFor="increment-occurrence" className="text-xs text-slate-600 dark:text-slate-400">
+                    Auto-increment
+                  </label>
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-2">TrauncySequence</label>
+                <Input
+                  type="number"
+                  value={template.TrauncySequence}
+                  onChange={(e) => setTemplate({ ...template, TrauncySequence: parseInt(e.target.value) || 1 })}
+                />
+                <div className="flex items-center gap-2 mt-2">
+                  <input
+                    type="checkbox"
+                    id="increment-sequence"
+                    checked={autoIncrement.TrauncySequence}
+                    onChange={(e) => setAutoIncrement({ ...autoIncrement, TrauncySequence: e.target.checked })}
+                    className="w-4 h-4 rounded"
+                  />
+                  <label htmlFor="increment-sequence" className="text-xs text-slate-600 dark:text-slate-400">
+                    Auto-increment
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <Button
+              onClick={handleGenerateFromTemplate}
+              className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-3"
+            >
+              Generate {generateCount} Record{generateCount !== 1 ? 's' : ''} from Template
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Regular Editor Mode */}
+      {!templateMode && (
 
       {/* Controls */}
       <div className="flex gap-2 justify-end">
@@ -383,6 +622,7 @@ export function TruancyConfigurationEditor() {
             {JSON.stringify(data, null, 2)}
           </pre>
         </div>
+      )}
       )}
     </div>
   )
