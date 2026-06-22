@@ -73,8 +73,25 @@ export function TruancyConfigurationEditor() {
     CategoryTitle: '',
   })
 
-  // Template generation fields
-  const [template, setTemplate] = useState({
+  // Multi-template batch generation
+  const [templates, setTemplates] = useState<Array<{
+    id: string
+    count: number
+    Period: string
+    Action: string
+    Category: string
+    CampusType: string
+    ChooseAction: string
+    IsConsecutive: boolean
+    HighlightColor: string
+    UserType: string
+    Description: string
+    CategoryTitle: string
+    OccuranceNumber: number
+    TrauncySequence: number
+  }>>([])
+  
+  const [newTemplate, setNewTemplate] = useState({
     Period: 'SchoolYear',
     Action: 'Warning Letter 1',
     Category: 'Unexcused Absence',
@@ -87,12 +104,7 @@ export function TruancyConfigurationEditor() {
     CategoryTitle: 'Unexcused Absence',
     OccuranceNumber: 1,
     TrauncySequence: 3,
-  })
-  
-  const [generateCount, setGenerateCount] = useState(1)
-  const [autoIncrement, setAutoIncrement] = useState({
-    OccuranceNumber: false,
-    TrauncySequence: false,
+    count: 5,
   })
 
   const changes = useMemo(() => {
@@ -107,46 +119,85 @@ export function TruancyConfigurationEditor() {
     return changed
   }, [bulkEdits, data])
 
-  const handleGenerateFromTemplate = () => {
-    if (generateCount < 1) {
-      toast.error('Count must be at least 1')
+  const handleAddTemplate = () => {
+    if (!newTemplate.Period || !newTemplate.Action) {
+      toast.error('Period and Action are required')
+      return
+    }
+    setTemplates([
+      ...templates,
+      { ...newTemplate, id: `template_${Date.now()}` }
+    ])
+    setNewTemplate({
+      Period: 'SchoolYear',
+      Action: '',
+      Category: 'Unexcused Absence',
+      CampusType: "'Elementary School'; 'Middle School'; 'High School'",
+      ChooseAction: '',
+      IsConsecutive: false,
+      HighlightColor: '#fff297',
+      UserType: 'campus',
+      Description: '',
+      CategoryTitle: 'Unexcused Absence',
+      OccuranceNumber: 1,
+      TrauncySequence: 3,
+      count: 5,
+    })
+    toast.success('Template added')
+  }
+
+  const handleRemoveTemplate = (id: string) => {
+    setTemplates(templates.filter(t => t.id !== id))
+    toast.success('Template removed')
+  }
+
+  const handleGenerateFromTemplates = () => {
+    if (templates.length === 0) {
+      toast.error('Add at least one template first')
       return
     }
 
     const generated: TruancyRecord[] = []
-    for (let i = 0; i < generateCount; i++) {
-      const record: TruancyRecord = {
-        _id: { $oid: `generated_${Date.now()}_${i}` },
-        Title: '',
-        ClientID: 1,
-        Role: '',
-        TotalAbsences: '',
-        FilterCriteriaTitle: '',
-        FilterCriteria: '',
-        FilterCriteriaForPeriodTitle: '',
-        FilterCriteriaForPeriod: '',
-        DependentInterventionsFilterCriteriaTitle: '',
-        DependentInterventionsFilterCriteria: '',
-        SortOrder: '',
-        IsEnable: true,
-        GracePeriod: 3,
-        ...template,
-      }
+    let recordIndex = 0
 
-      // Auto-increment fields if enabled
-      if (autoIncrement.OccuranceNumber) {
-        record.OccuranceNumber = template.OccuranceNumber + i
+    templates.forEach((template) => {
+      for (let i = 0; i < template.count; i++) {
+        const record: TruancyRecord = {
+          _id: { $oid: `generated_${Date.now()}_${recordIndex}` },
+          Title: '',
+          ClientID: 1,
+          Role: '',
+          TotalAbsences: '',
+          FilterCriteriaTitle: '',
+          FilterCriteria: '',
+          FilterCriteriaForPeriodTitle: '',
+          FilterCriteriaForPeriod: '',
+          DependentInterventionsFilterCriteriaTitle: '',
+          DependentInterventionsFilterCriteria: '',
+          SortOrder: '',
+          IsEnable: true,
+          GracePeriod: 3,
+          Period: template.Period,
+          Action: template.Action,
+          Category: template.Category,
+          CampusType: template.CampusType,
+          ChooseAction: template.ChooseAction,
+          IsConsecutive: template.IsConsecutive,
+          HighlightColor: template.HighlightColor,
+          UserType: template.UserType,
+          Description: template.Description,
+          CategoryTitle: template.CategoryTitle,
+          OccuranceNumber: template.OccuranceNumber,
+          TrauncySequence: template.TrauncySequence,
+        }
+        generated.push(record)
+        recordIndex++
       }
-      if (autoIncrement.TrauncySequence) {
-        record.TrauncySequence = template.TrauncySequence + i
-      }
-
-      generated.push(record)
-    }
+    })
 
     setData(generated)
     setTemplateMode(false)
-    toast.success(`Generated ${generateCount} records from template`)
+    toast.success(`Generated ${recordIndex} records from ${templates.length} templates`)
   }
 
   const handleBulkUpdate = () => {
@@ -229,156 +280,184 @@ export function TruancyConfigurationEditor() {
       {templateMode && (
         <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border-2 border-blue-200 dark:border-blue-800 rounded-lg p-6 space-y-6">
           <div>
-            <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">
-              Define Template Properties
+            <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">
+              Multi-Template Batch Generator
             </h3>
+            <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
+              Define multiple property sets and generate different batches of records. Each template generates its own set of documents with unique properties.
+            </p>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
-              <div>
-                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-2">Period</label>
-                <Input
-                  value={template.Period}
-                  onChange={(e) => setTemplate({ ...template, Period: e.target.value })}
-                  placeholder="e.g., SchoolYear"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-2">Action</label>
-                <Input
-                  value={template.Action}
-                  onChange={(e) => setTemplate({ ...template, Action: e.target.value })}
-                  placeholder="e.g., Warning Letter 1"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-2">Category</label>
-                <Input
-                  value={template.Category}
-                  onChange={(e) => setTemplate({ ...template, Category: e.target.value })}
-                  placeholder="e.g., Unexcused Absence"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-2">ChooseAction</label>
-                <Input
-                  value={template.ChooseAction}
-                  onChange={(e) => setTemplate({ ...template, ChooseAction: e.target.value })}
-                  placeholder="e.g., Warning Letter 1:WL1"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-2">UserType</label>
-                <Input
-                  value={template.UserType}
-                  onChange={(e) => setTemplate({ ...template, UserType: e.target.value })}
-                  placeholder="e.g., campus"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-2">HighlightColor</label>
-                <div className="flex gap-2">
-                  <input
-                    type="color"
-                    value={template.HighlightColor}
-                    onChange={(e) => setTemplate({ ...template, HighlightColor: e.target.value })}
-                    className="w-12 h-10 rounded border border-slate-300 dark:border-slate-600 cursor-pointer"
-                  />
+            <div className="space-y-6">
+              {/* Added Templates List */}
+              {templates.length > 0 && (
+                <div className="bg-white dark:bg-slate-800 rounded-lg p-4 border border-blue-200 dark:border-blue-900">
+                  <h4 className="font-semibold text-slate-900 dark:text-white mb-3">Templates to Generate</h4>
+                  <div className="space-y-2">
+                    {templates.map((template, idx) => (
+                      <div key={template.id} className="flex items-center justify-between bg-slate-50 dark:bg-slate-700 p-3 rounded border-l-4 border-blue-500">
+                        <div className="flex-1">
+                          <p className="font-medium text-slate-900 dark:text-white">
+                            Template {idx + 1}: {template.Action}
+                          </p>
+                          <p className="text-xs text-slate-600 dark:text-slate-400">
+                            {template.count} records | Occurrence: {template.OccuranceNumber} | Sequence: {template.TrauncySequence}
+                          </p>
+                        </div>
+                        <Button
+                          onClick={() => handleRemoveTemplate(template.id)}
+                          variant="destructive"
+                          size="sm"
+                        >
+                          Remove
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="mt-4 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-900 rounded">
+                    <p className="text-sm font-semibold text-green-700 dark:text-green-400">
+                      Total records to generate: {templates.reduce((sum, t) => sum + t.count, 0)}
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* Template Input Form */}
+              <div className="bg-white dark:bg-slate-800 rounded-lg p-4 border border-slate-200 dark:border-slate-700">
+                <h4 className="font-semibold text-slate-900 dark:text-white mb-4">Add New Template</h4>
+            
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-2">Period</label>
                   <Input
-                    value={template.HighlightColor}
-                    onChange={(e) => setTemplate({ ...template, HighlightColor: e.target.value })}
-                    placeholder="#fff297"
+                    value={newTemplate.Period}
+                    onChange={(e) => setNewTemplate({ ...newTemplate, Period: e.target.value })}
+                    placeholder="e.g., SchoolYear"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-2">Action</label>
+                  <Input
+                    value={newTemplate.Action}
+                    onChange={(e) => setNewTemplate({ ...newTemplate, Action: e.target.value })}
+                    placeholder="e.g., Warning Letter 1"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-2">Category</label>
+                  <Input
+                    value={newTemplate.Category}
+                    onChange={(e) => setNewTemplate({ ...newTemplate, Category: e.target.value })}
+                    placeholder="e.g., Unexcused Absence"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-2">ChooseAction</label>
+                  <Input
+                    value={newTemplate.ChooseAction}
+                    onChange={(e) => setNewTemplate({ ...newTemplate, ChooseAction: e.target.value })}
+                    placeholder="e.g., Warning Letter 1:WL1"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-2">UserType</label>
+                  <Input
+                    value={newTemplate.UserType}
+                    onChange={(e) => setNewTemplate({ ...newTemplate, UserType: e.target.value })}
+                    placeholder="e.g., campus"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-2">HighlightColor</label>
+                  <div className="flex gap-2">
+                    <input
+                      type="color"
+                      value={newTemplate.HighlightColor}
+                      onChange={(e) => setNewTemplate({ ...newTemplate, HighlightColor: e.target.value })}
+                      className="w-12 h-10 rounded border border-slate-300 dark:border-slate-600 cursor-pointer"
+                    />
+                    <Input
+                      value={newTemplate.HighlightColor}
+                      onChange={(e) => setNewTemplate({ ...newTemplate, HighlightColor: e.target.value })}
+                      placeholder="#fff297"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-4 mb-4">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-2">CampusType</label>
+                  <Input
+                    value={newTemplate.CampusType}
+                    onChange={(e) => setNewTemplate({ ...newTemplate, CampusType: e.target.value })}
+                    placeholder="e.g., 'Elementary School'; 'Middle School'; 'High School'"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-2">Description</label>
+                  <Input
+                    value={newTemplate.Description}
+                    onChange={(e) => setNewTemplate({ ...newTemplate, Description: e.target.value })}
+                    placeholder="e.g., Interventions to be proposed on 3 absences in school year"
+                    className="h-auto min-h-12 py-2"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-2">CategoryTitle</label>
+                  <Input
+                    value={newTemplate.CategoryTitle}
+                    onChange={(e) => setNewTemplate({ ...newTemplate, CategoryTitle: e.target.value })}
+                    placeholder="e.g., Unexcused Absence"
                   />
                 </div>
               </div>
-            </div>
 
-            <div className="grid grid-cols-1 gap-4 mb-6">
-              <div>
-                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-2">CampusType</label>
-                <Input
-                  value={template.CampusType}
-                  onChange={(e) => setTemplate({ ...template, CampusType: e.target.value })}
-                  placeholder="e.g., 'Elementary School'; 'Middle School'; 'High School'"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-2">Description</label>
-                <Input
-                  value={template.Description}
-                  onChange={(e) => setTemplate({ ...template, Description: e.target.value })}
-                  placeholder="e.g., Interventions to be proposed on 3 absences in school year"
-                  className="h-auto min-h-12 py-2"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-2">CategoryTitle</label>
-                <Input
-                  value={template.CategoryTitle}
-                  onChange={(e) => setTemplate({ ...template, CategoryTitle: e.target.value })}
-                  placeholder="e.g., Unexcused Absence"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 bg-white dark:bg-slate-800 p-4 rounded">
-              <div>
-                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-2">Number of Records to Generate</label>
-                <Input
-                  type="number"
-                  min="1"
-                  value={generateCount}
-                  onChange={(e) => setGenerateCount(Math.max(1, parseInt(e.target.value) || 1))}
-                  className="font-semibold text-lg"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-2">OccuranceNumber</label>
-                <Input
-                  type="number"
-                  value={template.OccuranceNumber}
-                  onChange={(e) => setTemplate({ ...template, OccuranceNumber: parseInt(e.target.value) || 1 })}
-                />
-                <div className="flex items-center gap-2 mt-2">
-                  <input
-                    type="checkbox"
-                    id="increment-occurrence"
-                    checked={autoIncrement.OccuranceNumber}
-                    onChange={(e) => setAutoIncrement({ ...autoIncrement, OccuranceNumber: e.target.checked })}
-                    className="w-4 h-4 rounded"
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-2">Count</label>
+                  <Input
+                    type="number"
+                    min="1"
+                    value={newTemplate.count}
+                    onChange={(e) => setNewTemplate({ ...newTemplate, count: Math.max(1, parseInt(e.target.value) || 1) })}
+                    className="font-semibold text-lg"
                   />
-                  <label htmlFor="increment-occurrence" className="text-xs text-slate-600 dark:text-slate-400">
-                    Auto-increment
-                  </label>
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-2">OccuranceNumber</label>
+                  <Input
+                    type="number"
+                    value={newTemplate.OccuranceNumber}
+                    onChange={(e) => setNewTemplate({ ...newTemplate, OccuranceNumber: parseInt(e.target.value) || 1 })}
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-2">TrauncySequence</label>
+                  <Input
+                    type="number"
+                    value={newTemplate.TrauncySequence}
+                    onChange={(e) => setNewTemplate({ ...newTemplate, TrauncySequence: parseInt(e.target.value) || 1 })}
+                  />
                 </div>
               </div>
-              <div>
-                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-2">TrauncySequence</label>
-                <Input
-                  type="number"
-                  value={template.TrauncySequence}
-                  onChange={(e) => setTemplate({ ...template, TrauncySequence: parseInt(e.target.value) || 1 })}
-                />
-                <div className="flex items-center gap-2 mt-2">
-                  <input
-                    type="checkbox"
-                    id="increment-sequence"
-                    checked={autoIncrement.TrauncySequence}
-                    onChange={(e) => setAutoIncrement({ ...autoIncrement, TrauncySequence: e.target.checked })}
-                    className="w-4 h-4 rounded"
-                  />
-                  <label htmlFor="increment-sequence" className="text-xs text-slate-600 dark:text-slate-400">
-                    Auto-increment
-                  </label>
-                </div>
+
+              <Button
+                onClick={handleAddTemplate}
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2"
+              >
+                Add This Template
+              </Button>
               </div>
             </div>
 
-            <Button
-              onClick={handleGenerateFromTemplate}
-              className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-3"
-            >
-              Generate {generateCount} Record{generateCount !== 1 ? 's' : ''} from Template
-            </Button>
+            {templates.length > 0 && (
+              <Button
+                onClick={handleGenerateFromTemplates}
+                className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-3"
+              >
+                Generate All {templates.reduce((sum, t) => sum + t.count, 0)} Records Now
+              </Button>
+            )}
           </div>
         </div>
       )}
