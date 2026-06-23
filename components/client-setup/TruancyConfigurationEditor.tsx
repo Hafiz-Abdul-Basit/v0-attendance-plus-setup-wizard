@@ -17,6 +17,7 @@ interface Record {
   OccuranceNumber: number
   TrauncySequence: number
   GracePeriod: number
+  Description: string
 }
 
 export function TruancyConfigurationEditor() {
@@ -41,14 +42,16 @@ export function TruancyConfigurationEditor() {
   })
 
   // Dropdown options
-  const periodOptions = ['SchoolYear', '6 months', 'nine fixed weeks']
-  const categoryOptions = ['UnExcused Absence', 'Periods Skipped']
+  const periodOptions = ['SchoolYear', '1st Semester', '2nd Semester', '6 months', 'nine fixed weeks']
+  const categoryOptions = ['UnExcused Absence', 'Chronic Absence', 'Excused Absence', 'Periods Skipped']
   const campusTypeOptions = [
     "'Elementary School'; 'Middle School'; 'High School'",
+    "'Elementary school'; 'Middle school'; 'High school'",
     "'Middle School'; 'High School'",
-    "'Elementary school';'Middle school';'High school'",
     "'Elementary School'; 'Middle School'",
-    "'Elementary school';'Middle school'",
+    "'Elementary school'; 'Middle school'",
+    "'Elementary school'",
+    "'Middle school'",
     "'High school'",
   ]
   const isConsecutiveOptions = [true, false]
@@ -65,6 +68,7 @@ export function TruancyConfigurationEditor() {
       OccuranceNumber: baseProperties.OccuranceNumber,
       TrauncySequence: baseProperties.TrauncySequence,
       GracePeriod: baseProperties.GracePeriod,
+      Description: baseProperties.Description,
     }
     setRecords([...records, newRecord])
     toast({
@@ -87,6 +91,15 @@ export function TruancyConfigurationEditor() {
         r.id === id ? { ...r, [field]: value } : r
       )
     )
+  }
+
+  const handleUpdateBaseProperty = (field: string, value: any) => {
+    const updated = { ...baseProperties, [field]: value }
+    // Auto-sync CategoryTitle with Category
+    if (field === 'Category') {
+      updated.CategoryTitle = value
+    }
+    setBaseProperties(updated)
   }
 
   const handleExportJSON = () => {
@@ -133,7 +146,7 @@ export function TruancyConfigurationEditor() {
   }
 
   return (
-    <div className="p-8 max-w-7xl space-y-8">
+    <div className="p-8 max-w-7xl mx-auto space-y-8">
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">
@@ -201,7 +214,7 @@ export function TruancyConfigurationEditor() {
                 <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-2">Category</label>
                 <select
                   value={baseProperties.Category}
-                  onChange={(e) => setBaseProperties({ ...baseProperties, Category: e.target.value })}
+                  onChange={(e) => handleUpdateBaseProperty('Category', e.target.value)}
                   className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm"
                 >
                   {categoryOptions.map(opt => (
@@ -224,18 +237,14 @@ export function TruancyConfigurationEditor() {
                 </select>
               </div>
 
-              {/* CategoryTitle - Dropdown */}
+              {/* CategoryTitle - Auto-synced with Category */}
               <div>
-                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-2">CategoryTitle</label>
-                <select
+                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-2">CategoryTitle (Auto-synced)</label>
+                <Input
                   value={baseProperties.CategoryTitle}
-                  onChange={(e) => setBaseProperties({ ...baseProperties, CategoryTitle: e.target.value })}
-                  className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm"
-                >
-                  {categoryOptions.map(opt => (
-                    <option key={opt} value={opt}>{opt}</option>
-                  ))}
-                </select>
+                  disabled
+                  className="opacity-75"
+                />
               </div>
 
               {/* IsConsecutive - Dropdown */}
@@ -458,6 +467,15 @@ export function TruancyConfigurationEditor() {
                             type="number"
                             value={records.find(r => r.id === editingId)?.GracePeriod as number}
                             onChange={(e) => handleUpdateRecord(editingId, 'GracePeriod', parseInt(e.target.value) || 0)}
+                          />
+                        </div>
+                        <div className="lg:col-span-3">
+                          <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-2">Description</label>
+                          <Input
+                            value={records.find(r => r.id === editingId)?.Description as string}
+                            onChange={(e) => handleUpdateRecord(editingId, 'Description', e.target.value)}
+                            placeholder="Edit description for this record"
+                            className="h-auto min-h-12 py-2"
                           />
                         </div>
                       </div>
