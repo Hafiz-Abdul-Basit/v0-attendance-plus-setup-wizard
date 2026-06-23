@@ -3,114 +3,110 @@
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Download, Eye, Edit2, Plus, Trash2 } from 'lucide-react'
-import { toast } from 'sonner'
+import { Download, Eye, Copy, Trash2, Edit2 } from 'lucide-react'
+import { useToast } from '@/hooks/use-toast'
 
-interface TruancyRecord {
-  _id: { $oid: string }
-  Title: string
-  ClientID: number
+interface Record {
+  id: string
   Period: string
   Action: string
   Category: string
   CampusType: string
-  Role: string
   ChooseAction: string
   IsConsecutive: boolean
-  TotalAbsences: string
-  HighlightColor: string
-  UserType: string
-  Description: string
-  CategoryTitle: string
-  FilterCriteriaTitle: string
-  FilterCriteria: string
-  FilterCriteriaForPeriodTitle: string
-  FilterCriteriaForPeriod: string
-  DependentInterventionsFilterCriteriaTitle: string
-  DependentInterventionsFilterCriteria: string
-  SortOrder: string
-  IsEnable: boolean
   OccuranceNumber: number
   TrauncySequence: number
   GracePeriod: number
 }
 
-interface RecordVariation {
-  Action: string
-  ChooseAction: string
-  Period: string
-  OccuranceNumber: number
-  TrauncySequence: number
-  HighlightColor?: string
-  CampusType?: string
-  GracePeriod?: number
-}
-
 export function TruancyConfigurationEditor() {
-  const [mode, setMode] = useState<'base' | 'builder'>('base')
+  const { toast } = useToast()
+  const [records, setRecords] = useState<Record[]>([])
+  const [previewMode, setPreviewMode] = useState(false)
+  const [editingId, setEditingId] = useState<string | null>(null)
+
+  // Base Properties - Set Once
   const [baseProperties, setBaseProperties] = useState({
-    Category: 'UnExcused Absence',
-    CategoryTitle: 'UnExcused Absence',
-    CampusType: "'Elementary School'; 'Middle School'; 'High School'",
-    HighlightColor: '#b7effb',
-    UserType: 'campus',
-    IsConsecutive: false,
-    GracePeriod: 3,
-    Description: '',
-    Role: '',
-    TotalAbsences: '',
-  })
-
-  const [variations, setVariations] = useState<RecordVariation[]>([
-    {
-      Action: 'Truancy Warning Letter 1',
-      ChooseAction: 'Truancy Warning Letter 1:WL1',
-      Period: 'SchoolYear',
-      OccuranceNumber: 1,
-      TrauncySequence: 3,
-    },
-    {
-      Action: 'Parent Conference',
-      ChooseAction: 'Parent Conference:PTM',
-      Period: 'SchoolYear',
-      OccuranceNumber: 2,
-      TrauncySequence: 4,
-    },
-  ])
-
-  const [newVariation, setNewVariation] = useState<RecordVariation>({
-    Action: '',
-    ChooseAction: '',
     Period: 'SchoolYear',
+    Action: 'Truancy Warning Letter 1',
+    Category: 'UnExcused Absence',
+    CampusType: "'Elementary School'; 'Middle School'; 'High School'",
+    ChooseAction: 'Truancy Warning Letter 1:WL1',
+    IsConsecutive: false,
+    Description: 'Interventions to be proposed on 3 absences in school year',
+    CategoryTitle: 'UnExcused Absence',
     OccuranceNumber: 1,
     TrauncySequence: 3,
+    GracePeriod: 3,
   })
 
-  const [previewMode, setPreviewMode] = useState(false)
-  const [data, setData] = useState<TruancyRecord[]>([])
+  // Dropdown options
+  const periodOptions = ['SchoolYear', '6 months', 'nine fixed weeks']
+  const categoryOptions = ['UnExcused Absence', 'Periods Skipped']
+  const campusTypeOptions = [
+    "'Elementary School'; 'Middle School'; 'High School'",
+    "'Middle School'; 'High School'",
+    "'Elementary school';'Middle school';'High school'",
+    "'Elementary School'; 'Middle School'",
+    "'Elementary school';'Middle school'",
+    "'High school'",
+  ]
+  const isConsecutiveOptions = [true, false]
 
-  const generateRecords = () => {
-    if (variations.length === 0) {
-      toast.error('Add at least one variation')
+  const handleCreateCopy = () => {
+    const newRecord: Record = {
+      id: `record_${Date.now()}`,
+      Period: baseProperties.Period,
+      Action: baseProperties.Action,
+      Category: baseProperties.Category,
+      CampusType: baseProperties.CampusType,
+      ChooseAction: baseProperties.ChooseAction,
+      IsConsecutive: baseProperties.IsConsecutive,
+      OccuranceNumber: baseProperties.OccuranceNumber,
+      TrauncySequence: baseProperties.TrauncySequence,
+      GracePeriod: baseProperties.GracePeriod,
+    }
+    setRecords([...records, newRecord])
+    toast({
+      title: 'Success',
+      description: 'New record created with base properties',
+    })
+  }
+
+  const handleDeleteRecord = (id: string) => {
+    setRecords(records.filter(r => r.id !== id))
+    toast({
+      title: 'Success',
+      description: 'Record deleted',
+    })
+  }
+
+  const handleUpdateRecord = (id: string, field: keyof Record, value: any) => {
+    setRecords(
+      records.map(r =>
+        r.id === id ? { ...r, [field]: value } : r
+      )
+    )
+  }
+
+  const handleExportJSON = () => {
+    if (records.length === 0) {
+      toast({
+        title: 'Error',
+        description: 'No records to export',
+        variant: 'destructive',
+      })
       return
     }
 
-    const generated: TruancyRecord[] = variations.map((variation, idx) => ({
-      _id: { $oid: `generated_${Date.now()}_${idx}` },
+    const exportData = records.map(({ id, ...rest }) => ({
+      _id: { $oid: id.replace('record_', '') },
       Title: '',
       ClientID: 1,
-      Period: variation.Period,
-      Action: variation.Action,
-      Category: baseProperties.Category,
-      CampusType: variation.CampusType || baseProperties.CampusType,
-      Role: baseProperties.Role,
-      ChooseAction: variation.ChooseAction,
-      IsConsecutive: baseProperties.IsConsecutive,
-      TotalAbsences: baseProperties.TotalAbsences,
-      HighlightColor: variation.HighlightColor || baseProperties.HighlightColor,
-      UserType: baseProperties.UserType,
-      Description: baseProperties.Description,
-      CategoryTitle: baseProperties.CategoryTitle,
+      Role: '',
+      TotalAbsences: '',
+      HighlightColor: '#b7effb',
+      UserType: 'campus',
       FilterCriteriaTitle: '',
       FilterCriteria: '',
       FilterCriteriaForPeriodTitle: '',
@@ -119,295 +115,396 @@ export function TruancyConfigurationEditor() {
       DependentInterventionsFilterCriteria: '',
       SortOrder: '',
       IsEnable: true,
-      OccuranceNumber: variation.OccuranceNumber,
-      TrauncySequence: variation.TrauncySequence,
-      GracePeriod: variation.GracePeriod !== undefined ? variation.GracePeriod : baseProperties.GracePeriod,
+      ...rest,
     }))
 
-    setData(generated)
-    setMode('base')
-    toast.success(`Generated ${generated.length} records`)
-  }
-
-  const addVariation = () => {
-    if (!newVariation.Action || !newVariation.ChooseAction) {
-      toast.error('Action and ChooseAction are required')
-      return
-    }
-    setVariations([...variations, { ...newVariation }])
-    setNewVariation({
-      Action: '',
-      ChooseAction: '',
-      Period: 'SchoolYear',
-      OccuranceNumber: 1,
-      TrauncySequence: 3,
+    const dataStr = JSON.stringify(exportData, null, 2)
+    const blob = new Blob([dataStr], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `truancy-configuration-${new Date().toISOString().split('T')[0]}.json`
+    link.click()
+    URL.revokeObjectURL(url)
+    toast({
+      title: 'Success',
+      description: `Exported ${records.length} records`,
     })
-    toast.success('Variation added')
-  }
-
-  const removeVariation = (idx: number) => {
-    setVariations(variations.filter((_, i) => i !== idx))
-    toast.success('Variation removed')
-  }
-
-  const exportJSON = () => {
-    if (data.length === 0) {
-      toast.error('Generate records first')
-      return
-    }
-    const json = JSON.stringify(data, null, 2)
-    const element = document.createElement('a')
-    element.setAttribute('href', 'data:text/json;charset=utf-8,' + encodeURIComponent(json))
-    element.setAttribute('download', `truancy-configuration-${new Date().toISOString().split('T')[0]}.json`)
-    element.style.display = 'none'
-    document.body.appendChild(element)
-    element.click()
-    document.body.removeChild(element)
-    toast.success('JSON exported')
   }
 
   return (
-    <div className="w-full h-full p-8 max-w-7xl mx-auto space-y-8 bg-white dark:bg-slate-950">
+    <div className="p-8 max-w-7xl space-y-8">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-3xl font-bold text-slate-900 dark:text-white mb-2">
-            Truancy Configuration Builder
+          <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">
+            Truancy Configuration Manager
           </h2>
           <p className="text-sm text-slate-600 dark:text-slate-400">
-            Define base properties once, then add unique variations per record
+            {previewMode
+              ? `Preview ${records.length} record${records.length !== 1 ? 's' : ''}`
+              : 'Set base properties once, create copies, modify specific fields per record'
+            }
           </p>
         </div>
-      </div>
-
-      {/* Base Properties Section */}
-      <div className="bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20 border-2 border-blue-200 dark:border-blue-800 rounded-lg p-6">
-        <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">Base Properties (Applied to All Records)</h3>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          <div>
-            <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-2">Category</label>
-            <Input
-              value={baseProperties.Category}
-              onChange={(e) => setBaseProperties({ ...baseProperties, Category: e.target.value })}
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-2">CategoryTitle</label>
-            <Input
-              value={baseProperties.CategoryTitle}
-              onChange={(e) => setBaseProperties({ ...baseProperties, CategoryTitle: e.target.value })}
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-2">UserType</label>
-            <Input
-              value={baseProperties.UserType}
-              onChange={(e) => setBaseProperties({ ...baseProperties, UserType: e.target.value })}
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-2">CampusType</label>
-            <Input
-              value={baseProperties.CampusType}
-              onChange={(e) => setBaseProperties({ ...baseProperties, CampusType: e.target.value })}
-              placeholder="e.g., 'Elementary School'; 'Middle School'; 'High School'"
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-2">Default HighlightColor</label>
-            <div className="flex gap-2">
-              <input
-                type="color"
-                value={baseProperties.HighlightColor}
-                onChange={(e) => setBaseProperties({ ...baseProperties, HighlightColor: e.target.value })}
-                className="w-12 h-10 rounded border border-slate-300 dark:border-slate-600 cursor-pointer"
-              />
-              <Input
-                value={baseProperties.HighlightColor}
-                onChange={(e) => setBaseProperties({ ...baseProperties, HighlightColor: e.target.value })}
-              />
-            </div>
-          </div>
-          <div>
-            <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-2">Default GracePeriod</label>
-            <Input
-              type="number"
-              value={baseProperties.GracePeriod}
-              onChange={(e) => setBaseProperties({ ...baseProperties, GracePeriod: parseInt(e.target.value) || 0 })}
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-2">Description</label>
-            <Input
-              value={baseProperties.Description}
-              onChange={(e) => setBaseProperties({ ...baseProperties, Description: e.target.value })}
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* Variations Section */}
-      <div className="space-y-4">
-        <h3 className="text-lg font-semibold text-slate-900 dark:text-white">Record Variations</h3>
-        
-        {/* Current Variations */}
-        {variations.length > 0 && (
-          <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700">
-                <tr>
-                  <th className="px-4 py-3 text-left font-semibold text-slate-900 dark:text-white">Action</th>
-                  <th className="px-4 py-3 text-left font-semibold text-slate-900 dark:text-white">ChooseAction</th>
-                  <th className="px-4 py-3 text-left font-semibold text-slate-900 dark:text-white">Period</th>
-                  <th className="px-4 py-3 text-center font-semibold text-slate-900 dark:text-white">Occurrence</th>
-                  <th className="px-4 py-3 text-center font-semibold text-slate-900 dark:text-white">Sequence</th>
-                  <th className="px-4 py-3 text-left font-semibold text-slate-900 dark:text-white">Color</th>
-                  <th className="px-4 py-3 text-center font-semibold text-slate-900 dark:text-white">Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {variations.map((variation, idx) => (
-                  <tr key={idx} className="border-b border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/50">
-                    <td className="px-4 py-3 text-slate-900 dark:text-white">{variation.Action}</td>
-                    <td className="px-4 py-3 text-slate-900 dark:text-white font-mono text-xs">{variation.ChooseAction}</td>
-                    <td className="px-4 py-3 text-slate-600 dark:text-slate-400">{variation.Period}</td>
-                    <td className="px-4 py-3 text-center text-slate-900 dark:text-white font-semibold">{variation.OccuranceNumber}</td>
-                    <td className="px-4 py-3 text-center text-slate-900 dark:text-white font-semibold">{variation.TrauncySequence}</td>
-                    <td className="px-4 py-3">
-                      <div
-                        className="w-6 h-6 rounded border border-slate-300 dark:border-slate-600"
-                        style={{ backgroundColor: variation.HighlightColor || baseProperties.HighlightColor }}
-                        title={variation.HighlightColor || baseProperties.HighlightColor}
-                      />
-                    </td>
-                    <td className="px-4 py-3 text-center">
-                      <Button
-                        size="sm"
-                        variant="destructive"
-                        onClick={() => removeVariation(idx)}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+        {records.length > 0 && (
+          <Button
+            onClick={() => setPreviewMode(!previewMode)}
+            variant={previewMode ? 'default' : 'outline'}
+            className={previewMode ? 'bg-blue-600 hover:bg-blue-700 text-white' : ''}
+          >
+            <Eye className="w-4 h-4 mr-2" />
+            {previewMode ? 'Back to Editor' : 'Preview JSON'}
+          </Button>
         )}
+      </div>
 
-        {/* Add New Variation */}
-        <div className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-4 space-y-4">
-          <h4 className="font-semibold text-slate-900 dark:text-white">Add New Variation</h4>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      {!previewMode ? (
+        <>
+          {/* Base Properties Section */}
+          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border-2 border-blue-200 dark:border-blue-800 rounded-lg p-6 space-y-6">
             <div>
-              <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-2">Action*</label>
-              <Input
-                value={newVariation.Action}
-                onChange={(e) => setNewVariation({ ...newVariation, Action: e.target.value })}
-                placeholder="e.g., Truancy Warning Letter 1"
-              />
+              <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">
+                Base Properties (Applied to All Copies)
+              </h3>
+              <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
+                Set these values once. They will be applied to all new copies you create.
+              </p>
             </div>
-            <div>
-              <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-2">ChooseAction*</label>
-              <Input
-                value={newVariation.ChooseAction}
-                onChange={(e) => setNewVariation({ ...newVariation, ChooseAction: e.target.value })}
-                placeholder="e.g., Truancy Warning Letter 1:WL1"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-2">Period</label>
-              <Input
-                value={newVariation.Period}
-                onChange={(e) => setNewVariation({ ...newVariation, Period: e.target.value })}
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-2">Occurrence Number</label>
-              <Input
-                type="number"
-                value={newVariation.OccuranceNumber}
-                onChange={(e) => setNewVariation({ ...newVariation, OccuranceNumber: parseInt(e.target.value) || 1 })}
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-2">Sequence</label>
-              <Input
-                type="number"
-                value={newVariation.TrauncySequence}
-                onChange={(e) => setNewVariation({ ...newVariation, TrauncySequence: parseInt(e.target.value) || 1 })}
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-2">Color (Optional)</label>
-              <div className="flex gap-2">
-                <input
-                  type="color"
-                  value={newVariation.HighlightColor || baseProperties.HighlightColor}
-                  onChange={(e) => setNewVariation({ ...newVariation, HighlightColor: e.target.value })}
-                  className="w-12 h-10 rounded border border-slate-300 dark:border-slate-600 cursor-pointer"
-                />
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {/* Period - Dropdown */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-2">Period</label>
+                <select
+                  value={baseProperties.Period}
+                  onChange={(e) => setBaseProperties({ ...baseProperties, Period: e.target.value })}
+                  className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm"
+                >
+                  {periodOptions.map(opt => (
+                    <option key={opt} value={opt}>{opt}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Action - Textbox */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-2">Action</label>
                 <Input
-                  value={newVariation.HighlightColor || baseProperties.HighlightColor}
-                  onChange={(e) => setNewVariation({ ...newVariation, HighlightColor: e.target.value })}
-                  className="flex-1"
+                  value={baseProperties.Action}
+                  onChange={(e) => setBaseProperties({ ...baseProperties, Action: e.target.value })}
+                  placeholder="e.g., Truancy Warning Letter 1"
+                />
+              </div>
+
+              {/* Category - Dropdown */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-2">Category</label>
+                <select
+                  value={baseProperties.Category}
+                  onChange={(e) => setBaseProperties({ ...baseProperties, Category: e.target.value })}
+                  className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm"
+                >
+                  {categoryOptions.map(opt => (
+                    <option key={opt} value={opt}>{opt}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* CampusType - Dropdown */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-2">CampusType</label>
+                <select
+                  value={baseProperties.CampusType}
+                  onChange={(e) => setBaseProperties({ ...baseProperties, CampusType: e.target.value })}
+                  className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm"
+                >
+                  {campusTypeOptions.map(opt => (
+                    <option key={opt} value={opt}>{opt}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* CategoryTitle - Dropdown */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-2">CategoryTitle</label>
+                <select
+                  value={baseProperties.CategoryTitle}
+                  onChange={(e) => setBaseProperties({ ...baseProperties, CategoryTitle: e.target.value })}
+                  className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm"
+                >
+                  {categoryOptions.map(opt => (
+                    <option key={opt} value={opt}>{opt}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* IsConsecutive - Dropdown */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-2">IsConsecutive</label>
+                <select
+                  value={baseProperties.IsConsecutive ? 'true' : 'false'}
+                  onChange={(e) => setBaseProperties({ ...baseProperties, IsConsecutive: e.target.value === 'true' })}
+                  className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm"
+                >
+                  <option value="false">False</option>
+                  <option value="true">True</option>
+                </select>
+              </div>
+
+              {/* OccuranceNumber - Integer */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-2">OccuranceNumber</label>
+                <Input
+                  type="number"
+                  value={baseProperties.OccuranceNumber}
+                  onChange={(e) => setBaseProperties({ ...baseProperties, OccuranceNumber: parseInt(e.target.value) || 1 })}
+                />
+              </div>
+
+              {/* TrauncySequence - Integer */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-2">TrauncySequence</label>
+                <Input
+                  type="number"
+                  value={baseProperties.TrauncySequence}
+                  onChange={(e) => setBaseProperties({ ...baseProperties, TrauncySequence: parseInt(e.target.value) || 3 })}
+                />
+              </div>
+
+              {/* GracePeriod - Integer */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-2">GracePeriod</label>
+                <Input
+                  type="number"
+                  value={baseProperties.GracePeriod}
+                  onChange={(e) => setBaseProperties({ ...baseProperties, GracePeriod: parseInt(e.target.value) || 3 })}
+                />
+              </div>
+
+              {/* ChooseAction - Textbox */}
+              <div className="lg:col-span-2">
+                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-2">ChooseAction</label>
+                <Input
+                  value={baseProperties.ChooseAction}
+                  onChange={(e) => setBaseProperties({ ...baseProperties, ChooseAction: e.target.value })}
+                  placeholder="e.g., Truancy Warning Letter 1:WL1"
+                />
+              </div>
+
+              {/* Description - Textbox */}
+              <div className="lg:col-span-3">
+                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-2">Description</label>
+                <Input
+                  value={baseProperties.Description}
+                  onChange={(e) => setBaseProperties({ ...baseProperties, Description: e.target.value })}
+                  placeholder="e.g., Interventions to be proposed on 3 absences in school year"
+                  className="h-auto min-h-12 py-2"
                 />
               </div>
             </div>
+
+            <Button
+              onClick={handleCreateCopy}
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2"
+            >
+              <Copy className="w-4 h-4 mr-2" />
+              Create Copy with Base Properties
+            </Button>
           </div>
-          <Button
-            onClick={addVariation}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Add Variation
-          </Button>
-        </div>
-      </div>
 
-      {/* Action Buttons */}
-      <div className="flex gap-3 flex-wrap">
-        <Button
-          onClick={generateRecords}
-          className="bg-green-600 hover:bg-green-700 text-white font-semibold px-6"
-        >
-          Generate {variations.length} Records
-        </Button>
-        {data.length > 0 && (
-          <>
-            <Button
-              onClick={() => setPreviewMode(!previewMode)}
-              variant="outline"
-              className="gap-2"
-            >
-              <Eye className="w-4 h-4" />
-              {previewMode ? 'Hide' : 'Preview'} JSON
-            </Button>
-            <Button
-              onClick={exportJSON}
-              className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold gap-2"
-            >
-              <Download className="w-4 h-4" />
-              Export JSON
-            </Button>
-          </>
-        )}
-      </div>
+          {/* Records Table */}
+          {records.length > 0 && (
+            <div className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
+              <div className="p-4 border-b border-slate-200 dark:border-slate-700">
+                <h3 className="font-semibold text-slate-900 dark:text-white">
+                  Created Records ({records.length})
+                </h3>
+              </div>
 
-      {/* JSON Preview */}
-      {previewMode && data.length > 0 && (
-        <div className="bg-slate-900 text-slate-100 rounded-lg p-4 font-mono text-xs overflow-x-auto max-h-96 overflow-y-auto">
-          <pre>{JSON.stringify(data, null, 2)}</pre>
-        </div>
-      )}
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead className="bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700">
+                    <tr>
+                      <th className="px-4 py-3 text-left font-semibold text-slate-700 dark:text-slate-300">#</th>
+                      <th className="px-4 py-3 text-left font-semibold text-slate-700 dark:text-slate-300">Action</th>
+                      <th className="px-4 py-3 text-left font-semibold text-slate-700 dark:text-slate-300">Category</th>
+                      <th className="px-4 py-3 text-left font-semibold text-slate-700 dark:text-slate-300">Period</th>
+                      <th className="px-4 py-3 text-center font-semibold text-slate-700 dark:text-slate-300">Occ</th>
+                      <th className="px-4 py-3 text-center font-semibold text-slate-700 dark:text-slate-300">Seq</th>
+                      <th className="px-4 py-3 text-center font-semibold text-slate-700 dark:text-slate-300">Grace</th>
+                      <th className="px-4 py-3 text-center font-semibold text-slate-700 dark:text-slate-300">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {records.map((record, idx) => (
+                      <tr key={record.id} className="border-b border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-colors">
+                        <td className="px-4 py-3 text-slate-600 dark:text-slate-400 font-medium">{idx + 1}</td>
+                        <td className="px-4 py-3 text-slate-900 dark:text-white font-medium text-sm">{record.Action}</td>
+                        <td className="px-4 py-3 text-slate-600 dark:text-slate-400 text-sm">{record.Category}</td>
+                        <td className="px-4 py-3 text-slate-600 dark:text-slate-400 text-sm">{record.Period}</td>
+                        <td className="px-4 py-3 text-center font-semibold text-slate-900 dark:text-white">{record.OccuranceNumber}</td>
+                        <td className="px-4 py-3 text-center font-semibold text-slate-900 dark:text-white">{record.TrauncySequence}</td>
+                        <td className="px-4 py-3 text-center font-semibold text-slate-900 dark:text-white">{record.GracePeriod}</td>
+                        <td className="px-4 py-3 text-center flex gap-1 justify-center">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => setEditingId(editingId === record.id ? null : record.id)}
+                            className="text-xs"
+                          >
+                            {editingId === record.id ? 'Done' : <Edit2 className="w-3 h-3" />}
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            onClick={() => handleDeleteRecord(record.id)}
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </Button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
 
-      {/* Records Summary */}
-      {data.length > 0 && (
-        <div className="bg-green-50 dark:bg-green-900/20 border-2 border-green-200 dark:border-green-800 rounded-lg p-4">
-          <p className="text-sm font-semibold text-green-700 dark:text-green-400">
-            ✓ Generated {data.length} records successfully. Ready to export!
-          </p>
+              {/* Edit Row */}
+              {editingId && (
+                <div className="bg-slate-50 dark:bg-slate-900 p-6 border-t border-slate-200 dark:border-slate-700">
+                  {records.find(r => r.id === editingId) && (
+                    <div>
+                      <h4 className="font-semibold text-slate-900 dark:text-white mb-4">Edit Record</h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <div>
+                          <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-2">Period</label>
+                          <select
+                            value={records.find(r => r.id === editingId)?.Period as string}
+                            onChange={(e) => handleUpdateRecord(editingId, 'Period', e.target.value)}
+                            className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm"
+                          >
+                            {periodOptions.map(opt => (
+                              <option key={opt} value={opt}>{opt}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-2">Action</label>
+                          <Input
+                            value={records.find(r => r.id === editingId)?.Action as string}
+                            onChange={(e) => handleUpdateRecord(editingId, 'Action', e.target.value)}
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-2">Category</label>
+                          <select
+                            value={records.find(r => r.id === editingId)?.Category as string}
+                            onChange={(e) => handleUpdateRecord(editingId, 'Category', e.target.value)}
+                            className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm"
+                          >
+                            {categoryOptions.map(opt => (
+                              <option key={opt} value={opt}>{opt}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-2">CampusType</label>
+                          <select
+                            value={records.find(r => r.id === editingId)?.CampusType as string}
+                            onChange={(e) => handleUpdateRecord(editingId, 'CampusType', e.target.value)}
+                            className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm"
+                          >
+                            {campusTypeOptions.map(opt => (
+                              <option key={opt} value={opt}>{opt}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-2">ChooseAction</label>
+                          <Input
+                            value={records.find(r => r.id === editingId)?.ChooseAction as string}
+                            onChange={(e) => handleUpdateRecord(editingId, 'ChooseAction', e.target.value)}
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-2">IsConsecutive</label>
+                          <select
+                            value={records.find(r => r.id === editingId)?.IsConsecutive ? 'true' : 'false'}
+                            onChange={(e) => handleUpdateRecord(editingId, 'IsConsecutive', e.target.value === 'true')}
+                            className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm"
+                          >
+                            <option value="false">False</option>
+                            <option value="true">True</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-2">OccuranceNumber</label>
+                          <Input
+                            type="number"
+                            value={records.find(r => r.id === editingId)?.OccuranceNumber as number}
+                            onChange={(e) => handleUpdateRecord(editingId, 'OccuranceNumber', parseInt(e.target.value) || 1)}
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-2">TrauncySequence</label>
+                          <Input
+                            type="number"
+                            value={records.find(r => r.id === editingId)?.TrauncySequence as number}
+                            onChange={(e) => handleUpdateRecord(editingId, 'TrauncySequence', parseInt(e.target.value) || 1)}
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-2">GracePeriod</label>
+                          <Input
+                            type="number"
+                            value={records.find(r => r.id === editingId)?.GracePeriod as number}
+                            onChange={(e) => handleUpdateRecord(editingId, 'GracePeriod', parseInt(e.target.value) || 0)}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <div className="p-4 border-t border-slate-200 dark:border-slate-700 flex gap-3">
+                <Button
+                  onClick={handleExportJSON}
+                  className="flex-1 bg-green-600 hover:bg-green-700 text-white font-semibold"
+                >
+                  <Download className="w-4 h-4 mr-2" />
+                  Export {records.length} Records as JSON
+                </Button>
+              </div>
+            </div>
+          )}
+        </>
+      ) : (
+        // JSON Preview
+        <div className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-6">
+          <pre className="bg-slate-50 dark:bg-slate-900 p-4 rounded overflow-auto max-h-96 text-xs text-slate-900 dark:text-slate-100 font-mono">
+            {JSON.stringify(
+              records.map(({ id, ...rest }) => ({
+                _id: { $oid: id.replace('record_', '') },
+                Title: '',
+                ClientID: 1,
+                Role: '',
+                TotalAbsences: '',
+                HighlightColor: '#b7effb',
+                UserType: 'campus',
+                FilterCriteriaTitle: '',
+                FilterCriteria: '',
+                FilterCriteriaForPeriodTitle: '',
+                FilterCriteriaForPeriod: '',
+                DependentInterventionsFilterCriteriaTitle: '',
+                DependentInterventionsFilterCriteria: '',
+                SortOrder: '',
+                IsEnable: true,
+                ...rest,
+              })),
+              null,
+              2
+            )}
+          </pre>
         </div>
       )}
     </div>
