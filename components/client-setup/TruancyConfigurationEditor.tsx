@@ -112,7 +112,7 @@ export function TruancyConfigurationEditor() {
       return
     }
 
-    const exportData = records.map(({ id, ...rest }) => {
+    const exportData = records.map(({ id, Description, ...rest }) => {
       const record = records.find(r => r.id === id)
       return {
         _id: { $oid: id.replace('record_', '') },
@@ -130,8 +130,17 @@ export function TruancyConfigurationEditor() {
         DependentInterventionsFilterCriteria: '',
         SortOrder: '',
         IsEnable: true,
+        Period: record?.Period,
+        Action: record?.Action,
+        Category: record?.Category,
+        CampusType: record?.CampusType,
+        ChooseAction: record?.ChooseAction,
+        IsConsecutive: record?.IsConsecutive,
+        OccuranceNumber: record?.OccuranceNumber,
+        TrauncySequence: record?.TrauncySequence,
+        GracePeriod: record?.GracePeriod,
+        Description: Description,
         CategoryTitle: record?.Category,
-        ...rest,
       }
     })
 

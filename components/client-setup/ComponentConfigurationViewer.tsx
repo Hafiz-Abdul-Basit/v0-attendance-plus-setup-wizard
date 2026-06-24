@@ -3,116 +3,58 @@
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Download, Eye, Copy, Trash2, Edit2, X } from 'lucide-react'
+import { Download, Eye, Copy, Trash2, Upload } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 
-interface ComponentConfig {
-  _id: { $oid: string }
-  Title: string
-  ClientID: number
-  WebPartID: string
-  ActionType: string
-  DisplayAcronym: string
-  DisplayInStudentProfile: number
-  MoreLink: string
-  ActionTypeFilterCustom: string
-  SequenceNo: number
-  IsDisplayedInActionBoardMenu: number
-  ActionBoardMenuType: string
-  LinkTitleNoMenu: string
-  LinkTitle: string
-  InterventionType: string
-  Claims: string[]
-  ShowRedYellowCountAsZero?: number
-  Button?: Record<string, { Title: string; Enabled: boolean }>
-  EmailContent?: Record<string, any>
-  Abbreviation: string
-  SubActionTypes: Record<string, string>[]
+interface ComponentRecord {
   [key: string]: any
 }
 
-const defaultComponent: ComponentConfig = {
-  _id: { $oid: '' },
-  Title: '',
-  ClientID: 1,
-  WebPartID: '',
-  ActionType: '',
-  DisplayAcronym: '',
-  DisplayInStudentProfile: 0,
-  MoreLink: '',
-  ActionTypeFilterCustom: '',
-  SequenceNo: 1,
-  IsDisplayedInActionBoardMenu: 1,
-  ActionBoardMenuType: 'Unexcused',
-  LinkTitleNoMenu: '',
-  LinkTitle: '',
-  InterventionType: '',
-  Claims: [],
-  Abbreviation: 'LISDTX',
-  SubActionTypes: [],
-}
-
-const sampleComponents: ComponentConfig[] = [
-  {
-    _id: { $oid: '6515fa7ba945b7ba77f6cd5d' },
-    Title: 'Warning Notice (Required)',
-    ClientID: 1,
-    WebPartID: 'ABWPWL',
-    ActionType: 'WL',
-    DisplayAcronym: 'WL',
-    DisplayInStudentProfile: 0,
-    MoreLink: 'actionboard/intervention-letter/WL1/Unexcused',
-    ActionTypeFilterCustom: "[ACTION TYPE] IN ('WL1','WL2')",
-    SequenceNo: 1,
-    IsDisplayedInActionBoardMenu: 1,
-    ActionBoardMenuType: 'Unexcused',
-    LinkTitleNoMenu: 'Warning Notice',
-    LinkTitle: 'Warning Notice',
-    InterventionType: 'letters',
-    Claims: [
-      'CampusOfficer',
-      'AttendanceOfficer',
-      'CampusAttendanceOfficer',
-      'assistantprincipal',
-      'SPUser',
-    ],
-    ShowRedYellowCountAsZero: 0,
-    Button: {
-      Print: { Title: 'Print', Enabled: true },
-      Sent: { Title: 'Sent', Enabled: true },
-      Email: { Title: 'Email', Enabled: false },
-    },
-    EmailContent: { SecureDocEnabled: true },
-    Abbreviation: 'LISDTX',
-    SubActionTypes: [
-      { WL1: 'Truancy Warning Letter 1' },
-      { WL2: 'Truancy Warning Letter 2' },
-    ],
-  },
-]
-
 export function ComponentConfigurationViewer() {
   const { toast } = useToast()
-  const [components, setComponents] = useState<ComponentConfig[]>(sampleComponents)
-  const [editingId, setEditingId] = useState<string | null>(null)
+  const [components, setComponents] = useState<ComponentRecord[]>([])
   const [previewMode, setPreviewMode] = useState(false)
   const [expandedId, setExpandedId] = useState<string | null>(null)
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [jsonInput, setJsonInput] = useState('')
+  const [showUpload, setShowUpload] = useState(true)
 
-  const handleDuplicate = (component: ComponentConfig) => {
-    const newId = `generated_${Date.now()}`
-    const newComponent = {
-      ...JSON.parse(JSON.stringify(component)),
-      _id: { $oid: newId },
+  const handleLoadJSON = () => {
+    try {
+      const parsed = JSON.parse(jsonInput)
+      const data = Array.isArray(parsed) ? parsed : [parsed]
+      setComponents(data)
+      setJsonInput('')
+      setShowUpload(false)
+      toast({
+        title: 'Success',
+        description: `Loaded ${data.length} components`,
+      })
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Invalid JSON format',
+        variant: 'destructive',
+      })
     }
-    setComponents([...components, newComponent])
+  }
+
+  const handleDuplicate = (index: number) => {
+    const original = components[index]
+    if (!original) return
+    const duplicate = JSON.parse(JSON.stringify(original))
+    if (duplicate._id?.$oid) {
+      duplicate._id.$oid = `${Date.now()}_dup`
+    }
+    setComponents([...components, duplicate])
     toast({
       title: 'Success',
       description: 'Component duplicated',
     })
   }
 
-  const handleDelete = (id: string) => {
-    setComponents(components.filter(c => c._id.$oid !== id))
+  const handleDelete = (index: number) => {
+    setComponents(components.filter((_, i) => i !== index))
     setEditingId(null)
     toast({
       title: 'Success',
@@ -120,15 +62,21 @@ export function ComponentConfigurationViewer() {
     })
   }
 
-  const handleUpdate = (id: string, field: string, value: any) => {
-    setComponents(
-      components.map(c =>
-        c._id.$oid === id ? { ...c, [field]: value } : c
-      )
-    )
+  const handleUpdateField = (index: number, field: string, value: any) => {
+    const updated = [...components]
+    updated[index] = { ...updated[index], [field]: value }
+    setComponents(updated)
   }
 
   const handleExportJSON = () => {
+    if (components.length === 0) {
+      toast({
+        title: 'Error',
+        description: 'No components to export',
+        variant: 'destructive',
+      })
+      return
+    }
     const dataStr = JSON.stringify(components, null, 2)
     const blob = new Blob([dataStr], { type: 'application/json' })
     const url = URL.createObjectURL(blob)
@@ -143,6 +91,19 @@ export function ComponentConfigurationViewer() {
     })
   }
 
+  const getAllKeys = () => {
+    const keys = new Set<string>()
+    components.forEach(c => {
+      Object.keys(c).forEach(k => keys.add(k))
+    })
+    return Array.from(keys).sort()
+  }
+
+  const getComponentId = (index: number) => {
+    const comp = components[index]
+    return comp._id?.$oid || comp.id || `comp_${index}`
+  }
+
   return (
     <div className="p-8 max-w-7xl mx-auto space-y-8">
       <div className="flex items-center justify-between">
@@ -153,7 +114,7 @@ export function ComponentConfigurationViewer() {
           <p className="text-sm text-slate-600 dark:text-slate-400">
             {previewMode
               ? `Preview ${components.length} component${components.length !== 1 ? 's' : ''}`
-              : 'Edit, duplicate, and manage component configurations'
+              : 'Load JSON, edit all fields, duplicate objects, and export'
             }
           </p>
         </div>
@@ -181,157 +142,180 @@ export function ComponentConfigurationViewer() {
       </div>
 
       {!previewMode ? (
-        <div className="space-y-6">
-          {components.map((component) => (
-            <div
-              key={component._id.$oid}
-              className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden"
-            >
-              {/* Card Header */}
-              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 p-4 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between cursor-pointer hover:bg-opacity-75 transition"
-                onClick={() => setExpandedId(expandedId === component._id.$oid ? null : component._id.$oid)}
-              >
-                <div className="flex-1">
-                  <h3 className="font-bold text-slate-900 dark:text-white text-lg">
-                    {component.Title || 'Untitled Component'}
-                  </h3>
-                  <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
-                    Type: <span className="font-mono font-semibold">{component.ActionType}</span> | WebPartID: <span className="font-mono">{component.WebPartID}</span>
-                  </p>
-                </div>
+        <>
+          {/* JSON Upload Section */}
+          {showUpload && (
+            <div className="bg-blue-50 dark:bg-blue-900/20 border-2 border-blue-200 dark:border-blue-800 rounded-lg p-6">
+              <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
+                <Upload className="w-5 h-5" />
+                Load Component Configuration JSON
+              </h3>
+              <div className="space-y-4">
+                <textarea
+                  value={jsonInput}
+                  onChange={(e) => setJsonInput(e.target.value)}
+                  placeholder="Paste your JSON array or object here..."
+                  className="w-full h-48 p-3 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-mono text-sm resize-none"
+                />
                 <div className="flex gap-2">
                   <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      setEditingId(editingId === component._id.$oid ? null : component._id.$oid)
-                    }}
+                    onClick={handleLoadJSON}
+                    className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold"
                   >
-                    {editingId === component._id.$oid ? <X className="w-4 h-4" /> : <Edit2 className="w-4 h-4" />}
+                    Load Components
                   </Button>
                   <Button
-                    size="sm"
+                    onClick={() => setJsonInput('')}
                     variant="outline"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      handleDuplicate(component)
-                    }}
                   >
-                    <Copy className="w-4 h-4" />
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="destructive"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      handleDelete(component._id.$oid)
-                    }}
-                  >
-                    <Trash2 className="w-4 h-4" />
+                    Clear
                   </Button>
                 </div>
               </div>
-
-              {/* Expanded Content */}
-              {expandedId === component._id.$oid && (
-                <div className="p-6 space-y-6">
-                  {/* Edit Mode */}
-                  {editingId === component._id.$oid && (
-                    <div className="bg-slate-50 dark:bg-slate-900 p-4 rounded border border-slate-200 dark:border-slate-700 space-y-4">
-                      <h4 className="font-semibold text-slate-900 dark:text-white">Edit Component</h4>
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        <div>
-                          <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-2">Title</label>
-                          <Input
-                            value={component.Title}
-                            onChange={(e) => handleUpdate(component._id.$oid, 'Title', e.target.value)}
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-2">ActionType</label>
-                          <Input
-                            value={component.ActionType}
-                            onChange={(e) => handleUpdate(component._id.$oid, 'ActionType', e.target.value)}
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-2">DisplayAcronym</label>
-                          <Input
-                            value={component.DisplayAcronym}
-                            onChange={(e) => handleUpdate(component._id.$oid, 'DisplayAcronym', e.target.value)}
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-2">WebPartID</label>
-                          <Input
-                            value={component.WebPartID}
-                            onChange={(e) => handleUpdate(component._id.$oid, 'WebPartID', e.target.value)}
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-2">SequenceNo</label>
-                          <Input
-                            type="number"
-                            value={component.SequenceNo}
-                            onChange={(e) => handleUpdate(component._id.$oid, 'SequenceNo', parseInt(e.target.value))}
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-2">ActionBoardMenuType</label>
-                          <Input
-                            value={component.ActionBoardMenuType}
-                            onChange={(e) => handleUpdate(component._id.$oid, 'ActionBoardMenuType', e.target.value)}
-                          />
-                        </div>
-                        <div className="lg:col-span-2">
-                          <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-2">LinkTitle</label>
-                          <Input
-                            value={component.LinkTitle}
-                            onChange={(e) => handleUpdate(component._id.$oid, 'LinkTitle', e.target.value)}
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-2">InterventionType</label>
-                          <Input
-                            value={component.InterventionType}
-                            onChange={(e) => handleUpdate(component._id.$oid, 'InterventionType', e.target.value)}
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* View Mode */}
-                  {editingId !== component._id.$oid && (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                      <div className="bg-slate-50 dark:bg-slate-900 p-3 rounded">
-                        <p className="text-xs text-slate-600 dark:text-slate-400 font-semibold">ActionType</p>
-                        <p className="text-slate-900 dark:text-white font-mono">{component.ActionType}</p>
-                      </div>
-                      <div className="bg-slate-50 dark:bg-slate-900 p-3 rounded">
-                        <p className="text-xs text-slate-600 dark:text-slate-400 font-semibold">DisplayAcronym</p>
-                        <p className="text-slate-900 dark:text-white font-mono">{component.DisplayAcronym}</p>
-                      </div>
-                      <div className="bg-slate-50 dark:bg-slate-900 p-3 rounded">
-                        <p className="text-xs text-slate-600 dark:text-slate-400 font-semibold">WebPartID</p>
-                        <p className="text-slate-900 dark:text-white font-mono">{component.WebPartID}</p>
-                      </div>
-                      <div className="bg-slate-50 dark:bg-slate-900 p-3 rounded">
-                        <p className="text-xs text-slate-600 dark:text-slate-400 font-semibold">SequenceNo</p>
-                        <p className="text-slate-900 dark:text-white font-mono">{component.SequenceNo}</p>
-                      </div>
-                      <div className="md:col-span-2 bg-slate-50 dark:bg-slate-900 p-3 rounded">
-                        <p className="text-xs text-slate-600 dark:text-slate-400 font-semibold">LinkTitle</p>
-                        <p className="text-slate-900 dark:text-white">{component.LinkTitle}</p>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
             </div>
-          ))}
-        </div>
+          )}
+
+          {/* Components List */}
+          {components.length > 0 && (
+            <div className="space-y-6">
+              {components.map((component, idx) => {
+                const componentId = getComponentId(idx)
+                const isExpanded = expandedId === componentId
+                const isEditing = editingId === componentId
+                const allKeys = getAllKeys()
+
+                return (
+                  <div
+                    key={componentId}
+                    className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden"
+                  >
+                    {/* Card Header */}
+                    <div
+                      className="bg-gradient-to-r from-indigo-50 to-blue-50 dark:from-indigo-900/20 dark:to-blue-900/20 p-4 cursor-pointer hover:opacity-90 transition flex items-center justify-between border-b border-slate-200 dark:border-slate-700"
+                      onClick={() => setExpandedId(isExpanded ? null : componentId)}
+                    >
+                      <div className="flex-1">
+                        <h3 className="font-bold text-slate-900 dark:text-white text-lg">
+                          {component.Title || component.ActionType || `Component ${idx + 1}`}
+                        </h3>
+                        <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
+                          ID: {componentId} | {allKeys.length} fields
+                        </p>
+                      </div>
+                      <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setEditingId(isEditing ? null : componentId)}
+                        >
+                          {isEditing ? 'Done' : 'Edit'}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleDuplicate(idx)}
+                        >
+                          <Copy className="w-3 h-3" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => handleDelete(idx)}
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </Button>
+                      </div>
+                    </div>
+
+                    {/* Expanded View */}
+                    {isExpanded && (
+                      <div className="border-t border-slate-200 dark:border-slate-700 p-6">
+                        {isEditing ? (
+                          <div className="space-y-6">
+                            <h4 className="font-semibold text-slate-900 dark:text-white">Edit All Fields</h4>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                              {allKeys.map(field => (
+                                <div key={field}>
+                                  <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-2">
+                                    {field}
+                                  </label>
+                                  {typeof component[field] === 'boolean' ? (
+                                    <select
+                                      value={component[field] ? 'true' : 'false'}
+                                      onChange={(e) =>
+                                        handleUpdateField(idx, field, e.target.value === 'true')
+                                      }
+                                      className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white text-sm"
+                                    >
+                                      <option value="true">True</option>
+                                      <option value="false">False</option>
+                                    </select>
+                                  ) : typeof component[field] === 'number' ? (
+                                    <Input
+                                      type="number"
+                                      value={component[field]}
+                                      onChange={(e) =>
+                                        handleUpdateField(idx, field, parseFloat(e.target.value) || 0)
+                                      }
+                                    />
+                                  ) : Array.isArray(component[field]) ? (
+                                    <textarea
+                                      value={JSON.stringify(component[field], null, 2)}
+                                      onChange={(e) => {
+                                        try {
+                                          handleUpdateField(idx, field, JSON.parse(e.target.value))
+                                        } catch {
+                                          // Keep original on parse error
+                                        }
+                                      }}
+                                      className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white text-sm font-mono h-24 resize-none"
+                                    />
+                                  ) : typeof component[field] === 'object' && component[field] !== null ? (
+                                    <textarea
+                                      value={JSON.stringify(component[field], null, 2)}
+                                      onChange={(e) => {
+                                        try {
+                                          handleUpdateField(idx, field, JSON.parse(e.target.value))
+                                        } catch {
+                                          // Keep original on parse error
+                                        }
+                                      }}
+                                      className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white text-sm font-mono h-24 resize-none"
+                                    />
+                                  ) : (
+                                    <Input
+                                      value={component[field] || ''}
+                                      onChange={(e) => handleUpdateField(idx, field, e.target.value)}
+                                    />
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {allKeys.map(field => (
+                              <div key={field} className="bg-slate-50 dark:bg-slate-700/50 p-3 rounded border border-slate-200 dark:border-slate-600">
+                                <p className="text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">
+                                  {field}
+                                </p>
+                                <p className="text-sm text-slate-900 dark:text-white font-mono break-words max-h-20 overflow-auto">
+                                  {typeof component[field] === 'object'
+                                    ? JSON.stringify(component[field], null, 2)
+                                    : String(component[field])}
+                                </p>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </>
       ) : (
         // JSON Preview
         <div className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-6">
