@@ -168,15 +168,15 @@ export function TruancyConfigurationEditor() {
   };
 
   return (
-    <div className="h-screen flex flex-col bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+    <div className="min-h-screen flex flex-col bg-gray-50">
       {/* Header */}
-      <div className="bg-slate-950/80 backdrop-blur border-b border-slate-700/50 px-8 py-6">
+      <div className="bg-white border-b border-slate-200 px-8 py-6">
         <div className="flex items-center justify-between max-w-7xl mx-auto">
           <div>
-            <h1 className="text-3xl font-bold text-white mb-1">
+            <h1 className="text-3xl font-bold text-slate-900 mb-1">
               Truancy Configuration
             </h1>
-            <p className="text-slate-400 text-sm">
+            <p className="text-slate-500 text-sm">
               {previewMode
                 ? `Preview ${records.length} record${records.length !== 1 ? "s" : ""}`
                 : "Set base properties once, create copies, modify specific fields per record"}
@@ -189,7 +189,7 @@ export function TruancyConfigurationEditor() {
               className={
                 previewMode
                   ? "bg-blue-600 hover:bg-blue-700"
-                  : "border-slate-600 text-slate-300 hover:bg-slate-800"
+                  : "border-slate-300 text-slate-600 hover:bg-white"
               }
             >
               <Eye className="w-4 h-4 mr-2" />
@@ -200,17 +200,17 @@ export function TruancyConfigurationEditor() {
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 overflow-hidden">
+      <div className="flex-1">
         {!previewMode ? (
-          <div className="flex-1 overflow-auto px-8 py-6">
+          <div className="px-8 pt-6 pb-2">
             <div className="max-w-7xl mx-auto space-y-8">
               {/* Base Properties Section */}
-              <div className="bg-slate-800 border border-slate-700 rounded-lg p-6 space-y-6">
+              <div className="bg-white border border-slate-200 rounded-lg p-6 space-y-6">
                 <div>
-                  <h3 className="text-lg font-semibold text-white mb-2">
+                  <h3 className="text-lg font-semibold text-slate-900 mb-2">
                     Base Properties (Applied to All Copies)
                   </h3>
-                  <p className="text-sm text-slate-400 mb-4">
+                  <p className="text-sm text-slate-500 mb-4">
                     Set these values once. They will be applied to all new
                     copies you create.
                   </p>
@@ -218,7 +218,7 @@ export function TruancyConfigurationEditor() {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {/* Period - Dropdown */}
                   <div>
-                    <label className="block text-xs font-semibold text-slate-400 mb-2">
+                    <label className="block text-xs font-semibold text-slate-500 mb-2">
                       Period
                     </label>
                     <select
@@ -229,7 +229,7 @@ export function TruancyConfigurationEditor() {
                           Period: e.target.value,
                         })
                       }
-                      className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm"
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white text-slate-900 text-sm"
                     >
                       {periodOptions.map((opt) => (
                         <option key={opt} value={opt}>
@@ -241,7 +241,7 @@ export function TruancyConfigurationEditor() {
 
                   {/* Action - Textbox */}
                   <div>
-                    <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-2">
+                    <label className="block text-xs font-semibold text-slate-600 mb-2">
                       Action
                     </label>
                     <Input
@@ -258,7 +258,7 @@ export function TruancyConfigurationEditor() {
 
                   {/* Category - Dropdown */}
                   <div>
-                    <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-2">
+                    <label className="block text-xs font-semibold text-slate-600 mb-2">
                       Category
                     </label>
                     <select
@@ -266,7 +266,7 @@ export function TruancyConfigurationEditor() {
                       onChange={(e) =>
                         handleUpdateBaseProperty("Category", e.target.value)
                       }
-                      className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm"
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white text-slate-900 text-sm"
                     >
                       {categoryOptions.map((opt) => (
                         <option key={opt} value={opt}>
@@ -278,7 +278,7 @@ export function TruancyConfigurationEditor() {
 
                   {/* CampusType - Dropdown */}
                   <div>
-                    <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-2">
+                    <label className="block text-xs font-semibold text-slate-600 mb-2">
                       CampusType
                     </label>
                     <select
@@ -289,7 +289,7 @@ export function TruancyConfigurationEditor() {
                           CampusType: e.target.value,
                         })
                       }
-                      className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm"
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white text-slate-900 text-sm"
                     >
                       {campusTypeOptions.map((opt) => (
                         <option key={opt} value={opt}>
@@ -301,7 +301,7 @@ export function TruancyConfigurationEditor() {
 
                   {/* CategoryTitle - Auto-synced with Category */}
                   <div>
-                    <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-2">
+                    <label className="block text-xs font-semibold text-slate-600 mb-2">
                       CategoryTitle (Auto-synced)
                     </label>
                     <Input
@@ -313,7 +313,7 @@ export function TruancyConfigurationEditor() {
 
                   {/* IsConsecutive - Dropdown */}
                   <div>
-                    <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-2">
+                    <label className="block text-xs font-semibold text-slate-600 mb-2">
                       IsConsecutive
                     </label>
                     <select
@@ -324,7 +324,7 @@ export function TruancyConfigurationEditor() {
                           IsConsecutive: e.target.value === "true",
                         })
                       }
-                      className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm"
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white text-slate-900 text-sm"
                     >
                       <option value="false">False</option>
                       <option value="true">True</option>
@@ -333,7 +333,7 @@ export function TruancyConfigurationEditor() {
 
                   {/* OccuranceNumber - Integer */}
                   <div>
-                    <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-2">
+                    <label className="block text-xs font-semibold text-slate-600 mb-2">
                       OccuranceNumber
                     </label>
                     <Input
@@ -350,7 +350,7 @@ export function TruancyConfigurationEditor() {
 
                   {/* TrauncySequence - Integer */}
                   <div>
-                    <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-2">
+                    <label className="block text-xs font-semibold text-slate-600 mb-2">
                       TrauncySequence
                     </label>
                     <Input
@@ -367,7 +367,7 @@ export function TruancyConfigurationEditor() {
 
                   {/* GracePeriod - Integer */}
                   <div>
-                    <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-2">
+                    <label className="block text-xs font-semibold text-slate-600 mb-2">
                       GracePeriod
                     </label>
                     <Input
@@ -384,7 +384,7 @@ export function TruancyConfigurationEditor() {
 
                   {/* ChooseAction - Textbox */}
                   <div className="lg:col-span-2">
-                    <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-2">
+                    <label className="block text-xs font-semibold text-slate-600 mb-2">
                       ChooseAction
                     </label>
                     <Input
@@ -401,7 +401,7 @@ export function TruancyConfigurationEditor() {
 
                   {/* Description - Textbox */}
                   <div className="lg:col-span-3">
-                    <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-2">
+                    <label className="block text-xs font-semibold text-slate-600 mb-2">
                       Description
                     </label>
                     <Input
@@ -416,52 +416,54 @@ export function TruancyConfigurationEditor() {
                       className="h-auto min-h-12 py-2"
                     />
                   </div>
-                </div>{" "}
+                </div>
+                {""}
                 {/* Closes grid container */}
                 <Button
                   onClick={handleCreateCopy}
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2"
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-slate-900 font-semibold py-2"
                 >
                   <Copy className="w-4 h-4 mr-2" />
                   Create Copy with Base Properties
                 </Button>
-              </div>{" "}
+              </div>
+              {""}
               {/* Closes card section container */}
               {/* Records Table */}
               {records.length > 0 && (
-                <div className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
-                  <div className="p-4 border-b border-slate-200 dark:border-slate-700">
-                    <h3 className="font-semibold text-slate-900 dark:text-white">
+                <div className="bg-white rounded-lg border border-slate-200">
+                  <div className="p-4 border-b border-slate-200">
+                    <h3 className="font-semibold text-slate-900">
                       Created Records ({records.length})
                     </h3>
                   </div>
 
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm">
-                      <thead className="bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700">
+                      <thead className="bg-gray-50 border-b border-slate-200">
                         <tr>
-                          <th className="px-4 py-3 text-left font-semibold text-slate-700 dark:text-slate-300">
+                          <th className="px-4 py-3 text-left font-semibold text-slate-700">
                             #
                           </th>
-                          <th className="px-4 py-3 text-left font-semibold text-slate-700 dark:text-slate-300">
+                          <th className="px-4 py-3 text-left font-semibold text-slate-700">
                             Action
                           </th>
-                          <th className="px-4 py-3 text-left font-semibold text-slate-700 dark:text-slate-300">
+                          <th className="px-4 py-3 text-left font-semibold text-slate-700">
                             Category
                           </th>
-                          <th className="px-4 py-3 text-left font-semibold text-slate-700 dark:text-slate-300">
+                          <th className="px-4 py-3 text-left font-semibold text-slate-700">
                             Period
                           </th>
-                          <th className="px-4 py-3 text-center font-semibold text-slate-700 dark:text-slate-300">
+                          <th className="px-4 py-3 text-center font-semibold text-slate-700">
                             Occ
                           </th>
-                          <th className="px-4 py-3 text-center font-semibold text-slate-700 dark:text-slate-300">
+                          <th className="px-4 py-3 text-center font-semibold text-slate-700">
                             Seq
                           </th>
-                          <th className="px-4 py-3 text-center font-semibold text-slate-700 dark:text-slate-300">
+                          <th className="px-4 py-3 text-center font-semibold text-slate-700">
                             Grace
                           </th>
-                          <th className="px-4 py-3 text-center font-semibold text-slate-700 dark:text-slate-300">
+                          <th className="px-4 py-3 text-center font-semibold text-slate-700">
                             Actions
                           </th>
                         </tr>
@@ -470,27 +472,27 @@ export function TruancyConfigurationEditor() {
                         {records.map((record, idx) => (
                           <tr
                             key={record.id}
-                            className="border-b border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-colors"
+                            className="border-b border-slate-200 hover:bg-gray-50 transition-colors"
                           >
-                            <td className="px-4 py-3 text-slate-600 dark:text-slate-400 font-medium">
+                            <td className="px-4 py-3 text-slate-600 font-medium">
                               {idx + 1}
                             </td>
-                            <td className="px-4 py-3 text-slate-900 dark:text-white font-medium text-sm">
+                            <td className="px-4 py-3 text-slate-900 font-medium text-sm">
                               {record.Action}
                             </td>
-                            <td className="px-4 py-3 text-slate-600 dark:text-slate-400 text-sm">
+                            <td className="px-4 py-3 text-slate-600 text-sm">
                               {record.Category}
                             </td>
-                            <td className="px-4 py-3 text-slate-600 dark:text-slate-400 text-sm">
+                            <td className="px-4 py-3 text-slate-600 text-sm">
                               {record.Period}
                             </td>
-                            <td className="px-4 py-3 text-center font-semibold text-slate-900 dark:text-white">
+                            <td className="px-4 py-3 text-center font-semibold text-slate-900">
                               {record.OccuranceNumber}
                             </td>
-                            <td className="px-4 py-3 text-center font-semibold text-slate-900 dark:text-white">
+                            <td className="px-4 py-3 text-center font-semibold text-slate-900">
                               {record.TrauncySequence}
                             </td>
-                            <td className="px-4 py-3 text-center font-semibold text-slate-900 dark:text-white">
+                            <td className="px-4 py-3 text-center font-semibold text-slate-900">
                               {record.GracePeriod}
                             </td>
                             <td className="px-4 py-3 text-center flex gap-1 justify-center">
@@ -526,15 +528,15 @@ export function TruancyConfigurationEditor() {
 
                   {/* Edit Row */}
                   {editingId && (
-                    <div className="bg-slate-50 dark:bg-slate-900 p-6 border-t border-slate-200 dark:border-slate-700">
+                    <div className="bg-gray-50 p-6 border-t border-slate-200">
                       {records.find((r) => r.id === editingId) && (
                         <div>
-                          <h4 className="font-semibold text-slate-900 dark:text-white mb-4">
+                          <h4 className="font-semibold text-slate-900 mb-4">
                             Edit Record
                           </h4>
                           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                             <div>
-                              <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-2">
+                              <label className="block text-xs font-semibold text-slate-600 mb-2">
                                 Period
                               </label>
                               <select
@@ -549,7 +551,7 @@ export function TruancyConfigurationEditor() {
                                     e.target.value,
                                   )
                                 }
-                                className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm"
+                                className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white text-slate-900 text-sm"
                               >
                                 {periodOptions.map((opt) => (
                                   <option key={opt} value={opt}>
@@ -559,7 +561,7 @@ export function TruancyConfigurationEditor() {
                               </select>
                             </div>
                             <div>
-                              <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-2">
+                              <label className="block text-xs font-semibold text-slate-600 mb-2">
                                 Action
                               </label>
                               <Input
@@ -577,7 +579,7 @@ export function TruancyConfigurationEditor() {
                               />
                             </div>
                             <div>
-                              <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-2">
+                              <label className="block text-xs font-semibold text-slate-600 mb-2">
                                 Category
                               </label>
                               <select
@@ -592,7 +594,7 @@ export function TruancyConfigurationEditor() {
                                     e.target.value,
                                   )
                                 }
-                                className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm"
+                                className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white text-slate-900 text-sm"
                               >
                                 {categoryOptions.map((opt) => (
                                   <option key={opt} value={opt}>
@@ -602,7 +604,7 @@ export function TruancyConfigurationEditor() {
                               </select>
                             </div>
                             <div>
-                              <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-2">
+                              <label className="block text-xs font-semibold text-slate-600 mb-2">
                                 CampusType
                               </label>
                               <select
@@ -617,7 +619,7 @@ export function TruancyConfigurationEditor() {
                                     e.target.value,
                                   )
                                 }
-                                className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm"
+                                className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white text-slate-900 text-sm"
                               >
                                 {campusTypeOptions.map((opt) => (
                                   <option key={opt} value={opt}>
@@ -627,7 +629,7 @@ export function TruancyConfigurationEditor() {
                               </select>
                             </div>
                             <div>
-                              <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-2">
+                              <label className="block text-xs font-semibold text-slate-600 mb-2">
                                 ChooseAction
                               </label>
                               <Input
@@ -645,7 +647,7 @@ export function TruancyConfigurationEditor() {
                               />
                             </div>
                             <div>
-                              <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-2">
+                              <label className="block text-xs font-semibold text-slate-600 mb-2">
                                 IsConsecutive
                               </label>
                               <select
@@ -662,14 +664,14 @@ export function TruancyConfigurationEditor() {
                                     e.target.value === "true",
                                   )
                                 }
-                                className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm"
+                                className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white text-slate-900 text-sm"
                               >
                                 <option value="false">False</option>
                                 <option value="true">True</option>
                               </select>
                             </div>
                             <div>
-                              <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-2">
+                              <label className="block text-xs font-semibold text-slate-600 mb-2">
                                 OccuranceNumber
                               </label>
                               <Input
@@ -688,7 +690,7 @@ export function TruancyConfigurationEditor() {
                               />
                             </div>
                             <div>
-                              <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-2">
+                              <label className="block text-xs font-semibold text-slate-600 mb-2">
                                 TrauncySequence
                               </label>
                               <Input
@@ -707,7 +709,7 @@ export function TruancyConfigurationEditor() {
                               />
                             </div>
                             <div>
-                              <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-2">
+                              <label className="block text-xs font-semibold text-slate-600 mb-2">
                                 GracePeriod
                               </label>
                               <Input
@@ -726,7 +728,7 @@ export function TruancyConfigurationEditor() {
                               />
                             </div>
                             <div className="lg:col-span-3">
-                              <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-2">
+                              <label className="block text-xs font-semibold text-slate-600 mb-2">
                                 Description
                               </label>
                               <Input
@@ -751,10 +753,10 @@ export function TruancyConfigurationEditor() {
                     </div>
                   )}
 
-                  <div className="p-4 border-t border-slate-200 dark:border-slate-700 flex gap-3">
+                  <div className="p-4 border-t border-slate-200 flex gap-3">
                     <Button
                       onClick={handleExportJSON}
-                      className="flex-1 bg-green-600 hover:bg-green-700 text-white font-semibold"
+                      className="flex-1 bg-green-600 hover:bg-green-700 text-slate-900 font-semibold"
                     >
                       <Download className="w-4 h-4 mr-2" />
                       Export {records.length} Records as JSON
@@ -766,10 +768,10 @@ export function TruancyConfigurationEditor() {
           </div>
         ) : (
           /* JSON Preview */
-          <div className="flex-1 overflow-auto px-8 py-6">
+          <div className="px-8 pt-6 pb-2">
             <div className="max-w-7xl mx-auto">
-              <div className="bg-slate-950 border border-slate-700 rounded-lg p-6 h-full">
-                <pre className="text-xs text-emerald-400 font-mono whitespace-pre-wrap break-words overflow-auto">
+              <div className="bg-slate-900 border border-slate-200 rounded-lg p-6 h-full">
+                <pre className="text-xs text-emerald-600 font-mono whitespace-pre-wrap break-words overflow-auto">
                   {JSON.stringify(
                     records.map(({ id, Description, ...rest }) => {
                       const record = records.find((r) => r.id === id);
