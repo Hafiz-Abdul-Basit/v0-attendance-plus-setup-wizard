@@ -11,6 +11,7 @@ import { InteractiveGuides } from "@/components/interactive-guides";
 import { ClientSetupAgent } from "@/components/ClientSetupAgent";
 import logo from "../public/Develop by Abdul Basit.png";
 import Image from "next/image";
+import { SetupsTabs } from "@/components/client-setup/SetupsTabs";
 
 const sections = [
   { id: "browser", title: "Browser Installation", number: 1 },
@@ -289,6 +290,7 @@ export function InstallationWizard() {
   const [selectedResultIndex, setSelectedResultIndex] = useState(0);
   const [showGuides, setShowGuides] = useState(false); // New state for Guides
   const [showSetupAgent, setShowSetupAgent] = useState(false); // New state for Setup Agent
+  const [showSetups, setShowSetups] = useState(false); // New state for Setups
 
   const exportProgress = () => {
     const completedSections = sections.filter(
@@ -725,8 +727,8 @@ export function InstallationWizard() {
 
   return (
     <div className="flex h-screen bg-white overflow-hidden">
-      {/* Fixed Sidebar - Only shown when not viewing Snippets, Guides, or Setup Agent */}
-      {!showSnippets && !showGuides && !showSetupAgent && (
+      {/* Fixed Sidebar - Only shown when not viewing Snippets, Guides, Setup Agent, or Setups */}
+      {!showSnippets && !showGuides && !showSetupAgent && !showSetups && (
         <aside className="w-80 bg-white border-r border-gray-200 shadow-lg flex flex-col fixed left-0 top-0 h-full z-10">
           {/* Sidebar Header */}
           <div className="p-6 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50">
@@ -884,7 +886,7 @@ export function InstallationWizard() {
 
       {/* Main Content Area */}
       <main
-        className={`flex-1 ${!showSnippets && !showGuides && !showSetupAgent ? "ml-80" : "ml-0"} flex flex-col h-screen overflow-hidden`}
+        className={`flex-1 ${!showSnippets && !showGuides && !showSetupAgent && !showSetups ? "ml-80" : "ml-0"} flex flex-col h-screen overflow-hidden`}
       >
         {/* Fixed Header */}
         <header className="bg-white border-b border-gray-200 shadow-sm z-20">
@@ -900,12 +902,31 @@ export function InstallationWizard() {
             </div>
 
             <div className="flex items-center gap-4">
+              {/* Setups Button */}
+              <Button
+                onClick={() => {
+                  setShowSetups(!showSetups);
+                  setShowSnippets(false);
+                  setShowGuides(false);
+                  setShowSetupAgent(false);
+                }}
+                variant={showSetups ? "default" : "outline"}
+                className={`gap-2 ${
+                  showSetups
+                    ? "bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white shadow-lg"
+                    : "border-indigo-200 text-indigo-700 hover:bg-indigo-50"
+                }`}
+              >
+                <Code className="w-4 h-4" />
+                {showSetups ? "View Installation Steps" : "Setups"}
+              </Button>
               {/* Setup Agent Button */}
               <Button
                 onClick={() => {
                   setShowSetupAgent(!showSetupAgent);
                   setShowSnippets(false);
                   setShowGuides(false);
+                  setShowSetups(false);
                 }}
                 variant={showSetupAgent ? "default" : "outline"}
                 className={`gap-2 ${
@@ -997,7 +1018,9 @@ export function InstallationWizard() {
               )}
 
               {/* Content */}
-              {showSetupAgent ? (
+              {showSetups ? (
+                <SetupsTabs />
+              ) : showSetupAgent ? (
                 <ClientSetupAgent />
               ) : showGuides ? (
                 <InteractiveGuides />

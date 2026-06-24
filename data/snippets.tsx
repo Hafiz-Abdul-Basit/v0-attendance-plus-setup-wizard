@@ -1331,11 +1331,12 @@ Write-Host "Certificate found: $thumbprint"
 Write-Host ""
 
 # --- Base Path ---
-$basePath = "C:\\myNGApp\\Deployments\\Backend"
+$basePath = "D:\\myNgApp\\Rk12.AttPlus.Solution.US"
 
 # --- Hosts ---
-$commonHost = "attplusgv.raaweek12.com"
-$gatewayHost = "gatewaygv.raaweek12.com"
+$commonHost = "attplusdemo.raaweek12.com"
+$gatewayHost = "apigatewayattplusdemo.raaweek12.com"
+$secureHost = "attplusdocsdemo.raaweek12.com"
 
 # --- Sites ---
 $sites = @(
@@ -1344,11 +1345,14 @@ $sites = @(
     @{ Name="Rk12.AttPlus.Administration.API"; Port=7239; Path="$basePath\\Rk12.AttPlus.Administration.API"; Host=$commonHost },
     @{ Name="Rk12.AttPlus.CourtManagement.API"; Port=7007; Path="$basePath\\Rk12.AttPlus.CourtManagement.API"; Host=$commonHost },
     @{ Name="Rk12.AttPlus.Identity.API"; Port=7206; Path="$basePath\\Rk12.AttPlus.Identity.API"; Host=$commonHost },
-    @{ Name="Rk12.AttPlus.SentLetter.API"; Port=7101; Path="$basePath\\RK12.AttPlus.Intervention.SendLetter.QConsumer"; Host=$commonHost },
+    @{ Name="RK12.AttPlus.Intervention.SendLetter.QConsumer"; Port=7101; Path="$basePath\\RK12.AttPlus.Intervention.SendLetter.QConsumer"; Host=$commonHost },
     @{ Name="Rk12.AttPlus.LetterDispatch.API"; Port=7119; Path="$basePath\\Rk12.AttPlus.LetterDispatch.API"; Host=$commonHost },
-    @{ Name="Rk12.AttPlus.MessageHub.API"; Port=7120; Path="$basePath\\Rk12.AttPlus.MessageHub"; Host=$commonHost },
+    @{ Name="Rk12.AttPlus.MessageHub"; Port=7120; Path="$basePath\\Rk12.AttPlus.MessageHub"; Host=$commonHost },
     @{ Name="Rk12.AttPlus.Miscellaneous.API"; Port=7061; Path="$basePath\\Rk12.AttPlus.Miscellaneous.API"; Host=$commonHost },
-    @{ Name="Rk12.AttPlus.ApiGateway"; Port=443; Path="$basePath\\Rk12.AttPlus.ApiGateway"; Host=$gatewayHost }
+    @{ Name="Rk12.AttPlus.ApiGateway"; Port=443; Path="$basePath\\Rk12.AttPlus.ApiGateway"; Host=$gatewayHost },    
+    @{ Name="Rk12.Web"; Port=443; Path="$basePath\\Rk12.Web"; Host=$commonHost },
+    @{ Name="RK12.eSignature"; Port=6001; Path="$basePath\\eSignature"; Host=$commonHost },
+    @{ Name="RK12.SecureDocs"; Port=443; Path="$basePath\\RK12.SecureDocs"; Host=$secureHost }
 )
 
 foreach ($s in $sites) {
@@ -1422,7 +1426,7 @@ Write-Host "Deployment script execution completed"
     icon: "Server",
     color: "bg-purple-600",
     tags: ["iis", "powershell", "ssl", "https", "automation", "deployment"],
-    lastUsed: new Date("2024-01-20"),
+    lastUsed: new Date("2026-06-24"),
   },
   {
     id: "cloudflare-tunnel-setup",
