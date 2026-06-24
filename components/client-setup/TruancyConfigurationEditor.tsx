@@ -112,24 +112,28 @@ export function TruancyConfigurationEditor() {
       return
     }
 
-    const exportData = records.map(({ id, ...rest }) => ({
-      _id: { $oid: id.replace('record_', '') },
-      Title: '',
-      ClientID: 1,
-      Role: '',
-      TotalAbsences: '',
-      HighlightColor: '#b7effb',
-      UserType: 'campus',
-      FilterCriteriaTitle: '',
-      FilterCriteria: '',
-      FilterCriteriaForPeriodTitle: '',
-      FilterCriteriaForPeriod: '',
-      DependentInterventionsFilterCriteriaTitle: '',
-      DependentInterventionsFilterCriteria: '',
-      SortOrder: '',
-      IsEnable: true,
-      ...rest,
-    }))
+    const exportData = records.map(({ id, ...rest }) => {
+      const record = records.find(r => r.id === id)
+      return {
+        _id: { $oid: id.replace('record_', '') },
+        Title: '',
+        ClientID: 1,
+        Role: '',
+        TotalAbsences: '',
+        HighlightColor: '#b7effb',
+        UserType: 'campus',
+        FilterCriteriaTitle: '',
+        FilterCriteria: '',
+        FilterCriteriaForPeriodTitle: '',
+        FilterCriteriaForPeriod: '',
+        DependentInterventionsFilterCriteriaTitle: '',
+        DependentInterventionsFilterCriteria: '',
+        SortOrder: '',
+        IsEnable: true,
+        CategoryTitle: record?.Category,
+        ...rest,
+      }
+    })
 
     const dataStr = JSON.stringify(exportData, null, 2)
     const blob = new Blob([dataStr], { type: 'application/json' })
