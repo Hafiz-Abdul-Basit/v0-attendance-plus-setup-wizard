@@ -159,35 +159,40 @@ export function TruancyConfigurationEditor() {
   }
 
   return (
-    <div className="p-8 max-w-7xl mx-auto space-y-8">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">
-            Truancy Configuration Manager
-          </h2>
-          <p className="text-sm text-slate-600 dark:text-slate-400">
-            {previewMode
-              ? `Preview ${records.length} record${records.length !== 1 ? 's' : ''}`
-              : 'Set base properties once, create copies, modify specific fields per record'
-            }
-          </p>
+    <div className="h-screen flex flex-col bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+      {/* Header */}
+      <div className="bg-slate-950/80 backdrop-blur border-b border-slate-700/50 px-8 py-6">
+        <div className="flex items-center justify-between max-w-7xl mx-auto">
+          <div>
+            <h1 className="text-3xl font-bold text-white mb-1">Truancy Configuration</h1>
+            <p className="text-slate-400 text-sm">
+              {previewMode 
+                ? `Preview ${records.length} record${records.length !== 1 ? 's' : ''}`
+                : 'Set base properties once, create copies, modify specific fields per record'
+              }
+            </p>
+          </div>
+          {records.length > 0 && (
+            <Button
+              onClick={() => setPreviewMode(!previewMode)}
+              variant={previewMode ? 'default' : 'outline'}
+              className={previewMode ? 'bg-blue-600 hover:bg-blue-700' : 'border-slate-600 text-slate-300 hover:bg-slate-800'}
+            >
+              <Eye className="w-4 h-4 mr-2" />
+              {previewMode ? 'Back to Editor' : 'Preview JSON'}
+            </Button>
+          )}
         </div>
-        {records.length > 0 && (
-          <Button
-            onClick={() => setPreviewMode(!previewMode)}
-            variant={previewMode ? 'default' : 'outline'}
-            className={previewMode ? 'bg-blue-600 hover:bg-blue-700 text-white' : ''}
-          >
-            <Eye className="w-4 h-4 mr-2" />
-            {previewMode ? 'Back to Editor' : 'Preview JSON'}
-          </Button>
-        )}
       </div>
 
-      {!previewMode ? (
-        <>
-          {/* Base Properties Section */}
-          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border-2 border-blue-200 dark:border-blue-800 rounded-lg p-6 space-y-6">
+      {/* Main Content */}
+      <div className="flex-1 overflow-hidden">
+
+        {!previewMode ? (
+          <div className="flex-1 overflow-auto px-8 py-6">
+            <div className="max-w-7xl mx-auto space-y-8">
+              {/* Base Properties Section */}
+              <div className="bg-slate-800 border border-slate-700 rounded-lg p-6 space-y-6">
             <div>
               <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">
                 Base Properties (Applied to All Copies)
@@ -550,7 +555,24 @@ export function TruancyConfigurationEditor() {
             )}
           </pre>
         </div>
-      )}
+          </div>
+        ) : (
+          // JSON Preview
+          <div className="flex-1 overflow-auto px-8 py-6">
+            <div className="max-w-7xl mx-auto">
+              <div className="bg-slate-950 border border-slate-700 rounded-lg p-6 h-full overflow-auto">
+                <pre className="text-xs text-emerald-400 font-mono whitespace-pre-wrap break-words">
+                  {JSON.stringify(generateJSON(), null, 2)}
+                </pre>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   )
+}
+
+function generateJSON() {
+  return { placeholder: 'Preview' }
 }
