@@ -1,17 +1,17 @@
 "use client"
 
-import { useState, useEffect, useRef, useCallback } from "react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { ChevronRight, Search, Code, FileText, Download } from "lucide-react"
-import { toast } from "sonner"
-import { StepContent } from "@/components/step-content"
-import { SnippetsContent, snippets } from "@/components/snippets-content"
-import { InteractiveGuides } from "@/components/interactive-guides"
-import { ClientSetupAgent } from "@/components/ClientSetupAgent"
-import { SetupsTabs } from "@/components/client-setup/SetupsTabs"
-import logo from "../public/Develop by Abdul Basit.png"
-import Image from "next/image"
+import { useState, useEffect, useRef, useCallback } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { ChevronRight, Search, Code, FileText, Download } from "lucide-react";
+import { toast } from "sonner";
+import { StepContent } from "@/components/step-content";
+import { SnippetsContent, snippets } from "@/components/snippets-content";
+import { InteractiveGuides } from "@/components/interactive-guides";
+import { ClientSetupAgent } from "@/components/ClientSetupAgent";
+import logo from "../public/Develop by Abdul Basit.png";
+import Image from "next/image";
+import { SetupsTabs } from "@/components/client-setup/SetupsTabs";
 
 const sections = [
   { id: "browser", title: "Browser Installation", number: 1 },
@@ -280,10 +280,10 @@ export function InstallationWizard() {
   const [snippetFilter, setSnippetFilter] = useState<string>("")
   const [filteredSnippetId, setFilteredSnippetId] = useState<string | null>(null)
 
-  const [selectedResultIndex, setSelectedResultIndex] = useState(0)
-  const [showGuides, setShowGuides] = useState(false) // New state for Guides
-  const [showSetupAgent, setShowSetupAgent] = useState(false) // New state for Setup Agent
-  const [showSetups, setShowSetups] = useState(false) // New state for Setups
+  const [selectedResultIndex, setSelectedResultIndex] = useState(0);
+  const [showGuides, setShowGuides] = useState(false); // New state for Guides
+  const [showSetupAgent, setShowSetupAgent] = useState(false); // New state for Setup Agent
+  const [showSetups, setShowSetups] = useState(false); // New state for Setups
 
   const exportProgress = () => {
     const completedSections = sections.filter((s) => getSectionProgress(s.id).percentage === 100)
@@ -852,10 +852,10 @@ export function InstallationWizard() {
               {/* Setups Button */}
               <Button
                 onClick={() => {
-                  setShowSetups(!showSetups)
-                  setShowSnippets(false)
-                  setShowGuides(false)
-                  setShowSetupAgent(false)
+                  setShowSetups(!showSetups);
+                  setShowSnippets(false);
+                  setShowGuides(false);
+                  setShowSetupAgent(false);
                 }}
                 variant={showSetups ? "default" : "outline"}
                 className={`gap-2 ${
@@ -867,14 +867,13 @@ export function InstallationWizard() {
                 <Code className="w-4 h-4" />
                 {showSetups ? "View Installation Steps" : "Setups"}
               </Button>
-
               {/* Setup Agent Button */}
               <Button
                 onClick={() => {
-                  setShowSetupAgent(!showSetupAgent)
-                  setShowSnippets(false)
-                  setShowGuides(false)
-                  setShowSetups(false)
+                  setShowSetupAgent(!showSetupAgent);
+                  setShowSnippets(false);
+                  setShowGuides(false);
+                  setShowSetups(false);
                 }}
                 variant={showSetupAgent ? "default" : "outline"}
                 className={`gap-2 ${
