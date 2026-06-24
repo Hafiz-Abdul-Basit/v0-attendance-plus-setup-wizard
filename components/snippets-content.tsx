@@ -103,11 +103,11 @@ const folders = {
     color: "bg-indigo-600",
     description: "Reference materials and documentation",
   },
-  "Tools & Apps": {
-    name: "Tools & Apps",
+  "Cloud & Networking": {
+    name: "Cloud & Networking",
     icon: "Wrench",
     color: "bg-teal-600",
-    description: "Useful applications and utilities",
+    description: "Cloud & Networking Scripts",
   },
   "Quick Scripts": {
     name: "Quick Scripts",
@@ -145,7 +145,7 @@ function InteractiveTable({
     const csvContent = [
       headers.join(","),
       ...tableData.map((row) =>
-        headers.map((header) => `"${row[header]}"`).join(",")
+        headers.map((header) => `"${row[header]}"`).join(","),
       ),
     ].join("\n");
 
@@ -164,7 +164,7 @@ function InteractiveTable({
     const csvContent = [
       headers.join("\t"),
       ...tableData.map((row) =>
-        headers.map((header) => row[header]).join("\t")
+        headers.map((header) => row[header]).join("\t"),
       ),
     ].join("\n");
 
@@ -363,7 +363,7 @@ export function SnippetsContent({
 }: SnippetsContentProps) {
   // State management
   const [selectedSnippetCode, setSelectedSnippetCode] = useState<string | null>(
-    null
+    null,
   );
   const [isSnippetModalOpen, setIsSnippetModalOpen] = useState(false);
   const [currentSnippet, setCurrentSnippet] = useState<any>(null);
@@ -387,7 +387,7 @@ export function SnippetsContent({
   const saveFavorites = (newFavorites: Set<string>) => {
     localStorage.setItem(
       "snippet-favorites",
-      JSON.stringify([...newFavorites])
+      JSON.stringify([...newFavorites]),
     );
     setFavorites(newFavorites);
   };
@@ -448,7 +448,7 @@ export function SnippetsContent({
           s.title.toLowerCase().includes(query) ||
           s.description.toLowerCase().includes(query) ||
           s.content.toLowerCase().includes(query) ||
-          s.tags.some((tag) => tag.toLowerCase().includes(query))
+          s.tags.some((tag) => tag.toLowerCase().includes(query)),
       );
     }
 
@@ -682,7 +682,7 @@ export function SnippetsContent({
                 const isSelected = selectedFolder === folderName;
 
                 return (
-                   <button
+                  <button
                     key={folderName}
                     onClick={() =>
                       setSelectedFolder(isSelected ? null : folderName)
@@ -735,8 +735,6 @@ export function SnippetsContent({
             </div>
           </div>
         )}
-
-       
       </div>
 
       {/* Snippets Display */}
@@ -934,7 +932,7 @@ export function SnippetsContent({
                 >
                   {React.createElement(
                     iconMap[currentSnippet.icon] || FileText,
-                    { className: "h-5 w-5" }
+                    { className: "h-5 w-5" },
                   )}
                 </div>
                 <div className="flex-1">
