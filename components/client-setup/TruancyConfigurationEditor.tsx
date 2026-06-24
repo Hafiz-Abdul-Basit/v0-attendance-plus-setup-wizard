@@ -512,12 +512,13 @@ export function TruancyConfigurationEditor() {
                 </Button>
               </div>
             </div>
-          )}
-        </>
-      ) : (
-        // JSON Preview
-        <div className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-6">
-          <pre className="bg-slate-50 dark:bg-slate-900 p-4 rounded overflow-auto max-h-96 text-xs text-slate-900 dark:text-slate-100 font-mono">
+          </div>
+        ) : (
+          // JSON Preview
+          <div className="flex-1 overflow-auto px-8 py-6">
+            <div className="max-w-7xl mx-auto">
+              <div className="bg-slate-950 border border-slate-700 rounded-lg p-6 h-full">
+                <pre className="text-xs text-emerald-400 font-mono whitespace-pre-wrap break-words overflow-auto">
             {JSON.stringify(
               records.map(({ id, Description, ...rest }) => {
                 const record = records.find(r => r.id === id)
@@ -553,16 +554,6 @@ export function TruancyConfigurationEditor() {
               null,
               2
             )}
-          </pre>
-        </div>
-          </div>
-        ) : (
-          // JSON Preview
-          <div className="flex-1 overflow-auto px-8 py-6">
-            <div className="max-w-7xl mx-auto">
-              <div className="bg-slate-950 border border-slate-700 rounded-lg p-6 h-full overflow-auto">
-                <pre className="text-xs text-emerald-400 font-mono whitespace-pre-wrap break-words">
-                  {JSON.stringify(generateJSON(), null, 2)}
                 </pre>
               </div>
             </div>
