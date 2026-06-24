@@ -514,24 +514,37 @@ export function TruancyConfigurationEditor() {
         <div className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-6">
           <pre className="bg-slate-50 dark:bg-slate-900 p-4 rounded overflow-auto max-h-96 text-xs text-slate-900 dark:text-slate-100 font-mono">
             {JSON.stringify(
-              records.map(({ id, ...rest }) => ({
-                _id: { $oid: id.replace('record_', '') },
-                Title: '',
-                ClientID: 1,
-                Role: '',
-                TotalAbsences: '',
-                HighlightColor: '#b7effb',
-                UserType: 'campus',
-                FilterCriteriaTitle: '',
-                FilterCriteria: '',
-                FilterCriteriaForPeriodTitle: '',
-                FilterCriteriaForPeriod: '',
-                DependentInterventionsFilterCriteriaTitle: '',
-                DependentInterventionsFilterCriteria: '',
-                SortOrder: '',
-                IsEnable: true,
-                ...rest,
-              })),
+              records.map(({ id, Description, ...rest }) => {
+                const record = records.find(r => r.id === id)
+                return {
+                  _id: { $oid: id.replace('record_', '') },
+                  Title: '',
+                  ClientID: 1,
+                  Role: '',
+                  TotalAbsences: '',
+                  HighlightColor: '#b7effb',
+                  UserType: 'campus',
+                  FilterCriteriaTitle: '',
+                  FilterCriteria: '',
+                  FilterCriteriaForPeriodTitle: '',
+                  FilterCriteriaForPeriod: '',
+                  DependentInterventionsFilterCriteriaTitle: '',
+                  DependentInterventionsFilterCriteria: '',
+                  SortOrder: '',
+                  IsEnable: true,
+                  Period: record?.Period,
+                  Action: record?.Action,
+                  Category: record?.Category,
+                  CampusType: record?.CampusType,
+                  ChooseAction: record?.ChooseAction,
+                  IsConsecutive: record?.IsConsecutive,
+                  OccuranceNumber: record?.OccuranceNumber,
+                  TrauncySequence: record?.TrauncySequence,
+                  GracePeriod: record?.GracePeriod,
+                  Description: Description,
+                  CategoryTitle: record?.Category,
+                }
+              }),
               null,
               2
             )}

@@ -10,14 +10,71 @@ interface ComponentRecord {
   [key: string]: any
 }
 
+// Default data loaded from your ComponentConfiguration.json
+const DEFAULT_COMPONENTS: ComponentRecord[] = [
+  {
+    "_id": { "$oid": "6515fa7ba945b7ba77f6cd5d" },
+    "Title": "Warning Letter",
+    "ClientID": 1,
+    "WebPartID": "ABWPWL",
+    "ActionType": "WL",
+    "DisplayAcronym": "WN",
+    "DisplayInStudentProfile": 0,
+    "MoreLink": "actionboard/intervention-letter/WL/Unexcused",
+    "ActionTypeFilterCustom": "[ACTION TYPE] IN ('WL1','WL2','WL3','NOT1','NOT2','NOT3')",
+    "SequenceNo": 1,
+    "IsDisplayedInActionBoardMenu": 1,
+    "ActionBoardMenuType": "Unexcused",
+    "InterventionType": "letters",
+    "Claims": ["Director", "Principal", "CampusAttendanceOfficer", null, "SPUser"],
+    "ShowRedYellowCountAsZero": 0,
+    "Button": {
+      "Print": { "Title": "Print", "Enabled": false },
+      "Sent": { "Title": "Complete", "Enabled": false },
+      "Email": { "Title": "Email", "Enabled": false }
+    },
+    "EmailContent": { "SecureDocEnabled": true },
+    "SubActionTypes": [
+      { "WL1": "Warning Letter 1" },
+      { "WL2": "Warning Letter 2" },
+      { "WL3": "Warning Letter 3" },
+      { "NOT1": "NOT Letter 1" },
+      { "NOT2": "NOT Letter 2" },
+      { "NOT3": "NOT Letter 3" }
+    ],
+    "RADTitle": "Warning Letter"
+  },
+  {
+    "_id": { "$oid": "6515fa7ba945b7ba77f6cd6d" },
+    "Title": "Loss of Credit Warning Letter",
+    "ClientID": 1,
+    "WebPartID": "LOCWPWL",
+    "ActionType": "LOCWL",
+    "DisplayAcronym": "LOCWL",
+    "MoreLink": "actionboard/intervention-letter/LOCWL/loc",
+    "ActionTypeFilterCustom": "[Action Type] IN ('LOCWL','LOCWL1','LOCWL2')",
+    "SequenceNo": 9,
+    "IsDisplayedInActionBoardMenu": 1,
+    "ActionBoardMenuType": "LOC",
+    "LinkTitleNoMenu": "Loss of Credit Warning Letter",
+    "LinkTitle": "Loss of Credit Warning Letter",
+    "Claims": ["Principal", "Director", "SPUser", "CAmpusofficer"],
+    "SubActionTypes": [
+      { "LOCWL": "90% Warning Letter" },
+      { "LOCWL1": "Loss of Credit Warning Letter 1" },
+      { "LOCWL2": "Loss of Credit Warning Letter 2" }
+    ]
+  }
+]
+
 export function ComponentConfigurationViewer() {
   const { toast } = useToast()
-  const [components, setComponents] = useState<ComponentRecord[]>([])
+  const [components, setComponents] = useState<ComponentRecord[]>(DEFAULT_COMPONENTS)
   const [previewMode, setPreviewMode] = useState(false)
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [jsonInput, setJsonInput] = useState('')
-  const [showUpload, setShowUpload] = useState(true)
+  const [showUpload, setShowUpload] = useState(false)
 
   const handleLoadJSON = () => {
     try {
