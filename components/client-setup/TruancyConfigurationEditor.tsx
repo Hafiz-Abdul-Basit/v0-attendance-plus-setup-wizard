@@ -193,19 +193,19 @@ export function TruancyConfigurationEditor() {
             <div className="max-w-7xl mx-auto space-y-8">
               {/* Base Properties Section */}
               <div className="bg-slate-800 border border-slate-700 rounded-lg p-6 space-y-6">
-            <div>
-              <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">
-                Base Properties (Applied to All Copies)
-              </h3>
-              <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
-                Set these values once. They will be applied to all new copies you create.
-              </p>
-            </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-white mb-2">
+                    Base Properties (Applied to All Copies)
+                  </h3>
+                  <p className="text-sm text-slate-400 mb-4">
+                    Set these values once. They will be applied to all new copies you create.
+                  </p>
+                </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {/* Period - Dropdown */}
-              <div>
-                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-2">Period</label>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {/* Period - Dropdown */}
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-400 mb-2">Period</label>
                 <select
                   value={baseProperties.Period}
                   onChange={(e) => setBaseProperties({ ...baseProperties, Period: e.target.value })}
@@ -327,17 +327,17 @@ export function TruancyConfigurationEditor() {
                   placeholder="e.g., Interventions to be proposed on 3 absences in school year"
                   className="h-auto min-h-12 py-2"
                 />
-              </div>
-            </div>
+                  </div>
+                </div>
 
-            <Button
-              onClick={handleCreateCopy}
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2"
-            >
-              <Copy className="w-4 h-4 mr-2" />
-              Create Copy with Base Properties
-            </Button>
-          </div>
+                <Button
+                  onClick={handleCreateCopy}
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2"
+                >
+                  <Copy className="w-4 h-4 mr-2" />
+                  Create Copy with Base Properties
+                </Button>
+              </div>
 
           {/* Records Table */}
           {records.length > 0 && (
@@ -562,8 +562,4 @@ export function TruancyConfigurationEditor() {
       </div>
     </div>
   )
-}
-
-function generateJSON() {
-  return { placeholder: 'Preview' }
 }
