@@ -3,17 +3,23 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ChevronRight, Search, Code, FileText, Download } from "lucide-react";
+import { ChevronRight, Search, Code, FileText, Download, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
+import { useSession } from "next-auth/react";
 import { StepContent } from "@/components/step-content";
-import { SnippetsContent, snippets } from "@/components/snippets-content";
+import { SnippetsContent } from "@/components/snippets-content";
+import { useSnippets } from "@/hooks/use-snippets";
 import { InteractiveGuides } from "@/components/interactive-guides";
 import { ClientSetupAgent } from "@/components/ClientSetupAgent";
 import logo from "../public/Develop by Abdul Basit.png";
 import Image from "next/image";
 import { SetupsTabs } from "@/components/client-setup/SetupsTabs";
+import Link from "next/link";
+import { ProfileMenu } from "@/components/auth/ProfileMenu";
 
-const sections = [
+// Exported so the global Cmd+K command palette can index these along with
+// snippets (see `components/CommandPalette.tsx`).
+export const sections = [
   { id: "browser", title: "Browser Installation", number: 1 },
   { id: "iis", title: "IIS Setup", number: 2 },
   { id: "dotnet", title: ".NET Installation", number: 3 },
@@ -24,8 +30,16 @@ const sections = [
   { id: "angular", title: "Angular Build", number: 8 },
 ]
 
+export interface SearchEntry {
+  section: string
+  step: string
+  title: string
+  content: string
+  type: "step" | "snippet"
+}
+
 // Search data for global search functionality
-const searchData = [
+export const searchData: SearchEntry[] = [
   // Browser Installation
   {
     section: "browser",
@@ -265,7 +279,8 @@ export function InstallationWizard() {
   const [completedSteps, setCompletedSteps] = useState<Record<string, boolean>>({
     "browser-1": true,
   })
-  const [showSnippets, setShowSnippets] = useState(true) // Default to showing Snippets
+  // Default to the installation wizard — snippets are opened explicitly via the button.
+  const [showSnippets, setShowSnippets] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
   const [searchResults, setSearchResults] = useState<typeof searchData>([])
   const [showSearch, setShowSearch] = useState(false)
@@ -284,6 +299,11 @@ export function InstallationWizard() {
   const [showGuides, setShowGuides] = useState(false); // New state for Guides
   const [showSetupAgent, setShowSetupAgent] = useState(false); // New state for Setup Agent
   const [showSetups, setShowSetups] = useState(false); // New state for Setups
+
+  // Snippets — fetched from API via SWR, shared with <SnippetsContent> via prop.
+  const { snippets } = useSnippets()
+  const { data: session } = useSession()
+  const isAdmin = session?.user?.role === "admin"
 
   const exportProgress = () => {
     const completedSections = sections.filter((s) => getSectionProgress(s.id).percentage === 100)
@@ -405,13 +425,7 @@ export function InstallationWizard() {
           setSearchQuery("")
           setFilteredSnippetId(selectedSnippet.id)
           setSnippetFilter(selectedSnippet.title)
-          toast.success(`Filtered to: ${selectedSnippet.title}`, {
-            style: {
-              background: "#8b5cf6",
-              color: "white",
-              border: "none",
-            },
-          })
+          toast.success(`Filtered to: ${selectedSnippet.title}`)
         }
       }
 
@@ -451,6 +465,31 @@ export function InstallationWizard() {
       document.removeEventListener("keydown", handleKeyDown)
     }
   }, [handleKeyDown])
+
+  // Listen for selections from the global Cmd+K CommandPalette. The
+  // palette dispatches `app:palette-select` with `{ kind, target }` where
+  // kind is `"snippet"` or `"section"`.
+  useEffect(() => {
+    const handler = (event: Event) => {
+      const detail = (event as CustomEvent<{ kind: "snippet" | "section"; target: string }>).detail
+      if (!detail) return
+      if (detail.kind === "snippet") {
+        setShowSnippets(true)
+        setShowGuides(false)
+        setFilteredSnippetId(detail.target)
+        setSnippetFilter("")
+      } else if (detail.kind === "section") {
+        setShowSnippets(false)
+        setShowGuides(false)
+        setActiveSection(detail.target)
+        setFilteredSnippetId(null)
+        setSnippetFilter("")
+      }
+    }
+    window.addEventListener("app:palette-select", handler as EventListener)
+    return () =>
+      window.removeEventListener("app:palette-select", handler as EventListener)
+  }, [])
 
   const toggleStepCompletion = (stepId: string) => {
     setCompletedSteps((prev) => ({
@@ -842,49 +881,70 @@ export function InstallationWizard() {
       >
         {/* Fixed Header */}
         <header className="bg-white border-b border-gray-200 shadow-sm z-20">
-          <div className="max-w-7xl mx-auto flex items-center justify-between p-4">
-            <div className="flex items-center gap-4">
+          <div className="max-w-[95rem] mx-auto flex items-center justify-between gap-4 p-4">
+            <div className="flex items-center gap-4 flex-shrink-0">
               {/* Logo */}
               <Image src={logo || "/placeholder.svg"} alt="Abdul Basit Logo" width={200} height={50} />
             </div>
 
-            <div className="flex items-center gap-4">
-              {/* Setups Button */}
-              <Button
-                onClick={() => {
-                  setShowSetups(!showSetups);
-                  setShowSnippets(false);
-                  setShowGuides(false);
-                  setShowSetupAgent(false);
-                }}
-                variant={showSetups ? "default" : "outline"}
-                className={`gap-2 ${
-                  showSetups
-                    ? "bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white shadow-lg"
-                    : "border-indigo-200 text-indigo-700 hover:bg-indigo-50"
-                }`}
-              >
-                <Code className="w-4 h-4" />
-                {showSetups ? "View Installation Steps" : "Setups"}
-              </Button>
-              {/* Setup Agent Button */}
-              <Button
-                onClick={() => {
-                  setShowSetupAgent(!showSetupAgent);
-                  setShowSnippets(false);
-                  setShowGuides(false);
-                  setShowSetups(false);
-                }}
-                variant={showSetupAgent ? "default" : "outline"}
-                className={`gap-2 ${
-                  showSetupAgent
-                    ? "bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white shadow-lg"
-                    : "border-green-200 text-green-700 hover:bg-green-50"
-                }`}
-              >
-                <Code className="w-4 h-4" />
-                {showSetupAgent ? "View Installation Steps" : "Setup Agent"}
-              </Button>
+            <div className="flex items-center gap-2 flex-wrap justify-end">
+              {/* Admin Panel Button — only for admins */}
+              {isAdmin && (
+                <Button
+                  asChild
+                  variant="outline"
+                  size="sm"
+                  className="gap-2 border-purple-300 text-purple-700 hover:bg-purple-50"
+                >
+                  <Link href="/admin">
+                    <ShieldCheck className="w-4 h-4" />
+                    Admin Panel
+                  </Link>
+                </Button>
+              )}
+
+              {/* Setups Button — visible to admins or users granted the canSeeSetups capability */}
+              {(isAdmin || session?.user?.canSeeSetups) && (
+                <Button
+                  onClick={() => {
+                    setShowSetups(!showSetups);
+                    setShowSnippets(false);
+                    setShowGuides(false);
+                    setShowSetupAgent(false);
+                  }}
+                  variant={showSetups ? "default" : "outline"}
+                  size="sm"
+                  className={`gap-2 ${
+                    showSetups
+                      ? "bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white shadow-lg"
+                      : "border-indigo-200 text-indigo-700 hover:bg-indigo-50"
+                  }`}
+                >
+                  <Code className="w-4 h-4" />
+                  {showSetups ? "View Installation Steps" : "Setups"}
+                </Button>
+              )}
+              {/* Setup Agent (Setup Clients) Button — visible to admins or users granted the canSeeSetupClients capability */}
+              {(isAdmin || session?.user?.canSeeSetupClients) && (
+                <Button
+                  onClick={() => {
+                    setShowSetupAgent(!showSetupAgent);
+                    setShowSnippets(false);
+                    setShowGuides(false);
+                    setShowSetups(false);
+                  }}
+                  variant={showSetupAgent ? "default" : "outline"}
+                  size="sm"
+                  className={`gap-2 ${
+                    showSetupAgent
+                      ? "bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white shadow-lg"
+                      : "border-green-200 text-green-700 hover:bg-green-50"
+                  }`}
+                >
+                  <Code className="w-4 h-4" />
+                  {showSetupAgent ? "View Installation Steps" : "Setup Agent"}
+                </Button>
+              )}
 
               {/* View Snippets Button */}
               <Button
@@ -898,6 +958,7 @@ export function InstallationWizard() {
                   }
                 }}
                 variant={showSnippets ? "default" : "outline"}
+                size="sm"
                 className={`gap-2 ${
                   showSnippets
                     ? "bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white shadow-lg"
@@ -907,13 +968,16 @@ export function InstallationWizard() {
                 <FileText className="w-4 h-4" />
                 {showSnippets ? "View Installation Steps" : "View Snippets"}
               </Button>
+
+              {/* Profile menu — inline with the header so it never overlaps */}
+              <ProfileMenu className="ml-1" />
             </div>
           </div>
         </header>
 
         {/* Scrollable Content */}
         <div className="flex-1 overflow-y-auto bg-gradient-to-br from-gray-50 to-white">
-          <div className="p-8">
+          <div className="p-4">
             <div className="max-w-[95rem] mx-auto">
               {/* Progress Header */}
               {/* Progress Header - Only show for installation steps, not snippets, guides, setup agent, or setups */}
@@ -962,7 +1026,7 @@ export function InstallationWizard() {
               ) : showGuides ? (
                 <InteractiveGuides />
               ) : showSnippets ? (
-                <SnippetsContent filteredSnippetId={filteredSnippetId} onClearFilter={clearSnippetFilter} />
+                <SnippetsContent filteredSnippetId={filteredSnippetId} onClearFilter={clearSnippetFilter} snippets={snippets} />
               ) : (
                 <StepContent
                   activeSection={activeSection}

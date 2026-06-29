@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Download, Eye, Copy, Trash2, Edit2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { JsonPreview } from "./JsonPreview";
 
 interface Record {
   id: string;
@@ -768,47 +769,43 @@ export function TruancyConfigurationEditor() {
           </div>
         ) : (
           /* JSON Preview */
-          <div className="px-8 pt-6 pb-2">
-            <div className="max-w-7xl mx-auto">
-              <div className="bg-slate-900 border border-slate-200 rounded-lg p-6 h-full">
-                <pre className="text-xs text-emerald-600 font-mono whitespace-pre-wrap break-words overflow-auto">
-                  {JSON.stringify(
-                    records.map(({ id, Description, ...rest }) => {
-                      const record = records.find((r) => r.id === id);
-                      return {
-                        _id: { $oid: id.replace("record_", "") },
-                        Title: "",
-                        ClientID: 1,
-                        Role: "",
-                        TotalAbsences: "",
-                        HighlightColor: "#b7effb",
-                        UserType: "campus",
-                        FilterCriteriaTitle: "",
-                        FilterCriteria: "",
-                        FilterCriteriaForPeriodTitle: "",
-                        FilterCriteriaForPeriod: "",
-                        DependentInterventionsFilterCriteriaTitle: "",
-                        DependentInterventionsFilterCriteria: "",
-                        SortOrder: "",
-                        IsEnable: true,
-                        Period: record?.Period,
-                        Action: record?.Action,
-                        Category: record?.Category,
-                        CampusType: record?.CampusType,
-                        ChooseAction: record?.ChooseAction,
-                        IsConsecutive: record?.IsConsecutive,
-                        OccuranceNumber: record?.OccuranceNumber,
-                        TrauncySequence: record?.TrauncySequence,
-                        GracePeriod: record?.GracePeriod,
-                        Description: Description,
-                        CategoryTitle: record?.Category,
-                      };
-                    }),
-                    null,
-                    2,
-                  )}
-                </pre>
-              </div>
+          <div className="px-8 pt-6 pb-2 flex-1 min-h-0 flex flex-col">
+            <div className="max-w-7xl mx-auto w-full flex-1 min-h-0 flex flex-col">
+              <JsonPreview
+                data={records.map(({ id, Description, ...rest }) => {
+                  const record = records.find((r) => r.id === id);
+                  return {
+                    _id: { $oid: id.replace("record_", "") },
+                    Title: "",
+                    ClientID: 1,
+                    Role: "",
+                    TotalAbsences: "",
+                    HighlightColor: "#b7effb",
+                    UserType: "campus",
+                    FilterCriteriaTitle: "",
+                    FilterCriteria: "",
+                    FilterCriteriaForPeriodTitle: "",
+                    FilterCriteriaForPeriod: "",
+                    DependentInterventionsFilterCriteriaTitle: "",
+                    DependentInterventionsFilterCriteria: "",
+                    SortOrder: "",
+                    IsEnable: true,
+                    Period: record?.Period,
+                    Action: record?.Action,
+                    Category: record?.Category,
+                    CampusType: record?.CampusType,
+                    ChooseAction: record?.ChooseAction,
+                    IsConsecutive: record?.IsConsecutive,
+                    OccuranceNumber: record?.OccuranceNumber,
+                    TrauncySequence: record?.TrauncySequence,
+                    GracePeriod: record?.GracePeriod,
+                    Description: Description,
+                    CategoryTitle: record?.Category,
+                  };
+                })}
+                title="Truancy Configuration JSON"
+                filename={`truancy-configuration-${new Date().toISOString().split("T")[0]}.json`}
+              />
             </div>
           </div>
         )}

@@ -1,10 +1,30 @@
 'use client'
 
-import { useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Download, Eye, Copy, Trash2, Upload, ChevronDown, ChevronUp } from 'lucide-react'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import {
+  Download,
+  Eye,
+  Copy,
+  Trash2,
+  Upload,
+  ChevronDown,
+  ChevronUp,
+  Search,
+  Replace,
+} from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
+import { cn } from '@/lib/utils'
+import { JsonPreview } from './JsonPreview'
 
 interface ComponentRecord {
   [key: string]: any
@@ -409,6 +429,264 @@ export function ComponentConfigurationViewer() {
   const [jsonInput, setJsonInput] = useState('')
   const [showUpload, setShowUpload] = useState(false)
 
+  // ---------- search & replace ----------
+  const [findValue, setFindValue] = useState('')
+  const [replaceValue, setReplaceValue] = useState('')
+  const [matchCase, setMatchCase] = useState(false)
+  const [wholeWord, setWholeWord] = useState(false)
+  const [confirmOpen, setConfirmOpen] = useState(false)
+  const [highlightedId, setHighlightedId] = useState<string | null>(null)
+  const highlightTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  /**
+   * Comma-separated needles. Typing `WL1,WL2,WL3` and replacing with
+   * `CG1,CG2,CG3` does a pairwise substitution in one pass. Empty
+   * entries (extra commas) are dropped; trailing/leading whitespace is
+   * trimmed. A single value with no commas still works (one needle).
+   */
+  const findNeedles = useMemo(
+    () =>
+      findValue
+        .split(',')
+        .map((s) => s.trim())
+        .filter((s) => s.length > 0),
+    [findValue],
+  )
+  const replaceValues = useMemo(
+    () =>
+      replaceValue
+        .split(',')
+        .map((s) => s.trim()),
+    [replaceValue],
+  )
+  /** Resolved replacement for needle index `i` (missing tail → ''). */
+  const replacementFor = (i: number) => replaceValues[i] ?? ''
+
+  /**
+   * Walk a value recursively, collecting every string occurrence along
+   * with a stable `path` ("components[3].SubActionTypes[0].WL1") so the
+   * "Find next" button can jump to the matching card.
+   *
+   * Each match carries the needle index it matched against so the
+   * confirm dialog can show per-needle counts ("WL1: 5, WL2: 2, WL3: 1").
+   * Numbers / booleans are intentionally not searched (see plan).
+   */
+  interface MatchHit {
+    compIndex: number
+    path: string
+    /** Original value at this location (always a string for matches). */
+    value: string
+    /** Index into `findNeedles` so we know which needle hit. */
+    needleIdx: number
+    /** String[] segments of the path inside the component (top-level keys). */
+    pathKeys: string[]
+  }
+
+  const matches = useMemo<MatchHit[]>(() => {
+    if (findNeedles.length === 0) return []
+    const out: MatchHit[] = []
+
+    const isWordChar = (c: string) => /[A-Za-z0-9_]/.test(c)
+    /** Returns the index of the first needle that matches `hay`, or -1. */
+    const firstNeedleIndex = (hay: string): number => {
+      const src = matchCase ? hay : hay.toLowerCase()
+      for (let n = 0; n < findNeedles.length; n++) {
+        const ndl = matchCase ? findNeedles[n] : findNeedles[n].toLowerCase()
+        if (ndl.length === 0) continue
+        let i = 0
+        while (i <= src.length - ndl.length) {
+          const at = src.indexOf(ndl, i)
+          if (at === -1) break
+          if (wholeWord) {
+            const before = at === 0 ? '' : src[at - 1]
+            const after = at + ndl.length >= src.length ? '' : src[at + ndl.length]
+            if ((before === '' || !isWordChar(before)) && (after === '' || !isWordChar(after))) {
+              return n
+            }
+            i = at + 1
+          } else {
+            return n
+          }
+        }
+      }
+      return -1
+    }
+
+    const recurse = (compIdx: number, node: any, pathKeys: string[]) => {
+      if (node === null || node === undefined) return
+      if (typeof node === 'string') {
+        const idx = firstNeedleIndex(node)
+        if (idx >= 0) {
+          out.push({
+            compIndex: compIdx,
+            path: `components[${compIdx}]${pathKeys.length ? '.' + pathKeys.join('.') : ''}`,
+            value: node,
+            needleIdx: idx,
+            pathKeys,
+          })
+        }
+        return
+      }
+      if (Array.isArray(node)) {
+        node.forEach((item, i) => recurse(compIdx, item, [...pathKeys, `[${i}]`]))
+        return
+      }
+      if (typeof node === 'object') {
+        for (const k of Object.keys(node)) {
+          if (typeof k === 'string') {
+            const idx = firstNeedleIndex(k)
+            if (idx >= 0) {
+              out.push({
+                compIndex: compIdx,
+                path: `components[${compIdx}].${[...pathKeys, k].filter(Boolean).join('.')}`,
+                value: k,
+                needleIdx: idx,
+                pathKeys: [...pathKeys, k],
+              })
+            }
+          }
+        }
+        for (const [k, v] of Object.entries(node)) {
+          recurse(compIdx, v, [...pathKeys, k])
+        }
+      }
+    }
+
+    components.forEach((c, idx) => recurse(idx, c, []))
+    return out
+  }, [components, findNeedles, matchCase, wholeWord])
+
+  const matchCountByComponent = useMemo(() => {
+    const m = new Map<number, number>()
+    matches.forEach((hit) => m.set(hit.compIndex, (m.get(hit.compIndex) ?? 0) + 1))
+    return m
+  }, [matches])
+
+  const matchCountByNeedle = useMemo(() => {
+    const m = new Map<number, number>()
+    matches.forEach((hit) => m.set(hit.needleIdx, (m.get(hit.needleIdx) ?? 0) + 1))
+    return m
+  }, [matches])
+
+  const pulseCard = (id: string) => {
+    setHighlightedId(id)
+    if (highlightTimer.current) clearTimeout(highlightTimer.current)
+    highlightTimer.current = setTimeout(() => setHighlightedId(null), 1500)
+  }
+
+  const handleFindNext = () => {
+    if (matches.length === 0) {
+      toast({ title: 'No matches', description: 'Try a different search term.', variant: 'destructive' })
+      return
+    }
+    const expandedIdx = components.findIndex((c) => getComponentId(components.indexOf(c)) === expandedId)
+    const startFrom = expandedIdx === -1 ? -1 : expandedIdx
+    const next = matches.find((m) => m.compIndex > startFrom) ?? matches[0]
+    const targetId = getComponentId(next.compIndex)
+    setExpandedId(targetId)
+    pulseCard(targetId)
+    requestAnimationFrame(() => {
+      document
+        .getElementById(`comp-card-${targetId}`)
+        ?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    })
+  }
+
+  /**
+   * Apply every needle/replacement pair (in order) to a single string,
+   * preserving the original runtime type. If `value` isn't a string we
+   * leave it alone — that way a numeric `SequenceNo: 1` is never
+   * rewritten by a search for "1".
+   */
+  const replaceInString = (hay: string): { next: string; replaced: number } => {
+    if (findNeedles.length === 0) return { next: hay, replaced: 0 }
+    let count = 0
+    const src = matchCase ? hay : hay.toLowerCase()
+    const isWordChar = (c: string) => /[A-Za-z0-9_]/.test(c)
+
+    let result = ''
+    let cursor = 0
+    let i = 0
+
+    // We walk the string once. At each index we check needles in order
+    // and take the first match. Ties go to the earlier needle.
+    while (i < hay.length) {
+      let matched = false
+      for (let n = 0; n < findNeedles.length; n++) {
+        const ndl = matchCase ? findNeedles[n] : findNeedles[n].toLowerCase()
+        if (ndl.length === 0) continue
+        if (i + ndl.length > src.length) continue
+        if (src.substr(i, ndl.length) !== ndl) continue
+        if (wholeWord) {
+          const before = i === 0 ? '' : src[i - 1]
+          const after = i + ndl.length >= src.length ? '' : src[i + ndl.length]
+          if (!((before === '' || !isWordChar(before)) && (after === '' || !isWordChar(after)))) {
+            continue
+          }
+        }
+        // matched needle n at position i
+        result += hay.slice(cursor, i) + replacementFor(n)
+        cursor = i + ndl.length
+        count++
+        i = cursor
+        matched = true
+        break
+      }
+      if (!matched) i++
+    }
+    result += hay.slice(cursor)
+    return { next: result, replaced: count }
+  }
+
+  const performReplaceAll = () => {
+    if (findNeedles.length === 0 || matches.length === 0) {
+      setConfirmOpen(false)
+      return
+    }
+    let totalReplaced = 0
+    let componentsTouched = 0
+
+    const rewrite = (node: any): any => {
+      if (typeof node === 'string') {
+        const { next, replaced } = replaceInString(node)
+        totalReplaced += replaced
+        return replaced > 0 ? next : node
+      }
+      if (Array.isArray(node)) {
+        let changed = false
+        const out = node.map((item) => {
+          const r = rewrite(item)
+          if (r !== item) changed = true
+          return r
+        })
+        if (changed) componentsTouched++
+        return out
+      }
+      if (node && typeof node === 'object') {
+        let changed = false
+        const out: Record<string, any> = {}
+        for (const [k, v] of Object.entries(node)) {
+          const { next: newKey, replaced: kReplaced } = replaceInString(k)
+          totalReplaced += kReplaced
+          const r = rewrite(v)
+          if (newKey !== k || r !== v) changed = true
+          out[newKey] = r
+        }
+        if (changed) componentsTouched++
+        return out
+      }
+      return node
+    }
+
+    const next = components.map((c) => rewrite(c))
+    setComponents(next)
+    setConfirmOpen(false)
+    toast({
+      title: 'Replaced',
+      description: `${totalReplaced} occurrence${totalReplaced !== 1 ? 's' : ''} across ${componentsTouched} component${componentsTouched !== 1 ? 's' : ''}.`,
+    })
+  }
+
   const handleLoadJSON = () => {
     try {
       const parsed = JSON.parse(jsonInput)
@@ -530,7 +808,7 @@ export function ComponentConfigurationViewer() {
   }
 
   return (
-    <div className="p-8 max-w-7xl mx-auto space-y-8">
+    <div className="p-8 max-w-7xl mx-auto flex flex-col flex-1 min-h-0 gap-6">
       <div className="flex items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
@@ -602,6 +880,153 @@ export function ComponentConfigurationViewer() {
         </div>
       )}
 
+      {/* ---------- search & replace bar ---------- */}
+      {components.length > 0 && (
+        <div className="bg-white dark:bg-slate-800 border-2 border-indigo-200 dark:border-indigo-800 rounded-lg p-4 shadow-sm">
+          <div className="flex items-center gap-2 mb-3">
+            <Search className="w-4 h-4 text-indigo-600" />
+            <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-100">
+              Smart Search & Replace
+            </h3>
+            <span className="text-xs text-slate-500">
+              comma-separated needles supported (e.g. WL1,WL2,WL3)
+            </span>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-[1fr_1fr_auto_auto] gap-3 items-end">
+            <div>
+              <label className="block text-[11px] font-semibold text-slate-500 mb-1">Find</label>
+              <Input
+                value={findValue}
+                onChange={(e) => setFindValue(e.target.value)}
+                placeholder="e.g. WL1,WL2,WL3"
+                className="h-9 text-sm font-mono"
+              />
+            </div>
+            <div>
+              <label className="block text-[11px] font-semibold text-slate-500 mb-1">Replace with</label>
+              <Input
+                value={replaceValue}
+                onChange={(e) => setReplaceValue(e.target.value)}
+                placeholder="e.g. CG1,CG2,CG3"
+                className="h-9 text-sm font-mono"
+              />
+            </div>
+            <div className="flex items-center gap-3 text-xs text-slate-600 dark:text-slate-300 h-9">
+              <label className="flex items-center gap-1 select-none cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={matchCase}
+                  onChange={(e) => setMatchCase(e.target.checked)}
+                  className="accent-blue-600"
+                />
+                <span>Match case</span>
+              </label>
+              <label className="flex items-center gap-1 select-none cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={wholeWord}
+                  onChange={(e) => setWholeWord(e.target.checked)}
+                  className="accent-blue-600"
+                />
+                <span>Whole word</span>
+              </label>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={handleFindNext}
+                disabled={findNeedles.length === 0 || matches.length === 0}
+                className="gap-1"
+              >
+                <Search className="w-3.5 h-3.5" />
+                Find next
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                onClick={() => setConfirmOpen(true)}
+                disabled={findNeedles.length === 0 || matches.length === 0}
+                className="gap-1 bg-indigo-600 hover:bg-indigo-700 text-white"
+              >
+                <Replace className="w-3.5 h-3.5" />
+                Replace all
+              </Button>
+            </div>
+          </div>
+          <div className="mt-3 text-xs text-slate-600 dark:text-slate-400 font-mono">
+            {findNeedles.length === 0
+              ? 'Type one or more comma-separated values to search (e.g. WL1,WL2,WL3).'
+              : matches.length === 0
+                ? 'No matches.'
+                : (() => {
+                    const perNeedle = findNeedles
+                      .map((ndl, i) => `${ndl}: ${matchCountByNeedle.get(i) ?? 0}`)
+                      .join(', ')
+                    const compWord =
+                      matchCountByComponent.size !== 1 ? 's' : ''
+                    const matchWord = matches.length !== 1 ? 'es' : ''
+                    return `${matches.length} match${matchWord} (${perNeedle}) across ${matchCountByComponent.size} component${compWord}.`
+                  })()}
+          </div>
+        </div>
+      )}
+
+      {/* ---------- confirm dialog ---------- */}
+      <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Replace across the entire configuration?</DialogTitle>
+            <DialogDescription>
+              <p className="mb-2">
+                This will rewrite <strong>{matches.length}</strong> occurrence
+                {matches.length !== 1 ? 's' : ''} across{' '}
+                <strong>{matchCountByComponent.size}</strong> component
+                {matchCountByComponent.size !== 1 ? 's' : ''}. Numeric and
+                boolean fields are not touched.
+              </p>
+              <ul className="text-xs space-y-1 mt-2 max-h-40 overflow-y-auto">
+                {findNeedles.map((ndl, i) => (
+                  <li key={`${ndl}-${i}`}>
+                    <code className="px-1 py-0.5 bg-slate-100 rounded">{ndl}</code>
+                    {' → '}
+                    <code className="px-1 py-0.5 bg-slate-100 rounded">
+                      {replacementFor(i) || '(empty)'}
+                    </code>
+                    <span className="text-slate-400 ml-2">
+                      ({matchCountByNeedle.get(i) ?? 0} match
+                      {(matchCountByNeedle.get(i) ?? 0) !== 1 ? 'es' : ''})
+                    </span>
+                  </li>
+                ))}
+              </ul>
+              {findNeedles.length > replaceValues.filter((v) => v.length > 0).length &&
+                (() => {
+                  const missing = findNeedles.length - replaceValues.length
+                  return (
+                    <p className="text-amber-600 text-xs mt-2">
+                      ⚠ {missing} needle{missing !== 1 ? 's have' : ' has'} no
+                      matching replacement — they'll be cleared to empty.
+                    </p>
+                  )
+                })()}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConfirmOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={performReplaceAll}
+              className="bg-indigo-600 hover:bg-indigo-700 text-white"
+            >
+              Replace all
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {!previewMode && components.length > 0 && (
         <div className="grid grid-cols-1 gap-4">
           {components.map((component, idx) => {
@@ -611,8 +1036,12 @@ export function ComponentConfigurationViewer() {
 
             return (
               <div
+                id={`comp-card-${componentId}`}
                 key={componentId}
-                className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow"
+                className={cn(
+                  "bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow",
+                  highlightedId === componentId && "ring-4 ring-amber-400 ring-offset-2 ring-offset-slate-50",
+                )}
               >
                 {/* Header */}
                 <div
@@ -714,11 +1143,11 @@ export function ComponentConfigurationViewer() {
       )}
 
       {previewMode && components.length > 0 && (
-        <div className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-6">
-          <div className="bg-slate-50 dark:bg-slate-900 p-4 rounded overflow-auto max-h-96 text-xs text-slate-900 dark:text-slate-100 font-mono">
-            <pre>{JSON.stringify(components, null, 2)}</pre>
-          </div>
-        </div>
+        <JsonPreview
+          data={components}
+          title="Component Configuration JSON"
+          filename={`component-configuration-${new Date().toISOString().split('T')[0]}.json`}
+        />
       )}
     </div>
   )
