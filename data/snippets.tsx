@@ -1,3 +1,11 @@
+/**
+ * @deprecated Source of truth now lives in Supabase (`snippets` table).
+ * This file is kept ONLY as input for `scripts/seed-snippets.ts` and can be
+ * deleted once the seeded database is stable in production.
+ *
+ * Snippet data in the browser is fetched from `/api/snippets` via the
+ * `useSnippets()` hook (see hooks/use-snippets.ts).
+ */
 export const snippetsData = [
   {
     id: "frontend-webconfig",

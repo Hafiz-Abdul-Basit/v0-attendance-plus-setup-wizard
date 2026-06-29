@@ -9,14 +9,19 @@ interface ClientDashboardProps {
   clients: ClientSetup[]
   onEdit: (clientId: string) => void
   onGenerateScript: (clientId: string) => void
-  onDelete: (clientId: string) => void
+  /**
+   * Fires when the user clicks the delete button on a client card. The
+   * parent is responsible for showing its own confirmation dialog before
+   * actually deleting — this just opens that dialog.
+   */
+  onRequestDelete: (client: ClientSetup) => void
 }
 
 export function ClientDashboard({
   clients,
   onEdit,
   onGenerateScript,
-  onDelete,
+  onRequestDelete,
 }: ClientDashboardProps) {
   const getStatusColor = (progress: number) => {
     if (progress === 0) return 'bg-red-500'
@@ -112,7 +117,7 @@ export function ClientDashboard({
                     <Button
                       size="sm"
                       variant="destructive"
-                      onClick={() => onDelete(client.id)}
+                      onClick={() => onRequestDelete(client)}
                       title="Delete client"
                       className="flex-1 sm:flex-none hover:bg-red-700"
                     >

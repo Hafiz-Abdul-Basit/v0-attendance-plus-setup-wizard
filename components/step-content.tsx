@@ -490,6 +490,13 @@ Start-Process -FilePath "dotnet-hosting.exe" -ArgumentList "/quiet" -Wait`}
                       C:\Program Files\Erlang OTP
                     </CodeBlock>
                   </div>
+                  <div className="mt-4 flex flex-col gap-1 rounded-md bg-green-50 p-3 text-green-700">
+  <span className="font-semibold">
+    RabbitMQ is now running successfully with:
+  </span>
+  <span>RabbitMQ 4.3.1 ✅</span>
+  <span>Erlang 27.3.4.13 ✅</span>
+</div>
                 </div>
 
                 <div className="space-y-4">
@@ -538,6 +545,7 @@ Start-Process -FilePath "dotnet-hosting.exe" -ArgumentList "/quiet" -Wait`}
                       Server\rabbitmq_server-3.x.x\sbin
                     </CodeBlock>
                   </div>
+                  
                 </div>
 
                 <div className="space-y-4">

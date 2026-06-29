@@ -86,10 +86,24 @@ const config: Config = {
             height: '0',
           },
         },
+        'global-progress-load': {
+          '0%': { transform: 'scaleX(0)' },
+          '60%': { transform: 'scaleX(0.7)' },
+          '100%': { transform: 'scaleX(0.85)' },
+        },
+        'global-progress-done': {
+          '0%': { transform: 'scaleX(0.85)', opacity: '1' },
+          '60%': { transform: 'scaleX(1)', opacity: '1' },
+          '100%': { transform: 'scaleX(1)', opacity: '0' },
+        },
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
         'accordion-up': 'accordion-up 0.2s ease-out',
+        'global-progress-load':
+          'global-progress-load 1.2s cubic-bezier(0.4, 0, 0.2, 1) infinite',
+        'global-progress-done':
+          'global-progress-done 350ms ease-out forwards',
       },
     },
   },
