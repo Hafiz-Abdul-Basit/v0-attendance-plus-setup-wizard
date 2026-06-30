@@ -387,6 +387,92 @@ function InteractiveTable({
   );
 }
 
+/**
+ * Layout-matched skeletons for the initial snippet load.
+ *
+ * The real snippet grid/list (see below) renders an "empty" state when
+ * the SWR fetch hasn't returned yet — which makes new users think the
+ * app is broken. These skeletons mimic the real card / row proportions
+ * and pulse with the existing `animate-pulse` utility so the user
+ * immediately sees the *shape* of what's loading.
+ *
+ * Skeletons are only shown on the initial load (no cached data yet) —
+ * background SWR revalidations after create/edit/delete stay silent.
+ */
+function SnippetGridSkeleton() {
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {Array.from({ length: 6 }).map((_, i) => (
+        <div
+          key={i}
+          className="rounded-xl border-2 border-purple-200 bg-white p-6 shadow-sm min-h-[300px] flex flex-col animate-pulse"
+          aria-hidden="true"
+        >
+          {/* Icon + title row */}
+          <div className="flex items-start gap-4 mb-4">
+            <div className="h-12 w-12 rounded-lg bg-purple-200" />
+            <div className="flex-1 min-w-0 space-y-2">
+              <div className="h-4 w-3/4 rounded bg-gray-200" />
+              <div className="h-4 w-1/2 rounded bg-gray-200" />
+              <div className="h-5 w-20 rounded-full bg-purple-100" />
+            </div>
+          </div>
+
+          {/* Description lines */}
+          <div className="space-y-2 flex-1">
+            <div className="h-3 w-full rounded bg-gray-100" />
+            <div className="h-3 w-11/12 rounded bg-gray-100" />
+            <div className="h-3 w-2/3 rounded bg-gray-100" />
+          </div>
+
+          {/* Footer */}
+          <div className="mt-auto pt-3 border-t border-purple-100 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="h-3 w-32 rounded bg-gray-100" />
+              <div className="h-3 w-12 rounded bg-gray-100" />
+            </div>
+            <div className="flex gap-2">
+              <div className="h-5 w-12 rounded-full bg-purple-50" />
+              <div className="h-5 w-16 rounded-full bg-purple-50" />
+              <div className="h-5 w-10 rounded-full bg-purple-50" />
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function SnippetListSkeleton() {
+  return (
+    <div className="space-y-4" aria-hidden="true">
+      {Array.from({ length: 5 }).map((_, i) => (
+        <div
+          key={i}
+          className="flex items-center gap-4 rounded-xl border-2 border-purple-200 bg-white p-4 shadow-sm animate-pulse"
+        >
+          <div className="h-12 w-12 flex-shrink-0 rounded-lg bg-purple-200" />
+          <div className="flex-1 min-w-0 space-y-2">
+            <div className="flex items-center gap-2">
+              <div className="h-4 w-1/3 rounded bg-gray-200" />
+              <div className="h-4 w-20 rounded-full bg-gray-100" />
+            </div>
+            <div className="h-3 w-2/3 rounded bg-gray-100" />
+            <div className="flex gap-2">
+              <div className="h-3 w-12 rounded bg-gray-100" />
+              <div className="h-3 w-16 rounded bg-gray-100" />
+            </div>
+          </div>
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <div className="h-8 w-8 rounded-lg bg-gray-100" />
+            <div className="h-8 w-8 rounded-lg bg-gray-100" />
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
 export function SnippetsContent({
   filteredSnippetId,
   onClearFilter,
@@ -400,6 +486,10 @@ export function SnippetsContent({
     mutate: refreshSnippets,
   } = useSnippets()
   const snippetsData: ApiSnippet[] = snippetsProp ?? fetchedSnippets
+  // Show skeletons only on the very first render — once any snippets
+  // have been observed, SWR background revalidations (after create/edit/
+  // delete) stay silent so the user isn't re-shown an empty state.
+  const isInitialLoad = isSnippetsLoading && snippetsData.length === 0
   const { data: session } = useSession()
   const viewerId = session?.user?.id ?? null
   const viewerIsAdmin = session?.user?.role === "admin"
@@ -632,9 +722,16 @@ export function SnippetsContent({
           <div className="flex items-center gap-3">
             {/* Stats Cards */}
             <div className="bg-white/70 backdrop-blur-sm rounded-lg px-4 py-1 border border-purple-200 flex items-center gap-3">
-              <div className="text-lg font-bold text-purple-600">
-                {snippetsData.length}
-              </div>
+              {isInitialLoad ? (
+                <div
+                  className="h-5 w-6 rounded bg-gray-200 animate-pulse"
+                  aria-hidden="true"
+                />
+              ) : (
+                <div className="text-lg font-bold text-purple-600">
+                  {snippetsData.length}
+                </div>
+              )}
               <div className="text-sm text-gray-600">Snippets</div>
             </div>
 
@@ -859,7 +956,13 @@ export function SnippetsContent({
       </div>
 
       {/* Snippets Display */}
-      {filteredSnippets.length ? (
+      {isInitialLoad ? (
+        viewMode === "grid" ? (
+          <SnippetGridSkeleton />
+        ) : (
+          <SnippetListSkeleton />
+        )
+      ) : filteredSnippets.length ? (
         <div
           className={
             viewMode === "grid"
