@@ -139,47 +139,34 @@ export function ProfileMenu({ align = "right", className, compact = false }: Pro
                 >
                   {email}
                 </div>
-                <div className="mt-1">
-                  <span
-                    className={cn(
-                      "inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider",
-                      isAdmin
-                        ? "bg-purple-100 text-purple-700 border border-purple-200"
-                        : "bg-gray-100 text-gray-700 border border-gray-200",
-                    )}
-                  >
-                    {isAdmin ? (
+                {isAdmin && (
+                  <div className="mt-1">
+                    <span
+                      className={cn(
+                        "inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider",
+                        "bg-purple-100 text-purple-700 border border-purple-200",
+                      )}
+                    >
                       <ShieldCheck className="w-3 h-3" />
-                    ) : (
-                      <UserIcon className="w-3 h-3" />
-                    )}
-                    {isAdmin ? "Admin" : "User"}
-                  </span>
-                </div>
+                      Admin
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
           </div>
 
           <div className="py-1">
-            <Link
-              href="/admin"
-              onClick={() => setOpen(false)}
-              className={cn(
-                "flex items-center gap-2 px-4 py-2 text-sm",
-                isAdmin
-                  ? "text-gray-700 hover:bg-purple-50 hover:text-purple-700"
-                  : "text-gray-400 cursor-not-allowed pointer-events-none",
-              )}
-              aria-disabled={!isAdmin}
-            >
-              <ShieldCheck className="w-4 h-4" />
-              Admin Panel
-              {!isAdmin && (
-                <span className="ml-auto text-[10px] uppercase tracking-wider text-gray-400">
-                  Restricted
-                </span>
-              )}
-            </Link>
+            {isAdmin && (
+              <Link
+                href="/admin"
+                onClick={() => setOpen(false)}
+                className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-purple-50 hover:text-purple-700"
+              >
+                <ShieldCheck className="w-4 h-4" />
+                Admin Panel
+              </Link>
+            )}
 
             <button
               type="button"
