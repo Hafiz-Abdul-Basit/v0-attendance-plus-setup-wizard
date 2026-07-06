@@ -33,7 +33,7 @@ interface ComponentRecord {
 // All components from your ComponentConfiguration.json
 const DEFAULT_COMPONENTS: ComponentRecord[] = [
   {
-    "_id": { "$oid": "6515fa7ba945b7ba77f6cd5d" },
+
     "Title": "Warning Letter",
     "ClientID": 1,
     "WebPartID": "ABWPWL",
@@ -711,9 +711,10 @@ export function ComponentConfigurationViewer() {
     const original = components[index]
     if (!original) return
     const duplicate = JSON.parse(JSON.stringify(original))
-    if (duplicate._id?.$oid) {
-      duplicate._id.$oid = `${Date.now()}_dup`
-    }
+    // Drop _id entirely — Mongo assigns a real ObjectId when this is
+    // inserted. A fake string like `${Date.now()}_dup` isn't a valid
+    // ObjectId and would break inserts/queries downstream.
+    delete duplicate._id
     setComponents([...components, duplicate])
     toast({
       title: 'Success',
