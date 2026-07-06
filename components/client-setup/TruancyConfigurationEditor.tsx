@@ -32,7 +32,7 @@ export function TruancyConfigurationEditor() {
     Period: "SchoolYear",
     Action: "Truancy Warning Letter 1",
     Category: "UnExcused Absence",
-    CampusType: "'Elementary School'; 'Middle School'; 'High School'",
+    CampusType: "'Elementary School'; 'Middle School'; 'High School'; 'Alternative School'",
     ChooseAction: "Truancy Warning Letter 1:WL1",
     IsConsecutive: false,
     Description: "Interventions to be proposed on 3 absences in school year",
@@ -48,6 +48,7 @@ export function TruancyConfigurationEditor() {
     "1st Semester",
     "2nd Semester",
     "6 months",
+    "4 weeks",
     "nine fixed weeks",
   ];
   const categoryOptions = [
@@ -68,9 +69,16 @@ export function TruancyConfigurationEditor() {
   ];
   const isConsecutiveOptions = [true, false];
 
+  // Internal-only key generator for React state (list keys, edit/delete tracking).
+  // This is NEVER sent to Mongo as _id — Mongo generates its own ObjectId on insert.
+  const generateInternalKey = () =>
+    typeof crypto !== "undefined" && "randomUUID" in crypto
+      ? crypto.randomUUID()
+      : `key_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+
   const handleCreateCopy = () => {
     const newRecord: Record = {
-      id: `record_${Date.now()}`,
+      id: generateInternalKey(),
       Period: baseProperties.Period,
       Action: baseProperties.Action,
       Category: baseProperties.Category,
@@ -99,7 +107,19 @@ export function TruancyConfigurationEditor() {
 
   const handleUpdateRecord = (id: string, field: keyof Record, value: any) => {
     setRecords(
-      records.map((r) => (r.id === id ? { ...r, [field]: value } : r)),
+      records.map((r) => {
+        if (r.id !== id) return r;
+        const updated = { ...r, [field]: value };
+        // Auto-sync ChooseAction's prefix with Action, keeping whatever
+        // code suffix already follows the colon (e.g. "...:WL1")
+        if (field === "Action") {
+          const colonIndex = r.ChooseAction.indexOf(":");
+          const suffix =
+            colonIndex >= 0 ? r.ChooseAction.slice(colonIndex + 1) : "";
+          updated.ChooseAction = suffix ? `${value}:${suffix}` : (value as string);
+        }
+        return updated;
+      }),
     );
   };
 
@@ -109,8 +129,48 @@ export function TruancyConfigurationEditor() {
     if (field === "Category") {
       updated.CategoryTitle = value;
     }
+    // Auto-sync ChooseAction's prefix with Action, keeping whatever
+    // code suffix already follows the colon (e.g. "...:WL1")
+    if (field === "Action") {
+      const colonIndex = baseProperties.ChooseAction.indexOf(":");
+      const suffix =
+        colonIndex >= 0
+          ? baseProperties.ChooseAction.slice(colonIndex + 1)
+          : "";
+      updated.ChooseAction = suffix ? `${value}:${suffix}` : value;
+    }
     setBaseProperties(updated);
   };
+
+  // Builds the Mongo-ready document shape. No _id field is included —
+  // MongoDB assigns its own ObjectId when the document is inserted.
+  const toExportShape = (record: Record) => ({
+    Title: "",
+    ClientID: 1,
+    Role: "",
+    TotalAbsences: "",
+    HighlightColor: "#b7effb",
+    UserType: "campus",
+    FilterCriteriaTitle: "",
+    FilterCriteria: "",
+    FilterCriteriaForPeriodTitle: "",
+    FilterCriteriaForPeriod: "",
+    DependentInterventionsFilterCriteriaTitle: "",
+    DependentInterventionsFilterCriteria: "",
+    SortOrder: "",
+    IsEnable: true,
+    Period: record.Period,
+    Action: record.Action,
+    Category: record.Category,
+    CampusType: record.CampusType,
+    ChooseAction: record.ChooseAction,
+    IsConsecutive: record.IsConsecutive,
+    OccuranceNumber: record.OccuranceNumber,
+    TrauncySequence: record.TrauncySequence,
+    GracePeriod: record.GracePeriod,
+    Description: record.Description,
+    CategoryTitle: record.Category,
+  });
 
   const handleExportJSON = () => {
     if (records.length === 0) {
@@ -122,37 +182,7 @@ export function TruancyConfigurationEditor() {
       return;
     }
 
-    const exportData = records.map(({ id, Description, ...rest }) => {
-      const record = records.find((r) => r.id === id);
-      return {
-        _id: { $oid: id.replace("record_", "") },
-        Title: "",
-        ClientID: 1,
-        Role: "",
-        TotalAbsences: "",
-        HighlightColor: "#b7effb",
-        UserType: "campus",
-        FilterCriteriaTitle: "",
-        FilterCriteria: "",
-        FilterCriteriaForPeriodTitle: "",
-        FilterCriteriaForPeriod: "",
-        DependentInterventionsFilterCriteriaTitle: "",
-        DependentInterventionsFilterCriteria: "",
-        SortOrder: "",
-        IsEnable: true,
-        Period: record?.Period,
-        Action: record?.Action,
-        Category: record?.Category,
-        CampusType: record?.CampusType,
-        ChooseAction: record?.ChooseAction,
-        IsConsecutive: record?.IsConsecutive,
-        OccuranceNumber: record?.OccuranceNumber,
-        TrauncySequence: record?.TrauncySequence,
-        GracePeriod: record?.GracePeriod,
-        Description: Description,
-        CategoryTitle: record?.Category,
-      };
-    });
+    const exportData = records.map(toExportShape);
 
     const dataStr = JSON.stringify(exportData, null, 2);
     const blob = new Blob([dataStr], { type: "application/json" });
@@ -248,10 +278,7 @@ export function TruancyConfigurationEditor() {
                     <Input
                       value={baseProperties.Action}
                       onChange={(e) =>
-                        setBaseProperties({
-                          ...baseProperties,
-                          Action: e.target.value,
-                        })
+                        handleUpdateBaseProperty("Action", e.target.value)
                       }
                       placeholder="e.g., Truancy Warning Letter 1"
                     />
@@ -772,37 +799,7 @@ export function TruancyConfigurationEditor() {
           <div className="px-8 pt-6 pb-2 flex-1 min-h-0 flex flex-col">
             <div className="max-w-7xl mx-auto w-full flex-1 min-h-0 flex flex-col">
               <JsonPreview
-                data={records.map(({ id, Description, ...rest }) => {
-                  const record = records.find((r) => r.id === id);
-                  return {
-                    _id: { $oid: id.replace("record_", "") },
-                    Title: "",
-                    ClientID: 1,
-                    Role: "",
-                    TotalAbsences: "",
-                    HighlightColor: "#b7effb",
-                    UserType: "campus",
-                    FilterCriteriaTitle: "",
-                    FilterCriteria: "",
-                    FilterCriteriaForPeriodTitle: "",
-                    FilterCriteriaForPeriod: "",
-                    DependentInterventionsFilterCriteriaTitle: "",
-                    DependentInterventionsFilterCriteria: "",
-                    SortOrder: "",
-                    IsEnable: true,
-                    Period: record?.Period,
-                    Action: record?.Action,
-                    Category: record?.Category,
-                    CampusType: record?.CampusType,
-                    ChooseAction: record?.ChooseAction,
-                    IsConsecutive: record?.IsConsecutive,
-                    OccuranceNumber: record?.OccuranceNumber,
-                    TrauncySequence: record?.TrauncySequence,
-                    GracePeriod: record?.GracePeriod,
-                    Description: Description,
-                    CategoryTitle: record?.Category,
-                  };
-                })}
+                data={records.map(toExportShape)}
                 title="Truancy Configuration JSON"
                 filename={`truancy-configuration-${new Date().toISOString().split("T")[0]}.json`}
               />
