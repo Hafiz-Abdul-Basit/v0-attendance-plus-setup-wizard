@@ -10,6 +10,7 @@ import { SnippetsContent, snippets } from "@/components/snippets-content"
 import { InteractiveGuides } from "@/components/interactive-guides"
 import { ClientSetupAgent } from "@/components/ClientSetupAgent"
 import { SetupsTabs } from "@/components/client-setup/SetupsTabs"
+import { InstallationStepsViewer } from "@/components/client-setup/InstallationStepsViewer"
 import logo from "../public/Develop by Abdul Basit.png"
 import Image from "next/image"
 
@@ -284,6 +285,7 @@ export function InstallationWizard() {
   const [showGuides, setShowGuides] = useState(false) // New state for Guides
   const [showSetupAgent, setShowSetupAgent] = useState(false) // New state for Setup Agent
   const [showSetups, setShowSetups] = useState(false) // New state for Setups
+  const [showInstallationSteps, setShowInstallationSteps] = useState(false) // New state for Installation Steps
 
   const exportProgress = () => {
     const completedSections = sections.filter((s) => getSectionProgress(s.id).percentage === 100)
@@ -838,7 +840,7 @@ export function InstallationWizard() {
 
       {/* Main Content Area */}
       <main
-        className={`flex-1 ${!showSnippets && !showGuides && !showSetupAgent && !showSetups ? "ml-80" : "ml-0"} flex flex-col h-screen overflow-hidden`}
+        className={`flex-1 ${!showSnippets && !showGuides && !showSetupAgent && !showSetups && !showInstallationSteps ? "ml-80" : "ml-0"} flex flex-col h-screen overflow-hidden`}
       >
         {/* Fixed Header */}
         <header className="bg-white border-b border-gray-200 shadow-sm z-20">
@@ -849,6 +851,23 @@ export function InstallationWizard() {
             </div>
 
             <div className="flex items-center gap-4">
+              {/* Installation Steps Button */}
+              <Button
+                onClick={() => {
+                  setShowInstallationSteps(!showInstallationSteps)
+                  setShowSnippets(false)
+                  setShowGuides(false)
+                  setShowSetups(false)
+                  setShowSetupAgent(false)
+                }}
+                variant={showInstallationSteps ? 'default' : 'outline'}
+                size="sm"
+                className="gap-2"
+              >
+                <FileText className="w-4 h-4" />
+                Installation Steps
+              </Button>
+
               {/* Setups Button */}
               <Button
                 onClick={() => {
@@ -956,7 +975,9 @@ export function InstallationWizard() {
               )}
 
               {/* Content */}
-              {showSetups ? (
+              {showInstallationSteps ? (
+                <InstallationStepsViewer />
+              ) : showSetups ? (
                 <SetupsTabs />
               ) : showSetupAgent ? (
                 <ClientSetupAgent />
