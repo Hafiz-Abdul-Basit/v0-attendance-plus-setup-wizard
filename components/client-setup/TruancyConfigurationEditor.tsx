@@ -512,6 +512,7 @@ export function TruancyConfigurationEditor() {
                 </Button>
               </div>
             </div>
+            </div>
           </div>
         ) : (
           // JSON Preview
