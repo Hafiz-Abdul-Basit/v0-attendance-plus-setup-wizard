@@ -95,9 +95,3 @@ div#v0-built-with-button-39f1df66-2902-4a9d-a54a-e8e5ca4c3a8c {
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: #94a3b8;
 }
-[data-sonner-toast] [data-close-button] {
-  top: 8px !important;
-  right: 8px !important;
-  left: auto !important;
-  transform: none !important;
-}

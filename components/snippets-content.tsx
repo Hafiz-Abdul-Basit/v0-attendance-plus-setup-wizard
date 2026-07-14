@@ -4,7 +4,6 @@ import React from "react";
 import type { ReactElement } from "react";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
-import { useSession } from "next-auth/react";
 import {
   Code2,
   Database,
@@ -36,9 +35,6 @@ import {
   Folder,
   FolderOpen,
   Copy,
-  Pencil,
-  Edit3,
-  User as UserIcon,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -49,31 +45,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { ConfirmDialog } from "@/components/ui/confirm-dialog";
-import { useSnippets, type ApiSnippet } from "@/hooks/use-snippets";
-import { SnippetEditorModal } from "@/components/snippet-editor-modal";
-import { cn } from "@/lib/utils";
-
-/**
- * Lightweight relative-time formatter — no dependency on date-fns / dayjs.
- * Uses Intl.RelativeTimeFormat which is supported in all modern browsers
- * and Node 18+.
- */
-function formatRelative(input?: string | Date | null): string {
-  if (!input) return ""
-  const date = typeof input === "string" ? new Date(input) : input
-  if (Number.isNaN(date.getTime())) return ""
-  const diffMs = date.getTime() - Date.now()
-  const absSec = Math.round(Math.abs(diffMs) / 1000)
-  const rtf = new Intl.RelativeTimeFormat("en", { numeric: "auto" })
-  if (absSec < 60) return rtf.format(Math.round(diffMs / 1000), "second")
-  if (absSec < 3600) return rtf.format(Math.round(diffMs / 60_000), "minute")
-  if (absSec < 86_400) return rtf.format(Math.round(diffMs / 3_600_000), "hour")
-  if (absSec < 604_800) return rtf.format(Math.round(diffMs / 86_400_000), "day")
-  if (absSec < 2_592_000) return rtf.format(Math.round(diffMs / 604_800_000), "week")
-  if (absSec < 31_536_000) return rtf.format(Math.round(diffMs / 2_592_000_000), "month")
-  return rtf.format(Math.round(diffMs / 31_536_000_000), "year")
-}
+import { snippetsData } from "@/data/snippets";
 
 // Icon mapping for dynamic icons
 const iconMap: Record<string, ReactElement> = {
@@ -131,11 +103,11 @@ const folders = {
     color: "bg-indigo-600",
     description: "Reference materials and documentation",
   },
-  "Cloud & Networking": {
-    name: "Cloud & Networking",
+  "Tools & Apps": {
+    name: "Tools & Apps",
     icon: "Wrench",
     color: "bg-teal-600",
-    description: "Cloud & Networking Scripts",
+    description: "Useful applications and utilities",
   },
   "Quick Scripts": {
     name: "Quick Scripts",
@@ -151,8 +123,6 @@ type ViewMode = "grid" | "list";
 interface SnippetsContentProps {
   filteredSnippetId?: string | null;
   onClearFilter?: () => void;
-  /** Optional pre-fetched snippet list (avoids duplicate SWR fetch in the parent). */
-  snippets?: ApiSnippet[];
 }
 
 // Interactive Table Component
@@ -175,7 +145,7 @@ function InteractiveTable({
     const csvContent = [
       headers.join(","),
       ...tableData.map((row) =>
-        headers.map((header) => `"${row[header]}"`).join(","),
+        headers.map((header) => `"${row[header]}"`).join(",")
       ),
     ].join("\n");
 
@@ -194,7 +164,7 @@ function InteractiveTable({
     const csvContent = [
       headers.join("\t"),
       ...tableData.map((row) =>
-        headers.map((header) => row[header]).join("\t"),
+        headers.map((header) => row[header]).join("\t")
       ),
     ].join("\n");
 
@@ -387,120 +357,16 @@ function InteractiveTable({
   );
 }
 
-/**
- * Layout-matched skeletons for the initial snippet load.
- *
- * The real snippet grid/list (see below) renders an "empty" state when
- * the SWR fetch hasn't returned yet — which makes new users think the
- * app is broken. These skeletons mimic the real card / row proportions
- * and pulse with the existing `animate-pulse` utility so the user
- * immediately sees the *shape* of what's loading.
- *
- * Skeletons are only shown on the initial load (no cached data yet) —
- * background SWR revalidations after create/edit/delete stay silent.
- */
-function SnippetGridSkeleton() {
-  return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      {Array.from({ length: 6 }).map((_, i) => (
-        <div
-          key={i}
-          className="rounded-xl border-2 border-purple-200 bg-white p-6 shadow-sm min-h-[300px] flex flex-col animate-pulse"
-          aria-hidden="true"
-        >
-          {/* Icon + title row */}
-          <div className="flex items-start gap-4 mb-4">
-            <div className="h-12 w-12 rounded-lg bg-purple-200" />
-            <div className="flex-1 min-w-0 space-y-2">
-              <div className="h-4 w-3/4 rounded bg-gray-200" />
-              <div className="h-4 w-1/2 rounded bg-gray-200" />
-              <div className="h-5 w-20 rounded-full bg-purple-100" />
-            </div>
-          </div>
-
-          {/* Description lines */}
-          <div className="space-y-2 flex-1">
-            <div className="h-3 w-full rounded bg-gray-100" />
-            <div className="h-3 w-11/12 rounded bg-gray-100" />
-            <div className="h-3 w-2/3 rounded bg-gray-100" />
-          </div>
-
-          {/* Footer */}
-          <div className="mt-auto pt-3 border-t border-purple-100 space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="h-3 w-32 rounded bg-gray-100" />
-              <div className="h-3 w-12 rounded bg-gray-100" />
-            </div>
-            <div className="flex gap-2">
-              <div className="h-5 w-12 rounded-full bg-purple-50" />
-              <div className="h-5 w-16 rounded-full bg-purple-50" />
-              <div className="h-5 w-10 rounded-full bg-purple-50" />
-            </div>
-          </div>
-        </div>
-      ))}
-    </div>
-  )
-}
-
-function SnippetListSkeleton() {
-  return (
-    <div className="space-y-4" aria-hidden="true">
-      {Array.from({ length: 5 }).map((_, i) => (
-        <div
-          key={i}
-          className="flex items-center gap-4 rounded-xl border-2 border-purple-200 bg-white p-4 shadow-sm animate-pulse"
-        >
-          <div className="h-12 w-12 flex-shrink-0 rounded-lg bg-purple-200" />
-          <div className="flex-1 min-w-0 space-y-2">
-            <div className="flex items-center gap-2">
-              <div className="h-4 w-1/3 rounded bg-gray-200" />
-              <div className="h-4 w-20 rounded-full bg-gray-100" />
-            </div>
-            <div className="h-3 w-2/3 rounded bg-gray-100" />
-            <div className="flex gap-2">
-              <div className="h-3 w-12 rounded bg-gray-100" />
-              <div className="h-3 w-16 rounded bg-gray-100" />
-            </div>
-          </div>
-          <div className="flex items-center gap-2 flex-shrink-0">
-            <div className="h-8 w-8 rounded-lg bg-gray-100" />
-            <div className="h-8 w-8 rounded-lg bg-gray-100" />
-          </div>
-        </div>
-      ))}
-    </div>
-  )
-}
-
 export function SnippetsContent({
   filteredSnippetId,
   onClearFilter,
-  snippets: snippetsProp,
 }: SnippetsContentProps) {
-  // Snippet data source — prefer prop-injected list (avoids double fetch),
-  // otherwise fall back to the SWR hook.
-  const {
-    snippets: fetchedSnippets,
-    isLoading: isSnippetsLoading,
-    mutate: refreshSnippets,
-  } = useSnippets()
-  const snippetsData: ApiSnippet[] = snippetsProp ?? fetchedSnippets
-  // Show skeletons only on the very first render — once any snippets
-  // have been observed, SWR background revalidations (after create/edit/
-  // delete) stay silent so the user isn't re-shown an empty state.
-  const isInitialLoad = isSnippetsLoading && snippetsData.length === 0
-  const { data: session } = useSession()
-  const viewerId = session?.user?.id ?? null
-  const viewerIsAdmin = session?.user?.role === "admin"
-  const isSignedIn = Boolean(session?.user)
-
   // State management
   const [selectedSnippetCode, setSelectedSnippetCode] = useState<string | null>(
-    null,
+    null
   );
   const [isSnippetModalOpen, setIsSnippetModalOpen] = useState(false);
-  const [currentSnippet, setCurrentSnippet] = useState<ApiSnippet | null>(null);
+  const [currentSnippet, setCurrentSnippet] = useState<any>(null);
   const [localSearchQuery, setLocalSearchQuery] = useState("");
   const [selectedFolder, setSelectedFolder] = useState<string | null>(null);
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
@@ -508,20 +374,6 @@ export function SnippetsContent({
   const [searchHistory, setSearchHistory] = useState<string[]>([]);
   const [showInteractiveTable, setShowInteractiveTable] = useState(false);
   const [interactiveSnippet, setInteractiveSnippet] = useState<any>(null);
-
-  // CRUD modal state
-  const [editorOpen, setEditorOpen] = useState(false);
-  const [editorMode, setEditorMode] = useState<"create" | "edit">("create");
-  const [editingSnippet, setEditingSnippet] = useState<ApiSnippet | null>(null);
-
-  // Delete confirmation state — click "Delete" → setPendingDelete(snip)
-  // → ConfirmDialog opens. onConfirm fires the actual fetch.
-  const [pendingDelete, setPendingDelete] = useState<ApiSnippet | null>(null);
-  const [deleting, setDeleting] = useState(false);
-
-  /** Can the current viewer edit/delete this snippet? */
-  const canManage = (snip: ApiSnippet) =>
-    Boolean(viewerIsAdmin || (viewerId && snip.createdBy === viewerId))
 
   // Load favorites from localStorage
   useEffect(() => {
@@ -535,7 +387,7 @@ export function SnippetsContent({
   const saveFavorites = (newFavorites: Set<string>) => {
     localStorage.setItem(
       "snippet-favorites",
-      JSON.stringify([...newFavorites]),
+      JSON.stringify([...newFavorites])
     );
     setFavorites(newFavorites);
   };
@@ -545,7 +397,9 @@ export function SnippetsContent({
    *  ------------------------------------------------------------ */
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
-    toast.success("Copied to clipboard!");
+    toast.success("Copied to clipboard!", {
+      style: { background: "#10b981", color: "white", border: "none" },
+    });
   };
 
   const toggleFavorite = (snippetId: string) => {
@@ -594,7 +448,7 @@ export function SnippetsContent({
           s.title.toLowerCase().includes(query) ||
           s.description.toLowerCase().includes(query) ||
           s.content.toLowerCase().includes(query) ||
-          s.tags.some((tag) => tag.toLowerCase().includes(query)),
+          s.tags.some((tag) => tag.toLowerCase().includes(query))
       );
     }
 
@@ -604,7 +458,7 @@ export function SnippetsContent({
   const filteredSnippets = getFilteredSnippets();
 
   /** Load snippet content and open modal */
-  const handleSnippetClick = (snippet: ApiSnippet) => {
+  const handleSnippetClick = (snippet: any) => {
     if (snippet.isInteractive && snippet.content === "INTERACTIVE_TABLE") {
       setInteractiveSnippet(snippet);
       setShowInteractiveTable(true);
@@ -615,60 +469,6 @@ export function SnippetsContent({
     setSelectedSnippetCode(snippet.content);
     setIsSnippetModalOpen(true);
     snippet.lastUsed = new Date();
-  };
-
-  /** Open the create modal */
-  const openCreate = () => {
-    setEditingSnippet(null);
-    setEditorMode("create");
-    setEditorOpen(true);
-  };
-
-  /** Open the edit modal pre-filled with an existing snippet */
-  const openEdit = (snip: ApiSnippet, e?: React.MouseEvent) => {
-    e?.stopPropagation();
-    setEditingSnippet(snip);
-    setEditorMode("edit");
-    setEditorOpen(true);
-  };
-
-  /** Click handler for the Delete button — just opens the ConfirmDialog */
-  const handleDelete = (snip: ApiSnippet, e?: React.MouseEvent) => {
-    e?.stopPropagation();
-    setPendingDelete(snip);
-  };
-
-  /** Called by the ConfirmDialog's onConfirm — does the actual API delete */
-  const confirmDelete = async () => {
-    if (!pendingDelete) return;
-    const target = pendingDelete;
-    setDeleting(true);
-    try {
-      const res = await fetch(`/api/snippets/${target.id}`, {
-        method: "DELETE",
-      });
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({ error: "Delete failed" }));
-        throw new Error(data.error || `Delete failed (${res.status})`);
-      }
-      toast.success("Snippet deleted");
-      if (currentSnippet?.id === target.id) {
-        setIsSnippetModalOpen(false);
-        setCurrentSnippet(null);
-      }
-      await refreshSnippets();
-      setPendingDelete(null);
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : "Delete failed";
-      toast.error(msg);
-    } finally {
-      setDeleting(false);
-    }
-  };
-
-  /** Called by the editor modal after a successful save */
-  const handleSaved = async (_saved: ApiSnippet) => {
-    await refreshSnippets();
   };
 
   // Get folder statistics
@@ -722,16 +522,9 @@ export function SnippetsContent({
           <div className="flex items-center gap-3">
             {/* Stats Cards */}
             <div className="bg-white/70 backdrop-blur-sm rounded-lg px-4 py-1 border border-purple-200 flex items-center gap-3">
-              {isInitialLoad ? (
-                <div
-                  className="h-5 w-6 rounded bg-gray-200 animate-pulse"
-                  aria-hidden="true"
-                />
-              ) : (
-                <div className="text-lg font-bold text-purple-600">
-                  {snippetsData.length}
-                </div>
-              )}
+              <div className="text-lg font-bold text-purple-600">
+                {snippetsData.length}
+              </div>
               <div className="text-sm text-gray-600">Snippets</div>
             </div>
 
@@ -759,17 +552,6 @@ export function SnippetsContent({
               <Download className="w-4 h-4" />
               Export All
             </Button>
-
-            {isSignedIn && (
-              <Button
-                size="sm"
-                onClick={openCreate}
-                className="gap-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white shadow-md"
-              >
-                <Plus className="w-4 h-4" />
-                New Snippet
-              </Button>
-            )}
           </div>
         </div>
 
@@ -900,7 +682,7 @@ export function SnippetsContent({
                 const isSelected = selectedFolder === folderName;
 
                 return (
-                  <button
+                   <button
                     key={folderName}
                     onClick={() =>
                       setSelectedFolder(isSelected ? null : folderName)
@@ -953,16 +735,12 @@ export function SnippetsContent({
             </div>
           </div>
         )}
+
+       
       </div>
 
       {/* Snippets Display */}
-      {isInitialLoad ? (
-        viewMode === "grid" ? (
-          <SnippetGridSkeleton />
-        ) : (
-          <SnippetListSkeleton />
-        )
-      ) : filteredSnippets.length ? (
+      {filteredSnippets.length ? (
         <div
           className={
             viewMode === "grid"
@@ -999,25 +777,13 @@ export function SnippetsContent({
                     <p className="text-sm text-gray-600 line-clamp-1">
                       {snip.description}
                     </p>
-                    <div className="flex items-center gap-2 mt-2 flex-wrap">
-                      {snip.authorName && (
-                        <span className="text-xs text-gray-700 font-medium">
-                          by {snip.authorName}
-                        </span>
-                      )}
-                      {snip.updatedAt && (
-                        <>
-                          <span className="text-xs text-gray-300">•</span>
-                          <span
-                            className="text-xs text-gray-500"
-                            title={new Date(snip.updatedAt).toLocaleString()}
-                          >
-                            updated {formatRelative(snip.updatedAt)}
-                          </span>
-                        </>
-                      )}
+                    <div className="flex items-center gap-2 mt-2">
                       <span className="text-xs text-gray-400">
                         {snip.language}
+                      </span>
+                      <span className="text-xs text-gray-400">•</span>
+                      <span className="text-xs text-gray-400">
+                        {new Date(snip.lastUsed).toLocaleDateString()}
                       </span>
                       <div className="flex gap-1 ml-auto">
                         {snip.tags.slice(0, 3).map((tag) => (
@@ -1033,24 +799,6 @@ export function SnippetsContent({
                   </div>
 
                   <div className="flex items-center gap-2 flex-shrink-0">
-                    {canManage(snip) && (
-                      <>
-                        <button
-                          onClick={(e) => openEdit(snip, e)}
-                          className="p-2 rounded-lg text-blue-600 hover:bg-blue-50"
-                          aria-label={`Edit ${snip.title}`}
-                        >
-                          <Pencil className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={(e) => handleDelete(snip, e)}
-                          className="p-2 rounded-lg text-red-600 hover:bg-red-50"
-                          aria-label={`Delete ${snip.title}`}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </>
-                    )}
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
@@ -1077,7 +825,7 @@ export function SnippetsContent({
             return (
               <div
                 key={snip.id}
-                className="group relative cursor-pointer rounded-xl border-2 border-purple-200 hover:border-purple-300 bg-white p-6 shadow-sm hover:shadow-xl transition-all duration-300 min-h-[300px] flex flex-col hover:scale-[1.02] transform"
+                className="group relative cursor-pointer rounded-xl border-2 border-purple-200 hover:border-purple-300 bg-white p-6 shadow-sm hover:shadow-xl transition-all duration-300 h-64 flex flex-col hover:scale-[1.02] transform"
                 onClick={() => handleSnippetClick(snip)}
               >
                 {/* Favorite Button */}
@@ -1113,31 +861,11 @@ export function SnippetsContent({
                   </div>
                 </div>
 
-                <p className="text-sm text-gray-600 flex-1 line-clamp-3 mb-3">
+                <p className="text-sm text-gray-600 flex-1 line-clamp-3 mb-4">
                   {snip.description}
                 </p>
 
-                {/* Author + last updated */}
-                <div className="flex items-center gap-2 text-xs text-gray-500 mb-3">
-                  {snip.authorName && (
-                    <span className="inline-flex items-center gap-1">
-                      <UserIcon className="w-3 h-3" />
-                      <span className="font-medium text-gray-700">
-                        {snip.authorName}
-                      </span>
-                    </span>
-                  )}
-                  {snip.updatedAt && (
-                    <>
-                      <span className="text-gray-300">•</span>
-                      <span title={new Date(snip.updatedAt).toLocaleString()}>
-                        updated {formatRelative(snip.updatedAt)}
-                      </span>
-                    </>
-                  )}
-                </div>
-
-                <div className="mt-auto pt-3 border-t border-purple-100">
+                <div className="mt-auto pt-4 border-t border-purple-100">
                   <div className="flex items-center justify-between text-xs text-gray-500 mb-2">
                     <span className="text-purple-600 font-medium">
                       Click to view & copy
@@ -1166,28 +894,6 @@ export function SnippetsContent({
                       </span>
                     )}
                   </div>
-
-                  {/* Owner / admin actions */}
-                  {canManage(snip) && (
-                    <div className="mt-3 flex items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={(e) => openEdit(snip, e)}
-                        className="inline-flex items-center gap-1 rounded-md border border-blue-200 bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 hover:bg-blue-100"
-                      >
-                        <Pencil className="w-3 h-3" />
-                        Edit
-                      </button>
-                      <button
-                        type="button"
-                        onClick={(e) => handleDelete(snip, e)}
-                        className="inline-flex items-center gap-1 rounded-md border border-red-200 bg-red-50 px-2 py-1 text-xs font-medium text-red-700 hover:bg-red-100"
-                      >
-                        <Trash2 className="w-3 h-3" />
-                        Delete
-                      </button>
-                    </div>
-                  )}
                 </div>
               </div>
             );
@@ -1228,7 +934,7 @@ export function SnippetsContent({
                 >
                   {React.createElement(
                     iconMap[currentSnippet.icon] || FileText,
-                    { className: "h-5 w-5" },
+                    { className: "h-5 w-5" }
                   )}
                 </div>
                 <div className="flex-1">
@@ -1243,31 +949,6 @@ export function SnippetsContent({
                   <span className="px-2 py-1 bg-gray-100 text-gray-600 rounded-full text-xs font-medium">
                     {currentSnippet.category}
                   </span>
-                  {canManage(currentSnippet) && (
-                    <>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={(e) => {
-                          setIsSnippetModalOpen(false);
-                          openEdit(currentSnippet, e);
-                        }}
-                        className="gap-1 border-blue-200 text-blue-700 hover:bg-blue-50"
-                      >
-                        <Pencil className="h-3.5 w-3.5" />
-                        Edit
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={(e) => handleDelete(currentSnippet, e)}
-                        className="gap-1 border-red-200 text-red-700 hover:bg-red-50"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                        Delete
-                      </Button>
-                    </>
-                  )}
                   <button
                     onClick={() => toggleFavorite(currentSnippet.id)}
                     className={`p-2 rounded-lg transition-colors ${
@@ -1329,35 +1010,17 @@ export function SnippetsContent({
                 </div>
               </div>
 
-              {/* Tags + author + last updated */}
-              <div className="mt-4 flex items-center justify-between flex-shrink-0 flex-wrap gap-2">
-                <div className="flex items-center gap-3 flex-wrap">
-                  <div className="flex gap-2 flex-wrap">
-                    {currentSnippet.tags.map((tag: string) => (
-                      <span
-                        key={tag}
-                        className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full"
-                      >
-                        #{tag}
-                      </span>
-                    ))}
-                  </div>
-                  {currentSnippet.authorName && (
-                    <span className="text-xs text-gray-600">
-                      by{" "}
-                      <span className="font-semibold text-gray-800">
-                        {currentSnippet.authorName}
-                      </span>
-                    </span>
-                  )}
-                  {currentSnippet.updatedAt && (
+              {/* Tags and Info */}
+              <div className="mt-4 flex items-center justify-between flex-shrink-0">
+                <div className="flex gap-2 flex-wrap">
+                  {currentSnippet.tags.map((tag: string) => (
                     <span
-                      className="text-xs text-gray-500"
-                      title={new Date(currentSnippet.updatedAt).toLocaleString()}
+                      key={tag}
+                      className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full"
                     >
-                      updated {formatRelative(currentSnippet.updatedAt)}
+                      #{tag}
                     </span>
-                  )}
+                  ))}
                 </div>
                 <div className="text-xs text-gray-500">
                   {selectedSnippetCode?.split("\n").length || 0} lines •{" "}
@@ -1368,38 +1031,6 @@ export function SnippetsContent({
           </DialogContent>
         </Dialog>
       )}
-
-      {/* Create / Edit modal */}
-      <SnippetEditorModal
-        open={editorOpen}
-        onOpenChange={setEditorOpen}
-        mode={editorMode}
-        folders={folders}
-        initial={editingSnippet}
-        onSaved={handleSaved}
-      />
-
-      {/* Delete confirmation */}
-      <ConfirmDialog
-        open={pendingDelete !== null}
-        onOpenChange={(o) => {
-          if (!o && !deleting) setPendingDelete(null);
-        }}
-        title="Delete snippet"
-        description={
-          pendingDelete ? (
-            <span>
-              Delete <span className="font-semibold">“{pendingDelete.title}”</span>?
-              This cannot be undone.
-            </span>
-          ) : null
-        }
-        confirmLabel="Delete"
-        cancelLabel="Cancel"
-        destructive
-        busy={deleting}
-        onConfirm={confirmDelete}
-      />
 
       {/* Interactive Table */}
       {showInteractiveTable && interactiveSnippet && (
@@ -1414,3 +1045,6 @@ export function SnippetsContent({
     </div>
   );
 }
+
+// Export the snippets array for backward compatibility
+export const snippets = snippetsData;

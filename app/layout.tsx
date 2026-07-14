@@ -3,8 +3,6 @@ import type { Metadata } from "next"
 import { Inter } from "next/font/google"
 import "./globals.css"
 import ClientLayout from "./ClientLayout" // Import the client component
-import { AuthProvider } from "@/components/auth/AuthProvider"
-import { RootShell } from "./RootShell"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -42,11 +40,7 @@ export default function RootLayout({
     <html lang="en">
       <head>{/* Removed duplicate link tags for icons */}</head>
       <body className={inter.className}>
-        <AuthProvider>
-          <RootShell>
-            <ClientLayout>{children}</ClientLayout>
-          </RootShell>
-        </AuthProvider>
+        <ClientLayout>{children}</ClientLayout>
       </body>
     </html>
   )

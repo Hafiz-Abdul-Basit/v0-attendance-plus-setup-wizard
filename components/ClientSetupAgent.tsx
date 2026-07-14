@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
-import { Plus, BarChart3, AlertCircle, CheckCircle2, Clock, TrendingUp, AlertTriangle, Info, Trash2 } from 'lucide-react'
+import { Plus, BarChart3, AlertCircle, CheckCircle2, Clock, TrendingUp, AlertTriangle, Info } from 'lucide-react'
 import { toast } from 'sonner'
 import {
   ClientSetup,
@@ -12,7 +12,6 @@ import { ClientDashboard } from '@/components/client-setup/ClientDashboard'
 import { ClientForm } from '@/components/client-setup/ClientForm'
 import { InstallationSelector } from '@/components/client-setup/InstallationSelector'
 import { ScriptGenerator } from '@/components/client-setup/ScriptGenerator'
-import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 
 type Tab = 'dashboard' | 'new-client' | 'select-installations' | 'script-generator'
 
@@ -23,11 +22,6 @@ export function ClientSetupAgent() {
   const [editingClientId, setEditingClientId] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [stats, setStats] = useState({ total: 0, completed: 0, inProgress: 0, notStarted: 0 })
-
-  // Delete confirmation state — click "Delete" on a client card sets this,
-  // the ConfirmDialog opens, and onConfirm runs performDeleteClient.
-  const [pendingDelete, setPendingDelete] = useState<ClientSetup | null>(null)
-  const [deleting, setDeleting] = useState(false)
 
   // Load clients from storage on mount and calculate stats
   useEffect(() => {
@@ -133,39 +127,29 @@ export function ClientSetupAgent() {
     setActiveTab('script-generator')
   }
 
-  /** Opens the ConfirmDialog for the given client. Called from ClientDashboard. */
-  const handleRequestDeleteClient = (client: ClientSetup) => {
-    setPendingDelete(client)
-  }
-
-  /** Called by the ConfirmDialog's onConfirm — actually deletes. */
-  const performDeleteClient = async () => {
-    if (!pendingDelete) return
-    const target = pendingDelete
-    setDeleting(true)
-    try {
-      clientSetupStorage.deleteClient(target.id)
-      const updated = clientSetupStorage.getAllClients()
-      setClients(updated)
-
-      // Update stats
-      const total = updated.length
-      const completed = updated.filter(c => clientSetupStorage.getSetupProgress(c) === 100).length
-      const notStarted = updated.filter(c => clientSetupStorage.getSetupProgress(c) === 0).length
-      const inProgress = total - completed - notStarted
-      setStats({ total, completed, inProgress, notStarted })
-
-      if (selectedClientId === target.id) {
-        setSelectedClientId(null)
-        setActiveTab('dashboard')
+  const handleDeleteClient = (clientId: string) => {
+    if (confirm('Are you sure you want to delete this client?')) {
+      try {
+        clientSetupStorage.deleteClient(clientId)
+        const updated = clientSetupStorage.getAllClients()
+        setClients(updated)
+        
+        // Update stats
+        const total = updated.length
+        const completed = updated.filter(c => clientSetupStorage.getSetupProgress(c) === 100).length
+        const notStarted = updated.filter(c => clientSetupStorage.getSetupProgress(c) === 0).length
+        const inProgress = total - completed - notStarted
+        setStats({ total, completed, inProgress, notStarted })
+        
+        if (selectedClientId === clientId) {
+          setSelectedClientId(null)
+          setActiveTab('dashboard')
+        }
+        toast.success('Client deleted')
+      } catch (error) {
+        toast.error('Failed to delete client')
+        console.error('Error deleting client:', error)
       }
-      toast.success('Client deleted')
-      setPendingDelete(null)
-    } catch (error) {
-      toast.error('Failed to delete client')
-      console.error('Error deleting client:', error)
-    } finally {
-      setDeleting(false)
     }
   }
 
@@ -266,7 +250,7 @@ export function ClientSetupAgent() {
               clients={clients}
               onEdit={handleEditClient}
               onGenerateScript={handleGenerateScript}
-              onRequestDelete={handleRequestDeleteClient}
+              onDelete={handleDeleteClient}
             />
           )}
 
@@ -327,28 +311,6 @@ export function ClientSetupAgent() {
           )}
         </div>
       </div>
-
-      {/* Delete client confirmation */}
-      <ConfirmDialog
-        open={pendingDelete !== null}
-        onOpenChange={(o) => {
-          if (!o && !deleting) setPendingDelete(null)
-        }}
-        title="Delete client"
-        description={
-          pendingDelete ? (
-            <span>
-              Delete <span className="font-semibold">“{pendingDelete.name}”</span>?
-              This will remove all of its installation progress. This cannot be undone.
-            </span>
-          ) : null
-        }
-        confirmLabel="Delete client"
-        cancelLabel="Cancel"
-        destructive
-        busy={deleting}
-        onConfirm={performDeleteClient}
-      />
     </div>
   )
 }
