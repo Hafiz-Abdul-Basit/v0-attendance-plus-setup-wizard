@@ -3,11 +3,13 @@
 import { useState } from 'react'
 import { TruancyConfigurationEditor } from './TruancyConfigurationEditor'
 import { ComponentConfigurationViewer } from './ComponentConfigurationViewer'
+import { InstallationStepsViewer } from './InstallationStepsViewer'
 
 export function SetupsTabs() {
   const [activeTab, setActiveTab] = useState('truancy')
 
   const tabs = [
+    { id: 'installation', label: 'Installation Steps' },
     { id: 'component', label: 'Component Configuration' },
     { id: 'truancy', label: 'Truancy Configuration' },
     { id: 'setup', label: 'Setup Configuration' },
@@ -36,6 +38,13 @@ export function SetupsTabs() {
 
       {/* Tab Content */}
       <div className="flex-1 overflow-auto">
+        {/* Installation Steps */}
+        {activeTab === 'installation' && (
+          <div className="w-full h-full">
+            <InstallationStepsViewer />
+          </div>
+        )}
+
         {/* Component Configuration */}
         {activeTab === 'component' && (
           <div className="w-full h-full">
