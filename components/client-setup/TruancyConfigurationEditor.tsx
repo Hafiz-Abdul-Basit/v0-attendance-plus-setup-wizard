@@ -154,6 +154,38 @@ export function TruancyConfigurationEditor() {
     })
   }
 
+  const generatePreviewJSON = () => {
+    const output = records.map(record => ({
+      _id: { $oid: record.id.replace('record_', '') },
+      Title: '',
+      ClientID: 1,
+      Role: '',
+      TotalAbsences: '',
+      HighlightColor: '#b7effb',
+      UserType: 'campus',
+      FilterCriteriaTitle: '',
+      FilterCriteria: '',
+      FilterCriteriaForPeriodTitle: '',
+      FilterCriteriaForPeriod: '',
+      DependentInterventionsFilterCriteriaTitle: '',
+      DependentInterventionsFilterCriteria: '',
+      SortOrder: '',
+      IsEnable: true,
+      Period: record.Period,
+      Action: record.Action,
+      Category: record.Category,
+      CampusType: record.CampusType,
+      ChooseAction: record.ChooseAction,
+      IsConsecutive: record.IsConsecutive,
+      OccuranceNumber: record.OccuranceNumber,
+      TrauncySequence: record.TrauncySequence,
+      GracePeriod: record.GracePeriod,
+      Description: record.Description,
+      CategoryTitle: record.Category,
+    }))
+    return JSON.stringify(output, null, 2)
+  }
+
   return (
     <div className="h-screen flex flex-col bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
       {/* Header */}
@@ -508,41 +540,7 @@ export function TruancyConfigurationEditor() {
             // JSON Preview
             <div className="bg-slate-800 border border-slate-700 rounded-lg p-6 overflow-auto max-h-96">
               <pre className="text-xs text-emerald-400 font-mono whitespace-pre-wrap break-words">
-                {JSON.stringify(
-                  records.map(({ id, Description, ...rest }) => {
-                    const record = records.find(r => r.id === id)
-                    return {
-                      _id: { $oid: id.replace('record_', '') },
-                      Title: '',
-                      ClientID: 1,
-                      Role: '',
-                      TotalAbsences: '',
-                      HighlightColor: '#b7effb',
-                      UserType: 'campus',
-                      FilterCriteriaTitle: '',
-                      FilterCriteria: '',
-                      FilterCriteriaForPeriodTitle: '',
-                      FilterCriteriaForPeriod: '',
-                      DependentInterventionsFilterCriteriaTitle: '',
-                      DependentInterventionsFilterCriteria: '',
-                      SortOrder: '',
-                      IsEnable: true,
-                      Period: record?.Period,
-                      Action: record?.Action,
-                      Category: record?.Category,
-                      CampusType: record?.CampusType,
-                      ChooseAction: record?.ChooseAction,
-                      IsConsecutive: record?.IsConsecutive,
-                      OccuranceNumber: record?.OccuranceNumber,
-                      TrauncySequence: record?.TrauncySequence,
-                      GracePeriod: record?.GracePeriod,
-                      Description: Description,
-                      CategoryTitle: record?.Category,
-                    }
-                  }),
-                  null,
-                  2
-                )}
+                {generatePreviewJSON()}
               </pre>
             </div>
           )}
