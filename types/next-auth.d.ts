@@ -1,7 +1,7 @@
 /**
  * Module augmentation so `session.user.id`, `session.user.role`,
- * `session.user.email`, and the per-user tab-visibility flags are
- * strongly typed everywhere we read the NextAuth session.
+ * `session.user.email`, and the per-user capability flags are strongly
+ * typed everywhere we read the NextAuth session.
  *
  * NextAuth v4 requires the augmentation file to be picked up by tsconfig
  * (the existing tsconfig.json already includes **\/*.ts so this is
@@ -20,6 +20,8 @@ declare module "next-auth" {
       role: "user" | "admin"
       canSeeSetupClients: boolean
       canSeeSetups: boolean
+      canEditAllSnippets: boolean
+      canSeeAppMenu: boolean
     }
   }
 
@@ -30,6 +32,8 @@ declare module "next-auth" {
     role: "user" | "admin"
     canSeeSetupClients?: boolean
     canSeeSetups?: boolean
+    canEditAllSnippets?: boolean
+    canSeeAppMenu?: boolean
   }
 }
 
@@ -40,5 +44,7 @@ declare module "next-auth/jwt" {
     role: "user" | "admin"
     canSeeSetupClients?: boolean
     canSeeSetups?: boolean
+    canEditAllSnippets?: boolean
+    canSeeAppMenu?: boolean
   }
 }

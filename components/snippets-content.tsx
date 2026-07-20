@@ -153,6 +153,13 @@ interface SnippetsContentProps {
   onClearFilter?: () => void;
   /** Optional pre-fetched snippet list (avoids duplicate SWR fetch in the parent). */
   snippets?: ApiSnippet[];
+  /**
+   * Optional loading signal from the parent. When set, the child uses it
+   * (OR-ed with its own local SWR loading) to decide whether to show the
+   * skeleton — so opening the tab on a fresh account shows the animation
+   * immediately, with no "No snippets found" flash in between.
+   */
+  isLoading?: boolean;
 }
 
 // Interactive Table Component
@@ -398,6 +405,8 @@ function InteractiveTable({
  *
  * Skeletons are only shown on the initial load (no cached data yet) —
  * background SWR revalidations after create/edit/delete stay silent.
+ * See the `hasResolvedAtLeastOnceRef` logic near the top of
+ * `SnippetsContent` for the exact gate.
  */
 function SnippetGridSkeleton() {
   return (
@@ -477,19 +486,45 @@ export function SnippetsContent({
   filteredSnippetId,
   onClearFilter,
   snippets: snippetsProp,
+  isLoading: isLoadingProp,
 }: SnippetsContentProps) {
   // Snippet data source — prefer prop-injected list (avoids double fetch),
-  // otherwise fall back to the SWR hook.
+  // otherwise fall back to the SWR hook. SWR dedupes the cache key, so
+  // even though both the parent wizard and this child call `useSnippets`,
+  // there's only one network request.
+  //
+  // The child owns the loading gate (see below). The `isLoadingProp` is
+  // accepted for API compatibility with the parent but is NOT used in
+  // the gate — relying on it caused an "empty state flash" on first
+  // paint after login, where the parent's SWR would briefly report
+  // `isLoading=false` with `data=[]` before the real fetch resolved.
   const {
     snippets: fetchedSnippets,
     isLoading: isSnippetsLoading,
     mutate: refreshSnippets,
   } = useSnippets()
   const snippetsData: ApiSnippet[] = snippetsProp ?? fetchedSnippets
-  // Show skeletons only on the very first render — once any snippets
-  // have been observed, SWR background revalidations (after create/edit/
-  // delete) stay silent so the user isn't re-shown an empty state.
-  const isInitialLoad = isSnippetsLoading && snippetsData.length === 0
+
+  // ── Skeleton gate ───────────────────────────────────────────────────
+  // Drive the loading state from the CHILD'S OWN SWR only. SWR's
+  // `isLoading` is `true` for exactly the renders where the cached
+  // data is still undefined (i.e. the very first fetch in progress).
+  // Once SWR has a value — even `[]` — `isLoading` flips to `false`.
+  // We don't need the parent prop at all; the SWR cache is shared.
+  //
+  // The ref tracks "we've seen the first non-loading render with a
+  // non-empty answer". It flips to `true` once the data is non-empty
+  // (the only case where a first-render skeleton could ever be wrong,
+  // since `data=[]` is a perfectly valid "no snippets" answer). This
+  // keeps background revalidations from flashing the skeleton.
+  const hasRenderedNonEmptyRef = React.useRef(false)
+  if (snippetsData.length > 0) {
+    hasRenderedNonEmptyRef.current = true
+  }
+  const isInitialLoad = isSnippetsLoading && !hasRenderedNonEmptyRef.current
+  // Keep the prop in scope so the linter doesn't complain and so
+  // future debug logs can see it.
+  void isLoadingProp
   const { data: session } = useSession()
   const viewerId = session?.user?.id ?? null
   const viewerIsAdmin = session?.user?.role === "admin"
@@ -519,9 +554,17 @@ export function SnippetsContent({
   const [pendingDelete, setPendingDelete] = useState<ApiSnippet | null>(null);
   const [deleting, setDeleting] = useState(false);
 
-  /** Can the current viewer edit/delete this snippet? */
+  /** Can the current viewer edit/delete this snippet?
+   *  - Admins always can
+   *  - Users with can_edit_all_snippets=true (granted by an admin) can edit any
+   *  - Otherwise, only the snippet's owner
+   */
   const canManage = (snip: ApiSnippet) =>
-    Boolean(viewerIsAdmin || (viewerId && snip.createdBy === viewerId))
+    Boolean(
+      viewerIsAdmin ||
+        session?.user?.canEditAllSnippets ||
+        (viewerId && snip.createdBy === viewerId),
+    )
 
   // Load favorites from localStorage
   useEffect(() => {

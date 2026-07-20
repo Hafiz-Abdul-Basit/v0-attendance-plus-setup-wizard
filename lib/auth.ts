@@ -90,16 +90,20 @@ export const authOptions: NextAuthOptions = {
         session.user.email = token.email
         session.user.role = (token.role as Role) ?? "user"
 
-        // Lazy-load tab-visibility flags from the DB. If the columns don't
-        // exist yet (schema migration pending) the query errors out and we
-        // default both to `false` — login still works.
+        // Lazy-load per-user capability flags from the DB. If the columns
+        // don't exist yet (schema migration pending) the query errors out
+        // and we default every flag to `false` — login still works.
         if (token.userId) {
           const flags = await loadTabVisibilityFlags(token.userId as string)
           session.user.canSeeSetupClients = flags.canSeeSetupClients
           session.user.canSeeSetups = flags.canSeeSetups
+          session.user.canEditAllSnippets = flags.canEditAllSnippets
+          session.user.canSeeAppMenu = flags.canSeeAppMenu
         } else {
           session.user.canSeeSetupClients = false
           session.user.canSeeSetups = false
+          session.user.canEditAllSnippets = false
+          session.user.canSeeAppMenu = false
         }
       }
       return session
@@ -108,27 +112,43 @@ export const authOptions: NextAuthOptions = {
 }
 
 /**
- * Lazy-load the per-user tab-visibility flags from `public.users`.
- * Returns `{ canSeeSetupClients: false, canSeeSetups: false }` if the
- * columns don't exist yet (migration pending) or any other DB error.
- * Cached per request via the module-level `flagsCache`.
+ * Lazy-load the per-user tab-visibility + capability flags from
+ * `public.users`. Returns safe defaults if the columns don't exist yet
+ * (migration pending) or any other DB error. Cached per request via the
+ * module-level `flagsCache`.
  */
-const flagsCache = new Map<string, { canSeeSetupClients: boolean; canSeeSetups: boolean; cachedAt: number }>()
+const flagsCache = new Map<
+  string,
+  {
+    canSeeSetupClients: boolean
+    canSeeSetups: boolean
+    canEditAllSnippets: boolean
+    canSeeAppMenu: boolean
+    cachedAt: number
+  }
+>()
 const FLAGS_TTL_MS = 30_000
 
 async function loadTabVisibilityFlags(userId: string): Promise<{
   canSeeSetupClients: boolean
   canSeeSetups: boolean
+  canEditAllSnippets: boolean
+  canSeeAppMenu: boolean
 }> {
   const cached = flagsCache.get(userId)
   if (cached && Date.now() - cached.cachedAt < FLAGS_TTL_MS) {
-    return { canSeeSetupClients: cached.canSeeSetupClients, canSeeSetups: cached.canSeeSetups }
+    return {
+      canSeeSetupClients: cached.canSeeSetupClients,
+      canSeeSetups: cached.canSeeSetups,
+      canEditAllSnippets: cached.canEditAllSnippets,
+      canSeeAppMenu: cached.canSeeAppMenu,
+    }
   }
   try {
     const supabase = getSupabaseAdmin()
     const { data, error } = await supabase
       .from("users")
-      .select("can_see_setup_clients, can_see_setups")
+      .select("can_see_setup_clients, can_see_setups, can_edit_all_snippets, can_see_app_menu")
       .eq("id", userId)
       .maybeSingle()
     if (error || !data) {
@@ -136,22 +156,34 @@ async function loadTabVisibilityFlags(userId: string): Promise<{
       if (error) {
         // eslint-disable-next-line no-console
         console.warn(
-          "[auth] can_see_* flags unavailable (run supabase/schema.sql to add them):",
+          "[auth] capability flags unavailable (run supabase/schema.sql + latest migrations to add them):",
           error.message,
         )
       }
-      return { canSeeSetupClients: false, canSeeSetups: false }
+      return {
+        canSeeSetupClients: false,
+        canSeeSetups: false,
+        canEditAllSnippets: false,
+        canSeeAppMenu: false,
+      }
     }
     const result = {
       canSeeSetupClients: Boolean(data.can_see_setup_clients),
       canSeeSetups: Boolean(data.can_see_setups),
+      canEditAllSnippets: Boolean(data.can_edit_all_snippets),
+      canSeeAppMenu: Boolean(data.can_see_app_menu),
     }
     flagsCache.set(userId, { ...result, cachedAt: Date.now() })
     return result
   } catch (e) {
     // eslint-disable-next-line no-console
-    console.warn("[auth] failed to load tab-visibility flags:", e)
-    return { canSeeSetupClients: false, canSeeSetups: false }
+    console.warn("[auth] failed to load capability flags:", e)
+    return {
+      canSeeSetupClients: false,
+      canSeeSetups: false,
+      canEditAllSnippets: false,
+      canSeeAppMenu: false,
+    }
   }
 }
 

@@ -21,6 +21,8 @@ export interface AdminUser {
   role: "user" | "admin"
   can_see_setup_clients: boolean
   can_see_setups: boolean
+  can_edit_all_snippets: boolean
+  can_see_app_menu: boolean
   created_at: string
   updated_at: string
   snippetCount: number

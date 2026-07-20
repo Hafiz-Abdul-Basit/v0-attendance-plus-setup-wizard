@@ -13,7 +13,15 @@ export interface AdminSnippet {
   uuid?: string
   title: string
   description: string
+  content: string
   category: string
+  language: string
+  icon: string
+  color: string
+  tags: string[]
+  isInteractive: boolean
+  tableData: unknown | null
+  isPublic: boolean
   authorName: string | null
   authorEmail: string | null
   createdAt: string

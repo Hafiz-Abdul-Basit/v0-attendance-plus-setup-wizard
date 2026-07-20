@@ -21,6 +21,17 @@ import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
 import type { ApiSnippet } from "@/hooks/use-snippets"
 
+/**
+ * Minimal shape the editor needs from an existing snippet. We accept this
+ * structural subset (instead of `ApiSnippet`) so callers like the admin
+ * panel can pass their own `AdminSnippet` type without a duplicate type
+ * alias — both shapes have the same field names by construction.
+ */
+export type SnippetEditorInitial = Pick<
+  ApiSnippet,
+  "id" | "title" | "description" | "content" | "category" | "language" | "icon" | "color" | "tags"
+>
+
 const ICON_KEYS = [
   "Code2",
   "Database",
@@ -62,7 +73,7 @@ export interface SnippetEditorModalProps {
   mode: "create" | "edit"
   folders: Record<string, Folder>
   /** Existing snippet when editing; ignored when mode === "create". */
-  initial?: ApiSnippet | null
+  initial?: SnippetEditorInitial | null
   /** Called on successful save so the parent can mutate the SWR cache. */
   onSaved: (snippet: ApiSnippet) => void
 }

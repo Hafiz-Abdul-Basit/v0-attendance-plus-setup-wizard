@@ -12,7 +12,7 @@ import { z } from "zod"
 import { getToken } from "next-auth/jwt"
 
 import { getSupabaseAdmin } from "@/lib/supabase"
-import type { Role } from "@/lib/auth"
+import { loadTabVisibilityFlags, type Role } from "@/lib/auth"
 
 const UpdateBody = z.object({
   title: z.string().min(1).max(200).optional(),
@@ -100,9 +100,12 @@ export async function PUT(request: Request, { params }: { params: { id: string }
 
   const role = (token.role as Role | undefined) ?? "user"
   const isOwner = existing.created_by === token.userId
-  if (!isOwner && role !== "admin") {
+  // Users with can_edit_all_snippets=true (granted by an admin) can edit
+  // any snippet, not just their own. Same gate as on the client.
+  const caps = await loadTabVisibilityFlags(token.userId as string)
+  if (!isOwner && role !== "admin" && !caps.canEditAllSnippets) {
     return NextResponse.json(
-      { error: "Forbidden — only the owner or an admin can update this snippet." },
+      { error: "Forbidden — only the owner, an admin, or a user with edit-all-snippets permission can update this snippet." },
       { status: 403 },
     )
   }
@@ -141,9 +144,12 @@ export async function DELETE(request: Request, { params }: { params: { id: strin
 
   const role = (token.role as Role | undefined) ?? "user"
   const isOwner = existing.created_by === token.userId
-  if (!isOwner && role !== "admin") {
+  // Users with can_edit_all_snippets=true can delete any snippet, not
+  // just their own. Mirrors the PUT authorization above.
+  const caps = await loadTabVisibilityFlags(token.userId as string)
+  if (!isOwner && role !== "admin" && !caps.canEditAllSnippets) {
     return NextResponse.json(
-      { error: "Forbidden — only the owner or an admin can delete this snippet." },
+      { error: "Forbidden — only the owner, an admin, or a user with edit-all-snippets permission can delete this snippet." },
       { status: 403 },
     )
   }

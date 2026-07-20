@@ -31,11 +31,14 @@ import {
   EyeOff,
   Wrench,
   ListChecks,
+  Pencil,
+  Menu,
 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
+import { SnippetEditorModal } from "@/components/snippet-editor-modal"
 import { cn } from "@/lib/utils"
 
 import { useAdminUsers, type AdminUser } from "@/hooks/use-admin-users"
@@ -77,6 +80,34 @@ export function AdminPanel() {
   const [pendingUserDelete, setPendingUserDelete] = React.useState<AdminUser | null>(null)
   const [pendingSnippetDelete, setPendingSnippetDelete] =
     React.useState<AdminSnippet | null>(null)
+
+  // -------- edit modal state (admin can edit any snippet) --------
+  const [editingSnippet, setEditingSnippet] = React.useState<AdminSnippet | null>(null)
+
+  // After the editor modal saves a snippet (PUT /api/snippets/[id] succeeds),
+  // the table needs to refresh so the row reflects the new title/category/
+  // description. The modal also closes itself; we just have to re-fetch.
+  //
+  // Declared above the auth-gate early returns so the hook count stays
+  // constant across renders — moving it down caused a "Rendered more
+  // hooks than during the previous render" error on the first
+  // authenticated render after a "loading" render.
+  const handleSnippetEdited = React.useCallback(async () => {
+    await mutateSnippets()
+    await mutateActivity()
+  }, [mutateSnippets, mutateActivity])
+
+  // The editor modal needs a `folders` prop to populate the Category
+  // dropdown. We derive it from the categories already present in the
+  // snippets list (plus any categories on the snippet being edited) so
+  // the admin can save a snippet into its existing category without
+  // having to type it. Same hook-order constraint as above.
+  const adminFolders = React.useMemo(() => {
+    const set = new Set<string>()
+    for (const s of snippets) set.add(s.category)
+    if (editingSnippet) set.add(editingSnippet.category)
+    return Object.fromEntries([...set].sort().map((name) => [name, { name }]))
+  }, [snippets, editingSnippet])
 
   // ---- all hooks above; the auth-gate rendering happens after ----
 
@@ -143,10 +174,15 @@ export function AdminPanel() {
     }
   }
 
-  // Toggle a per-user tab-visibility flag.
+  // Toggle a per-user capability flag. The key matches the API field name
+  // (camelCase preferred; the API also accepts snake_case for compatibility).
   const toggleCapability = async (
     u: AdminUser,
-    key: "can_see_setup_clients" | "can_see_setups",
+    key:
+      | "can_see_setup_clients"
+      | "can_see_setups"
+      | "can_edit_all_snippets"
+      | "can_see_app_menu",
     value: boolean,
   ) => {
     setBusyUserId(u.id)
@@ -158,9 +194,15 @@ export function AdminPanel() {
       })
       const data = await res.json().catch(() => ({}))
       if (!res.ok) throw new Error(data.error || `Update failed (${res.status})`)
-      toast.success(
-        `${u.email}: ${key === "can_see_setup_clients" ? "Setup Clients" : "Setups"} ${value ? "enabled" : "disabled"}`,
-      )
+      const label =
+        key === "can_see_setup_clients"
+          ? "Setup Clients"
+          : key === "can_see_setups"
+          ? "Setups"
+          : key === "can_edit_all_snippets"
+          ? "Edit All Snippets"
+          : "Main App Menu"
+      toast.success(`${u.email}: ${label} ${value ? "enabled" : "disabled"}`)
       // Optimistic local patch so the UI feels instant even before the reload.
       await mutateUsers()
     } catch (e) {
@@ -216,6 +258,12 @@ export function AdminPanel() {
     }
   }
 
+  // After the editor modal saves a snippet (PUT /api/snippets/[id] succeeds),
+  // the table needs to refresh so the row reflects the new title/category/
+  // description. The modal also closes itself; we just have to re-fetch.
+  // (handleSnippetEdited is defined above the auth-gate — see top of
+  // component for the hook-order rationale.)
+
   const adminCount = users.filter((u) => u.role === "admin").length
 
   const filteredUsers = users.filter((u) => {
@@ -237,6 +285,8 @@ export function AdminPanel() {
       (s.authorEmail?.toLowerCase().includes(q) ?? false)
     )
   })
+
+  // (adminFolders is defined above the auth-gate — see top of component.)
 
   return (
     <div className="px-4 py-8">
@@ -317,7 +367,7 @@ export function AdminPanel() {
                       <tr>
                         <th className="px-4 py-3 text-left">User</th>
                         <th className="px-4 py-3 text-left">Role</th>
-                        <th className="px-4 py-3 text-left">Tabs</th>
+                        <th className="px-4 py-3 text-left">Capabilities</th>
                         <th className="px-4 py-3 text-left">Snippets</th>
                         <th className="px-4 py-3 text-left">Joined</th>
                         <th className="px-4 py-3 text-right">Actions</th>
@@ -377,6 +427,26 @@ export function AdminPanel() {
                                   disabled={busy}
                                   onChange={(v) =>
                                     toggleCapability(u, "can_see_setups", v)
+                                  }
+                                />
+                                <CapabilityToggle
+                                  label="Can edit all snippets"
+                                  icon={<Pencil className="w-3.5 h-3.5" />}
+                                  enabled={u.can_edit_all_snippets}
+                                  disabled={busy}
+                                  description="Allow this user to edit and delete any snippet — not just their own. Useful for team leads who curate the shared library."
+                                  onChange={(v) =>
+                                    toggleCapability(u, "can_edit_all_snippets", v)
+                                  }
+                                />
+                                <CapabilityToggle
+                                  label="Main App Menu"
+                                  icon={<Menu className="w-3.5 h-3.5" />}
+                                  enabled={u.can_see_app_menu}
+                                  disabled={busy}
+                                  description="Show the Main App Menu tab. Non-admins can view the menu and copy/download the JSON; admins can also edit it."
+                                  onChange={(v) =>
+                                    toggleCapability(u, "can_see_app_menu", v)
                                   }
                                 />
                                 {u.role === "admin" && (
@@ -474,16 +544,28 @@ export function AdminPanel() {
                               </div>
                             </td>
                             <td className="px-4 py-3 text-right">
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                disabled={busy}
-                                onClick={() => setPendingSnippetDelete(s)}
-                                className="gap-1 border-red-200 text-red-700 hover:bg-red-50"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                                Delete
-                              </Button>
+                              <div className="inline-flex items-center gap-2">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  disabled={busy}
+                                  onClick={() => setEditingSnippet(s)}
+                                  className="gap-1 border-blue-200 text-blue-700 hover:bg-blue-50"
+                                >
+                                  <Pencil className="w-3.5 h-3.5" />
+                                  Edit
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  disabled={busy}
+                                  onClick={() => setPendingSnippetDelete(s)}
+                                  className="gap-1 border-red-200 text-red-700 hover:bg-red-50"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                  Delete
+                                </Button>
+                              </div>
                             </td>
                           </tr>
                         )
@@ -549,6 +631,18 @@ export function AdminPanel() {
           if (pendingSnippetDelete) performSnippetDelete(pendingSnippetDelete)
         }}
       />
+
+      {/* Edit modal — opens when an admin clicks Edit on a snippet row. */}
+      <SnippetEditorModal
+        open={editingSnippet !== null}
+        onOpenChange={(o) => {
+          if (!o) setEditingSnippet(null)
+        }}
+        mode="edit"
+        folders={adminFolders}
+        initial={editingSnippet}
+        onSaved={handleSnippetEdited}
+      />
     </div>
   )
 }
@@ -558,20 +652,35 @@ function CapabilityToggle({
   icon,
   enabled,
   disabled,
+  description,
   onChange,
 }: {
   label: string
   icon: React.ReactNode
   enabled: boolean
   disabled?: boolean
+  /**
+   * Optional tooltip override. Defaults to "{label} visible to user" /
+   * "{label} hidden from user". Use this for capabilities whose effect
+   * is not obvious from the label alone (e.g. "Can edit all snippets").
+   */
+  description?: string
   onChange: (value: boolean) => void
 }) {
+  const title = description
+    ? enabled
+      ? `${description} — currently ON`
+      : `${description} — currently OFF`
+    : enabled
+      ? `${label} visible to user`
+      : `${label} hidden from user`
   return (
     <button
       type="button"
       onClick={() => onChange(!enabled)}
       disabled={disabled}
-      title={enabled ? `${label} visible to user` : `${label} hidden from user`}
+      title={title}
+      aria-label={description ?? label}
       className={cn(
         "inline-flex items-center gap-1.5 rounded-md border-2 px-2 py-1 text-xs font-medium transition-colors",
         "disabled:opacity-50 disabled:cursor-not-allowed",

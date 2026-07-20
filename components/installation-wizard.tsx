@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ChevronRight, Search, Code, FileText, Download, ShieldCheck } from "lucide-react";
+import { ChevronRight, Search, Code, FileText, Download, ShieldCheck, FileJson } from "lucide-react";
 import { toast } from "sonner";
 import { useSession } from "next-auth/react";
 import { StepContent } from "@/components/step-content";
@@ -14,6 +14,7 @@ import { ClientSetupAgent } from "@/components/ClientSetupAgent";
 import logo from "../public/Develop by Abdul Basit.png";
 import Image from "next/image";
 import { SetupsTabs } from "@/components/client-setup/SetupsTabs";
+import { MainAppMenu } from "@/components/app-menu/MainAppMenu";
 import Link from "next/link";
 import { ProfileMenu } from "@/components/auth/ProfileMenu";
 
@@ -279,8 +280,10 @@ export function InstallationWizard() {
   const [completedSteps, setCompletedSteps] = useState<Record<string, boolean>>({
     "browser-1": true,
   })
-  // Default to the installation wizard — snippets are opened explicitly via the button.
-  const [showSnippets, setShowSnippets] = useState(false)
+  // Default to the snippets tab — most users come here to look up code
+  // snippets, not step through the install guide. The "View Installation
+  // Steps" button in the header toggles back to the wizard.
+  const [showSnippets, setShowSnippets] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
   const [searchResults, setSearchResults] = useState<typeof searchData>([])
   const [showSearch, setShowSearch] = useState(false)
@@ -299,9 +302,13 @@ export function InstallationWizard() {
   const [showGuides, setShowGuides] = useState(false); // New state for Guides
   const [showSetupAgent, setShowSetupAgent] = useState(false); // New state for Setup Agent
   const [showSetups, setShowSetups] = useState(false); // New state for Setups
+  const [showAppMenu, setShowAppMenu] = useState(false); // New state for Main App Menu
 
   // Snippets — fetched from API via SWR, shared with <SnippetsContent> via prop.
-  const { snippets } = useSnippets()
+  // `isLoading` is forwarded so the child renders the skeleton immediately
+  // when the user opens the tab (instead of briefly flashing the empty
+  // state before the data arrives).
+  const { snippets, isLoading: snippetsLoading } = useSnippets()
   const { data: session } = useSession()
   const isAdmin = session?.user?.role === "admin"
 
@@ -733,8 +740,8 @@ export function InstallationWizard() {
 
   return (
     <div className="flex h-screen bg-white overflow-hidden">
-      {/* Fixed Sidebar - Only shown when not viewing Snippets, Guides, Setup Agent, or Setups */}
-      {!showSnippets && !showGuides && !showSetupAgent && !showSetups && (
+      {/* Fixed Sidebar - Only shown when not viewing Snippets, Guides, Setup Agent, Setups, or Main App Menu */}
+      {!showSnippets && !showGuides && !showSetupAgent && !showSetups && !showAppMenu && (
         <aside className="w-80 bg-white border-r border-gray-200 shadow-lg flex flex-col fixed left-0 top-0 h-full z-10">
           {/* Sidebar Header */}
           <div className="p-6 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50">
@@ -877,7 +884,7 @@ export function InstallationWizard() {
 
       {/* Main Content Area */}
       <main
-        className={`flex-1 ${!showSnippets && !showGuides && !showSetupAgent && !showSetups ? "ml-80" : "ml-0"} flex flex-col h-screen overflow-hidden`}
+        className={`flex-1 ${!showSnippets && !showGuides && !showSetupAgent && !showSetups && !showAppMenu ? "ml-80" : "ml-0"} flex flex-col h-screen overflow-hidden`}
       >
         {/* Fixed Header */}
         <header className="bg-white border-b border-gray-200 shadow-sm z-20">
@@ -911,6 +918,7 @@ export function InstallationWizard() {
                     setShowSnippets(false);
                     setShowGuides(false);
                     setShowSetupAgent(false);
+                    setShowAppMenu(false);
                   }}
                   variant={showSetups ? "default" : "outline"}
                   size="sm"
@@ -932,6 +940,7 @@ export function InstallationWizard() {
                     setShowSnippets(false);
                     setShowGuides(false);
                     setShowSetups(false);
+                    setShowAppMenu(false);
                   }}
                   variant={showSetupAgent ? "default" : "outline"}
                   size="sm"
@@ -952,6 +961,7 @@ export function InstallationWizard() {
                   setShowSnippets(!showSnippets)
                   setShowGuides(false) // Close guides when opening snippets
                   setShowSetupAgent(false) // Close setup agent when opening snippets
+                  setShowAppMenu(false) // Close app menu when opening snippets
                   if (!showSnippets) {
                     setFilteredSnippetId(null)
                     setSnippetFilter("")
@@ -969,6 +979,29 @@ export function InstallationWizard() {
                 {showSnippets ? "View Installation Steps" : "View Snippets"}
               </Button>
 
+              {/* Main App Menu Button — visible to admins or users granted the canSeeAppMenu capability */}
+              {(isAdmin || session?.user?.canSeeAppMenu) && (
+                <Button
+                  onClick={() => {
+                    setShowAppMenu(!showAppMenu)
+                    setShowSnippets(false)
+                    setShowGuides(false)
+                    setShowSetupAgent(false)
+                    setShowSetups(false)
+                  }}
+                  variant={showAppMenu ? "default" : "outline"}
+                  size="sm"
+                  className={`gap-2 ${
+                    showAppMenu
+                      ? "bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white shadow-lg"
+                      : "border-indigo-200 text-indigo-700 hover:bg-indigo-50"
+                  }`}
+                >
+                  <FileJson className="w-4 h-4" />
+                  {showAppMenu ? "View Installation Steps" : "Main App Menu"}
+                </Button>
+              )}
+
               {/* Profile menu — inline with the header so it never overlaps */}
               <ProfileMenu className="ml-1" />
             </div>
@@ -977,65 +1010,96 @@ export function InstallationWizard() {
 
         {/* Scrollable Content */}
         <div className="flex-1 overflow-y-auto bg-gradient-to-br from-gray-50 to-white">
-          <div className="p-4">
-            <div className="max-w-[95rem] mx-auto">
-              {/* Progress Header */}
-              {/* Progress Header - Only show for installation steps, not snippets, guides, setup agent, or setups */}
-              {!showSnippets && !showGuides && !showSetupAgent && !showSetups && (
-                <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-6 mb-8">
-                  <div className="flex items-center gap-4 mb-4">
-                    <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-indigo-500 text-white rounded-xl flex items-center justify-center font-bold text-lg shadow-lg">
-                      {activeStep?.number}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h1 className="text-3xl font-bold text-gray-900">{activeStep?.title}</h1>
-                      <p className="text-gray-500 mt-1">
-                        Step {activeStep?.number} of {sections.length}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-2xl font-bold text-gray-900">{overallProgress}%</div>
-                      <div className="text-sm text-gray-500">Overall Progress</div>
-                    </div>
+          {showAppMenu ? (
+            isAdmin || session?.user?.canSeeAppMenu ? (
+              // Full-width branch: bypass the max-w-[95rem] mx-auto wrapper
+              // so the menu tree can use the entire viewport width.
+              <MainAppMenu />
+            ) : (
+              // Defense in depth: if the user toggled the tab but their
+              // capability was revoked mid-session, show a friendly gate
+              // instead of the menu.
+              <div className="flex items-center justify-center min-h-[60vh] p-6">
+                <div className="max-w-md w-full bg-white border border-gray-200 rounded-2xl shadow-sm p-8 text-center">
+                  <div className="mx-auto w-14 h-14 rounded-2xl bg-amber-100 text-amber-700 flex items-center justify-center mb-4">
+                    <FileJson className="w-7 h-7" />
                   </div>
-
-                  <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
-                    <div
-                      className="h-full bg-gradient-to-r from-blue-400 to-indigo-500 transition-all duration-500 ease-out"
-                      style={{ width: `${overallProgress}%` }}
-                    />
-                  </div>
-
-                  <div className="flex justify-between text-sm text-gray-600 mt-2">
-                    <span>
-                      {completedStepsCount} of {totalSteps} steps completed
-                    </span>
-                    <span>
-                      {sections.filter((s) => getSectionProgress(s.id).percentage === 100).length} of {sections.length}{" "}
-                      sections complete
-                    </span>
-                  </div>
+                  <h2 className="text-lg font-bold text-gray-900 mb-1">
+                    Main App Menu is restricted
+                  </h2>
+                  <p className="text-sm text-gray-600">
+                    Your admin has not granted access to the Main App Menu. Ask
+                    them to enable it from the Admin Panel &rarr; Users tab.
+                  </p>
                 </div>
-              )}
+              </div>
+            )
+          ) : (
+            <div className="p-4">
+              <div className="max-w-[95rem] mx-auto">
+                {/* Progress Header */}
+                {/* Progress Header - Only show for installation steps, not snippets, guides, setup agent, or setups */}
+                {!showSnippets && !showGuides && !showSetupAgent && !showSetups && (
+                  <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-6 mb-8">
+                    <div className="flex items-center gap-4 mb-4">
+                      <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-indigo-500 text-white rounded-xl flex items-center justify-center font-bold text-lg shadow-lg">
+                        {activeStep?.number}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h1 className="text-3xl font-bold text-gray-900">{activeStep?.title}</h1>
+                        <p className="text-gray-500 mt-1">
+                          Step {activeStep?.number} of {sections.length}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-2xl font-bold text-gray-900">{overallProgress}%</div>
+                        <div className="text-sm text-gray-500">Overall Progress</div>
+                      </div>
+                    </div>
 
-              {/* Content */}
-              {showSetups ? (
-                <SetupsTabs />
-              ) : showSetupAgent ? (
-                <ClientSetupAgent />
-              ) : showGuides ? (
-                <InteractiveGuides />
-              ) : showSnippets ? (
-                <SnippetsContent filteredSnippetId={filteredSnippetId} onClearFilter={clearSnippetFilter} snippets={snippets} />
-              ) : (
-                <StepContent
-                  activeSection={activeSection}
-                  completedSteps={completedSteps}
-                  onToggleStep={toggleStepCompletion}
-                />
-              )}
+                    <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
+                      <div
+                        className="h-full bg-gradient-to-r from-blue-400 to-indigo-500 transition-all duration-500 ease-out"
+                        style={{ width: `${overallProgress}%` }}
+                      />
+                    </div>
+
+                    <div className="flex justify-between text-sm text-gray-600 mt-2">
+                      <span>
+                        {completedStepsCount} of {totalSteps} steps completed
+                      </span>
+                      <span>
+                        {sections.filter((s) => getSectionProgress(s.id).percentage === 100).length} of {sections.length}{" "}
+                        sections complete
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                {/* Content */}
+                {showSetups ? (
+                  <SetupsTabs />
+                ) : showSetupAgent ? (
+                  <ClientSetupAgent />
+                ) : showGuides ? (
+                  <InteractiveGuides />
+                ) : showSnippets ? (
+                  <SnippetsContent
+                    filteredSnippetId={filteredSnippetId}
+                    onClearFilter={clearSnippetFilter}
+                    snippets={snippets}
+                    isLoading={snippetsLoading}
+                  />
+                ) : (
+                  <StepContent
+                    activeSection={activeSection}
+                    completedSteps={completedSteps}
+                    onToggleStep={toggleStepCompletion}
+                  />
+                )}
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </main>
 

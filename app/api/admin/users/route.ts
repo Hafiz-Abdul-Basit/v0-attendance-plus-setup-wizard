@@ -31,8 +31,12 @@ const PutBody = z
     // leading to "No fields to update." on every toggle.
     canSeeSetupClients: z.boolean().optional(),
     canSeeSetups: z.boolean().optional(),
+    canEditAllSnippets: z.boolean().optional(),
+    canSeeAppMenu: z.boolean().optional(),
     can_see_setup_clients: z.boolean().optional(),
     can_see_setups: z.boolean().optional(),
+    can_edit_all_snippets: z.boolean().optional(),
+    can_see_app_menu: z.boolean().optional(),
   })
   .transform((raw) => ({
     id: raw.id,
@@ -40,6 +44,9 @@ const PutBody = z
     canSeeSetupClients:
       raw.canSeeSetupClients ?? raw.can_see_setup_clients,
     canSeeSetups: raw.canSeeSetups ?? raw.can_see_setups,
+    canEditAllSnippets:
+      raw.canEditAllSnippets ?? raw.can_edit_all_snippets,
+    canSeeAppMenu: raw.canSeeAppMenu ?? raw.can_see_app_menu,
   }))
 
 const DeleteBody = z.object({
@@ -53,21 +60,22 @@ export async function GET(request: Request) {
   const supabase = getSupabaseAdmin()
 
   // Try the full projection first (includes the can_see_* tab-visibility
-  // flags). If the columns don't exist yet (schema migration pending),
-  // fall back to the base columns so the page still loads — same
-  // graceful-degradation strategy used in lib/auth.ts for the session.
+  // flags AND can_edit_all_snippets). If the columns don't exist yet
+  // (schema migration pending), fall back to the base columns so the
+  // page still loads — same graceful-degradation strategy used in
+  // lib/auth.ts for the session.
   let users: any[] | null = null
   {
     const res = await supabase
       .from("users")
       .select(
-        "id, email, name, role, can_see_setup_clients, can_see_setups, created_at, updated_at",
+        "id, email, name, role, can_see_setup_clients, can_see_setups, can_edit_all_snippets, can_see_app_menu, created_at, updated_at",
       )
       .order("created_at", { ascending: true })
-    if (res.error && /can_see_/.test(res.error.message)) {
+    if (res.error && /can_see_|can_edit_all_snippets/.test(res.error.message)) {
       // eslint-disable-next-line no-console
       console.warn(
-        "[admin/users] can_see_* columns missing — falling back to base columns. Run supabase/schema.sql to add them.",
+        "[admin/users] capability columns missing — falling back to base columns. Apply supabase/schema.sql AND the latest migrations in supabase/migrations/ to add them.",
         res.error.message,
       )
       const fallback = await supabase
@@ -81,6 +89,8 @@ export async function GET(request: Request) {
         ...u,
         can_see_setup_clients: false,
         can_see_setups: false,
+        can_edit_all_snippets: false,
+        can_see_app_menu: false,
       }))
     } else if (res.error) {
       return NextResponse.json({ error: res.error.message }, { status: 500 })
@@ -128,7 +138,7 @@ export async function PUT(request: Request) {
       { status: 400 },
     )
   }
-  const { id, role, canSeeSetupClients, canSeeSetups } = parsed.data
+  const { id, role, canSeeSetupClients, canSeeSetups, canEditAllSnippets, canSeeAppMenu } = parsed.data
   if (id === auth.userId && role !== undefined && role !== "admin") {
     return NextResponse.json(
       { error: "You cannot demote yourself out of admin." },
@@ -168,6 +178,8 @@ export async function PUT(request: Request) {
   if (role !== undefined) patch.role = role
   if (canSeeSetupClients !== undefined) patch.can_see_setup_clients = canSeeSetupClients
   if (canSeeSetups !== undefined) patch.can_see_setups = canSeeSetups
+  if (canEditAllSnippets !== undefined) patch.can_edit_all_snippets = canEditAllSnippets
+  if (canSeeAppMenu !== undefined) patch.can_see_app_menu = canSeeAppMenu
   if (Object.keys(patch).length === 0) {
     return NextResponse.json({ error: "No fields to update." }, { status: 400 })
   }
@@ -177,16 +189,18 @@ export async function PUT(request: Request) {
     .update(patch)
     .eq("id", id)
     .select(
-      "id, email, name, role, can_see_setup_clients, can_see_setups, created_at, updated_at",
+      "id, email, name, role, can_see_setup_clients, can_see_setups, can_edit_all_snippets, can_see_app_menu, created_at, updated_at",
     )
     .single()
   if (error || !data) {
-    // Surface a friendlier message when the tab-visibility columns are
-    // missing — otherwise the operator just sees "Failed to load users"
-    // without knowing how to fix it.
+    // Surface a friendlier message when the capability columns are
+    // missing — otherwise the operator just sees a generic Supabase
+    // error without knowing how to fix it. The relevant migrations are
+    // listed in the hint so they can be applied via the Supabase SQL
+    // editor or `supabase db push`.
     const friendly =
-      error?.message && /can_see_/.test(error.message)
-        ? "Tab-visibility columns are missing. Run supabase/migrations/20260629000000_admin_panel.sql to add them."
+      error?.message && /can_see_|can_edit_all_snippets/.test(error.message)
+        ? "Capability columns are missing. Apply supabase/schema.sql AND all migrations in supabase/migrations/ to add them."
         : (error?.message ?? "Update failed")
     return NextResponse.json({ error: friendly }, { status: 500 })
   }
