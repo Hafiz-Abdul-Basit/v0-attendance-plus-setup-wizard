@@ -24,6 +24,8 @@ import useSWR from "swr"
 
 import type {
   AzureWorkItem,
+  AzureWorkItemComment,
+  AzureWorkItemCommentsPage,
   AzureWorkItemQuery,
   AzureWorkItemSummary,
   AzureIdentity,
@@ -33,6 +35,8 @@ import type {
 // this hook, mirroring the `use-app-menu` pattern.
 export type {
   AzureWorkItem,
+  AzureWorkItemComment,
+  AzureWorkItemCommentsPage,
   AzureWorkItemQuery,
   AzureWorkItemSummary,
   AzureIdentity,
@@ -345,3 +349,93 @@ export function useAzureTask(id: number | null): UseAzureTaskResult {
 
 // Re-export the empty summary so consumers can default-state the panel.
 export { emptySummary }
+
+interface UseAzureTaskCommentsOptions {
+  /** 1-based page number. Default 1. */
+  page?: number
+  /** Page size (max 200). Default 50. */
+  pageSize?: number
+}
+
+interface UseAzureTaskCommentsResult {
+  comments: AzureWorkItemComment[]
+  total: number
+  page: number
+  pageSize: number
+  hasMore: boolean
+  /** True if the upstream told us the comments service is unavailable. */
+  commentsUnavailable: boolean
+  isLoading: boolean
+  isError: boolean
+  error: unknown
+  mutate: () => Promise<AzureWorkItemCommentsPage | null | undefined>
+}
+
+const commentsFetcher = async (
+  url: string,
+): Promise<AzureWorkItemCommentsPage> => {
+  const res = await fetch(url, { credentials: "include" })
+  // The comments route always returns 200 with a normalised envelope
+  // — even when the upstream comments service is unavailable, the
+  // route sets `commentsUnavailable: true` rather than failing. So we
+  // only treat network/HTTP errors as failures here.
+  if (!res.ok) {
+    let message = `Failed to fetch ${url}: ${res.status}`
+    try {
+      const body = (await res.json()) as { error?: string }
+      if (body?.error) message = body.error
+    } catch {
+      /* ignore */
+    }
+    throw new Error(message)
+  }
+  return (await res.json()) as AzureWorkItemCommentsPage
+}
+
+/**
+ * useAzureTaskComments — fetch a page of comments for a work item.
+ *
+ * Pass `null` as the id to disable fetching (e.g. before the row is
+ * expanded). SWR will keep the previous data around via
+ * `keepPreviousData`, so a user collapsing + re-expanding a row won't
+ * trigger a fresh network round-trip unless the cache has aged out.
+ *
+ * Unlike the work-items list, we don't bother with an accumulator —
+ * a work item's comment count is rarely in the hundreds, so a single
+ * page is plenty for the row expansion. If we ever need paging, we can
+ * add a `loadMore` here the same way `useAzureTasksPage` does.
+ */
+export function useAzureTaskComments(
+  workItemId: number | null,
+  options: UseAzureTaskCommentsOptions = {},
+): UseAzureTaskCommentsResult {
+  const page = options.page ?? 1
+  const pageSize = options.pageSize ?? 50
+  const key =
+    workItemId == null
+      ? null
+      : `/api/azure-tasks/${workItemId}/comments?page=${page}&pageSize=${pageSize}`
+
+  const { data, error, isLoading, mutate } = useSWR<AzureWorkItemCommentsPage>(
+    key,
+    commentsFetcher,
+    {
+      revalidateOnFocus: false,
+      dedupingInterval: 30_000,
+      keepPreviousData: true,
+    },
+  )
+
+  return {
+    comments: data?.items ?? [],
+    total: data?.total ?? 0,
+    page: data?.page ?? page,
+    pageSize: data?.pageSize ?? pageSize,
+    hasMore: data?.hasMore ?? false,
+    commentsUnavailable: Boolean(data?.commentsUnavailable),
+    isLoading,
+    isError: Boolean(error),
+    error,
+    mutate: () => mutate(),
+  }
+}

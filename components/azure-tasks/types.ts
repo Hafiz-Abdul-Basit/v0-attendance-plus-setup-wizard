@@ -7,6 +7,8 @@
  */
 export type {
   AzureWorkItem,
+  AzureWorkItemComment,
+  AzureWorkItemCommentsPage,
   AzureWorkItemQuery,
   AzureWorkItemSummary,
   AzureIdentity,

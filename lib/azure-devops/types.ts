@@ -69,6 +69,47 @@ export interface AzureWorkItemAttachment {
   comment: string | null;
 }
 
+/**
+ * A single comment on a work item. Populated by the dedicated comments
+ * endpoint (`GET /wit/workItems/{id}/comments`) — not included in the
+ * standard work-item payload. We normalise the upstream shape into this
+ * so the row-expansion UI can render a stable, client-safe structure.
+ *
+ * `id` is the upstream comment id (an integer, NOT a GUID). The HTML
+ * body returned by the upstream is stripped to plain text by the
+ * service layer — clients never see raw HTML.
+ */
+export interface AzureWorkItemComment {
+  /** Upstream comment id (integer). */
+  id: number;
+  /** Plain-text body (HTML stripped). */
+  text: string;
+  /** When the comment was created. */
+  createdDate: string | null;
+  /** When the comment was last edited. */
+  modifiedDate: string | null;
+  /** True if the comment is currently visible (not deleted / hidden). */
+  isDeleted: boolean;
+  /** The author of the comment, if known. */
+  createdBy: AzureIdentity | null;
+}
+
+/** A page of work-item comments plus paging metadata. */
+export interface AzureWorkItemCommentsPage {
+  items: AzureWorkItemComment[];
+  total: number;
+  page: number;
+  pageSize: number;
+  hasMore: boolean;
+  /**
+   * True if the upstream did not return a `comments` array at all (e.g.
+   * the deployment is configured to hide comments, or the comments
+   * service is disabled). Lets the UI render a "comments disabled"
+   * message rather than a misleading empty state.
+   */
+  commentsUnavailable?: boolean;
+}
+
 /** The normalised work item shape consumed by the UI. */
 export interface AzureWorkItem {
   id: number;

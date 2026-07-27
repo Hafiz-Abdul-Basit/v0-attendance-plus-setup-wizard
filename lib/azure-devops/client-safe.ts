@@ -14,6 +14,8 @@ export type {
   AzureIdentity,
   AzureWorkItem,
   AzureWorkItemAttachment,
+  AzureWorkItemComment,
+  AzureWorkItemCommentsPage,
   AzureWorkItemFieldRef,
   AzureWorkItemPage,
   AzureWorkItemQuery,

@@ -8,6 +8,8 @@
 export type {
   AzureIdentity,
   AzureWorkItem,
+  AzureWorkItemComment,
+  AzureWorkItemCommentsPage,
   AzureWorkItemFieldRef,
   AzureWorkItemPage,
   AzureWorkItemQuery,
@@ -24,6 +26,7 @@ export type { AzureCredentialProvider } from "./auth"
 export {
   getWorkItems,
   getWorkItemById,
+  getWorkItemComments,
   getSummaryStats,
   isAzureConfigured,
   streamAttachment,

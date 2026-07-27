@@ -139,6 +139,45 @@ div#v0-built-with-button-39f1df66-2902-4a9d-a54a-e8e5ca4c3a8c {
 }
 
 /**
+ * Inner scroll region used inside an expanded Azure Tasks row. Reuses
+ * the same slim-scrollbar look as the outer table scroller (via the
+ * `.az-task-scroller` base class) but with two adjustments:
+ *
+ *   1. A narrower 6px track so it doesn't compete visually with the
+ *      outer 8px scrollbar when both are visible at the same time.
+ *   2. `scrollbar-gutter: stable` so the scrollbar reserves space
+ *      even when the content fits — prevents the gutter from popping
+ *      in/out as comments stream in.
+ *
+ * `overscroll-behavior: contain` is inherited from `.az-task-scroller`
+ * so scrolling at the inner panel's edge doesn't bubble out and
+ * accidentally trigger the outer table's lazy-load IntersectionObserver.
+ */
+.az-task-inner-scroller {
+  scrollbar-gutter: stable;
+}
+
+.az-task-inner-scroller::-webkit-scrollbar {
+  width: 6px;
+}
+
+.az-task-inner-scroller::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.0);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+  transition: background-color 200ms ease;
+}
+
+.az-task-inner-scroller:hover::-webkit-scrollbar-thumb,
+.az-task-inner-scroller:focus-within::-webkit-scrollbar-thumb,
+.az-task-inner-scroller::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.4);
+  background-clip: padding-box;
+  border: 2px solid transparent;
+}
+
+/**
  * Hide the main page scrollbar on the Azure Tasks screen — the table
  * owns the scroll surface so the controls stay anchored at the top.
  * Targets both the page wrapper and any direct html/body overflow.

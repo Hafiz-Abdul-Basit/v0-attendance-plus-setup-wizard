@@ -21,9 +21,15 @@ import "server-only"
 import { getDefaultCredentialProvider } from "./auth"
 import { AzureConfigError, getAzureConfig } from "./config"
 import { AzureDevOpsClient } from "./client"
-import { buildWorkItemQuery, getRequestedFields, mapWorkItem } from "./queries"
+import {
+  buildWorkItemQuery,
+  getRequestedFields,
+  mapComment,
+  mapWorkItem,
+} from "./queries"
 import type {
   AzureWorkItem,
+  AzureWorkItemCommentsPage,
   AzureWorkItemPage,
   AzureWorkItemQuery,
   AzureWorkItemSummary,
@@ -580,4 +586,112 @@ export async function streamAttachment(
   const contentType =
     response.headers.get("content-type") ?? "application/octet-stream"
   return { filename: attachment.name, contentType, response }
+}
+
+/**
+ * Fetch the comments for a work item. Goes through the dedicated
+ * comments REST endpoint because comments are NOT part of the standard
+ * work-item payload (no `expand` flag surfaces them).
+ *
+ * Unlike `getWorkItemById` we do NOT cache the result: comments are
+ * edited frequently and the user typically wants the latest copy when
+ * they open the row. The endpoint itself supports paging — we pass
+ * through the requested page and return the same shape the UI uses for
+ * the work-items list (`items / total / page / pageSize / hasMore`).
+ *
+ * If the upstream returns no `comments` field at all (e.g. an Azure
+ * DevOps Server instance with the comments service disabled), we set
+ * `commentsUnavailable: true` so the UI can show an honest "comments
+ * not available" message rather than a misleading empty list.
+ *
+ * If the upstream returns 404 from the comments endpoint specifically,
+ * we DO NOT propagate that as "work item not found" — the caller may
+ * have already loaded the work item successfully via
+ * `getWorkItemById`. A 404 from the comments endpoint almost always
+ * means one of:
+ *   - The Azure DevOps Server build doesn't support comments at this
+ *     preview api-version (we pin to a stable preview — see the client)
+ *   - The deployment has the comments service disabled
+ *   - The PAT is missing a scope that gates the comments endpoint
+ * In all three cases we surface `commentsUnavailable: true` so the UI
+ * can render an honest empty state instead of an error toast.
+ */
+export async function getWorkItemComments(
+  workItemId: number,
+  options: { page?: number; pageSize?: number; includeDeleted?: boolean } = {},
+): Promise<AzureWorkItemCommentsPage> {
+  // The comments endpoint doesn't need anything from the config beyond
+  // "is Azure DevOps configured at all" — the cached client already
+  // holds the org/project/pat. A misconfiguration here surfaces from
+  // `getClient()` below as a normal AzureApiError(501, "config").
+  try {
+    getAzureConfig()
+  } catch (err) {
+    if (err instanceof AzureConfigError) {
+      throw new AzureApiError(err.message, 501, "config", null)
+    }
+    throw err
+  }
+
+  const page = Math.max(1, options.page ?? 1)
+  const pageSize = Math.max(1, Math.min(200, options.pageSize ?? 50))
+  const includeDeleted = Boolean(options.includeDeleted)
+
+  const client = getClient()
+  let res: { totalCount?: number; comments?: unknown[] } | null = null
+  try {
+    res = await client.getComments(workItemId, { page, pageSize })
+  } catch (err) {
+    // 404 from the comments endpoint means the deployment doesn't
+    // expose comments at this preview version (or at all). Treat it
+    // as "comments unavailable" rather than failing the whole call —
+    // the row expansion already rendered the work-item details
+    // successfully, so the user just doesn't get to see the thread.
+    if (err instanceof AzureApiError && err.status === 404) {
+      return {
+        items: [],
+        total: 0,
+        page,
+        pageSize,
+        hasMore: false,
+        commentsUnavailable: true,
+      }
+    }
+    throw err
+  }
+
+  // The upstream always returns `totalCount` and a (possibly empty)
+  // `comments` array. If the `comments` key is missing entirely, that's
+  // a deployment-level "comments disabled" signal — surface it so the
+  // UI doesn't render a misleading "no comments yet" empty state.
+  const rawComments = Array.isArray(res.comments) ? res.comments : null
+  if (rawComments === null) {
+    return {
+      items: [],
+      total: 0,
+      page,
+      pageSize,
+      hasMore: false,
+      commentsUnavailable: true,
+    }
+  }
+
+  const items = rawComments
+    .map((c) => mapComment(c, includeDeleted))
+    .filter(
+      (c): c is NonNullable<ReturnType<typeof mapComment>> => c !== null,
+    )
+
+  // The upstream orders comments oldest-first on this endpoint, which
+  // is what we want for the chronological feed. Don't re-sort.
+  const total = typeof res.totalCount === "number" ? res.totalCount : items.length
+  const hasMore = page * pageSize < total
+
+  return {
+    items,
+    total,
+    page,
+    pageSize,
+    hasMore,
+  }
 }

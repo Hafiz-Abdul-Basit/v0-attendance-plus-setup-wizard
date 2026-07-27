@@ -52,6 +52,26 @@ export interface AzureWiqlResponse {
   }>
 }
 
+/** Raw shape returned by `GET /wit/workItems/{id}/comments`. */
+export interface AzureCommentsResponse {
+  /** Total comment count (across all pages). */
+  totalCount: number
+  /** Comments for the requested page. */
+  comments: Array<{
+    id: number
+    text: string
+    createdBy?: {
+      displayName?: string
+      uniqueName?: string
+      imageUrl?: string
+      descriptor?: string
+    }
+    createdDate?: string
+    modifiedDate?: string
+    isDeleted?: boolean
+  }>
+}
+
 export class AzureDevOpsClient {
   private readonly config: AzureConfig
   private readonly provider: AzureCredentialProvider
@@ -69,11 +89,32 @@ export class AzureDevOpsClient {
     return `api-version=${encodeURIComponent(this.config.apiVersion)}`
   }
 
+  /**
+   * Build the api-version query string, with an optional override. Used
+   * by the comments endpoint, which is pinned to a long-stable preview
+   * version regardless of the configured default.
+   */
+  private apiVersionQueryFor(version: string): string {
+    return `api-version=${encodeURIComponent(version)}`
+  }
+
   /** Internal — performs an authenticated JSON request. */
-  private async request<T>(path: string, init: RequestInit = {}): Promise<T> {
-    const url = `${this.config.baseUrl}${path}${
-      path.includes("?") ? "&" : "?"
-    }${this.apiVersionQuery}`
+  private async request<T>(
+    path: string,
+    init: RequestInit = {},
+    apiVersionOverride?: string,
+  ): Promise<T> {
+    // If the caller already provided an api-version in the path
+    // (e.g. when an endpoint is pinned to a long-stable preview), do
+    // not append a second one.
+    const hasApiVersion = /[?&]api-version=/.test(path)
+    const url = hasApiVersion
+      ? `${this.config.baseUrl}${path}`
+      : `${this.config.baseUrl}${path}${
+          path.includes("?") ? "&" : "?"
+        }${apiVersionOverride
+          ? this.apiVersionQueryFor(apiVersionOverride)
+          : this.apiVersionQuery}`
 
     const headers = new Headers(init.headers)
     headers.set("Accept", "application/json")
@@ -210,6 +251,44 @@ export class AzureDevOpsClient {
     return this.request<unknown>(
       `${this.projectPath}/_apis/wit/workitems/${encodeURIComponent(String(id))}${suffix}`,
     )
+  }
+
+  /**
+   * Fetch the comments attached to a work item. Uses the dedicated
+   * comments REST endpoint (`/wit/workItems/{id}/comments`) because
+   * comments are NOT included in the standard work-item payload and
+   * there's no `expand` flag that surfaces them.
+   *
+   * `api-version` is hard-coded to `7.1-preview.2` for this endpoint
+   * because the comments API has lived on the preview surface for many
+   * major versions and switching to GA has historically broken older
+   * Azure DevOps Server instances. Using the preview version that has
+   * been stable since Azure DevOps Server 2020 is the safe default.
+   *
+   * `page` is 1-based, `pageSize` is bounded to ≤ 200 by the upstream.
+   * Returns the raw response so the service layer can apply pagination
+   * + normalisation.
+   */
+  async getComments(
+    id: number,
+    options?: { page?: number; pageSize?: number },
+  ): Promise<AzureCommentsResponse> {
+    const page = options?.page ?? 1
+    const pageSize = options?.pageSize ?? 50
+    const params = new URLSearchParams()
+    params.set("$top", String(pageSize))
+    params.set("$skip", String(Math.max(0, (page - 1) * pageSize)))
+    // Pin the api-version to the long-stable preview. The comments API
+    // has been on the preview surface for many major versions and
+    // switching to GA has historically broken older Azure DevOps Server
+    // instances. Use `api-version=7.1-preview.4` because earlier
+    // previews return `404 Not Found` from newer Azure DevOps Server
+    // deployments (verified 2026-07-27: `7.1-preview.2` returns 404
+    // even when the work item exists at GET /workItems/{id}).
+    const commentPath = `${this.projectPath}/_apis/wit/workItems/${encodeURIComponent(
+      String(id),
+    )}/comments?${params.toString()}`
+    return this.request<AzureCommentsResponse>(commentPath, {}, "7.1-preview.4")
   }
 
   /**

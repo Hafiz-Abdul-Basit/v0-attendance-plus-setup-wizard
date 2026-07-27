@@ -285,3 +285,65 @@ export function mapWorkItem(
 export function getRequestedFields(): AzureWorkItemFieldRef[] {
   return [...AZURE_WORK_ITEM_FIELDS];
 }
+
+/**
+ * Convert a raw upstream comment into our normalised shape. The body
+ * is HTML in the upstream response (Azure DevOps renders the comment
+ * with rich-text formatting in the web UI); we strip it to plain text
+ * so the client doesn't have to. Hidden / deleted comments are dropped
+ * unless `includeDeleted` is set.
+ */
+export function mapComment(
+  raw: unknown,
+  includeDeleted: boolean = false,
+): import("./types").AzureWorkItemComment | null {
+  if (!raw || typeof raw !== "object") return null
+  const r = raw as {
+    id?: number
+    text?: string
+    createdBy?: {
+      displayName?: string
+      uniqueName?: string
+      imageUrl?: string
+      descriptor?: string
+    }
+    createdDate?: string
+    modifiedDate?: string
+    isDeleted?: boolean
+  }
+  if (typeof r.id !== "number") return null
+  if (r.isDeleted && !includeDeleted) return null
+  const createdBy = (() => {
+    if (!r.createdBy || typeof r.createdBy !== "object") return null
+    const cb = r.createdBy
+    const displayName =
+      typeof cb.displayName === "string" && cb.displayName.length > 0
+        ? cb.displayName
+        : null
+    const uniqueName =
+      typeof cb.uniqueName === "string" && cb.uniqueName.length > 0
+        ? cb.uniqueName
+        : null
+    if (!displayName && !uniqueName) return null
+    return {
+      displayName: displayName ?? uniqueName ?? "",
+      uniqueName: uniqueName ?? "",
+      imageUrl:
+        typeof cb.imageUrl === "string" && cb.imageUrl.length > 0
+          ? cb.imageUrl
+          : undefined,
+      descriptor:
+        typeof cb.descriptor === "string" && cb.descriptor.length > 0
+          ? cb.descriptor
+          : undefined,
+    }
+  })()
+  return {
+    id: r.id,
+    text: stripHtml(typeof r.text === "string" ? r.text : ""),
+    createdDate: typeof r.createdDate === "string" ? r.createdDate : null,
+    modifiedDate: typeof r.modifiedDate === "string" ? r.modifiedDate : null,
+    isDeleted: Boolean(r.isDeleted),
+    createdBy,
+  }
+}
