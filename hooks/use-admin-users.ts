@@ -23,6 +23,7 @@ export interface AdminUser {
   can_see_setups: boolean
   can_edit_all_snippets: boolean
   can_see_app_menu: boolean
+  can_see_azure_tasks: boolean
   created_at: string
   updated_at: string
   snippetCount: number

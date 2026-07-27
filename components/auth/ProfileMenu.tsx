@@ -11,7 +11,7 @@
 import * as React from "react"
 import Link from "next/link"
 import { useSession, signOut } from "next-auth/react"
-import { ChevronDown, LogOut, ShieldCheck, User as UserIcon } from "lucide-react"
+import { ChevronDown, LogOut, ShieldCheck, Sparkles, User as UserIcon } from "lucide-react"
 import { toast } from "sonner"
 
 import { cn } from "@/lib/utils"
@@ -49,8 +49,11 @@ export function ProfileMenu({ align = "right", className, compact = false }: Pro
 
   if (status === "loading" || !session?.user) return null
 
-  const { name, email, role } = session.user
+  const { name, email, role, canSeeAzureTasks } = session.user
   const isAdmin = role === "admin"
+  // Admins always see the Azure Tasks link; non-admins only when an
+  // admin has flipped their `canSeeAzureTasks` capability on.
+  const canSeeAzure = isAdmin || Boolean(canSeeAzureTasks)
 
   const handleLogout = async () => {
     setOpen(false)
@@ -165,6 +168,17 @@ export function ProfileMenu({ align = "right", className, compact = false }: Pro
               >
                 <ShieldCheck className="w-4 h-4" />
                 Admin Panel
+              </Link>
+            )}
+
+            {canSeeAzure && (
+              <Link
+                href="/azure-tasks"
+                onClick={() => setOpen(false)}
+                className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700"
+              >
+                <Sparkles className="w-4 h-4" />
+                Azure Tasks
               </Link>
             )}
 

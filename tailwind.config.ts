@@ -96,6 +96,10 @@ const config: Config = {
           '60%': { transform: 'scaleX(1)', opacity: '1' },
           '100%': { transform: 'scaleX(1)', opacity: '0' },
         },
+        'skeleton-shimmer': {
+          '0%': { backgroundPosition: '100% 50%' },
+          '100%': { backgroundPosition: '0% 50%' },
+        },
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
@@ -104,6 +108,7 @@ const config: Config = {
           'global-progress-load 1.2s cubic-bezier(0.4, 0, 0.2, 1) infinite',
         'global-progress-done':
           'global-progress-done 350ms ease-out forwards',
+        'skeleton': 'skeleton-shimmer 1.6s ease-in-out infinite',
       },
     },
   },

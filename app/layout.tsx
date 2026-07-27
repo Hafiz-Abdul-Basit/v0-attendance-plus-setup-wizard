@@ -4,6 +4,7 @@ import { Inter } from "next/font/google"
 import "./globals.css"
 import ClientLayout from "./ClientLayout" // Import the client component
 import { AuthProvider } from "@/components/auth/AuthProvider"
+import { NavProgressBar } from "@/components/NavProgressBar"
 import { RootShell } from "./RootShell"
 
 const inter = Inter({ subsets: ["latin"] })
@@ -42,6 +43,7 @@ export default function RootLayout({
     <html lang="en">
       <head>{/* Removed duplicate link tags for icons */}</head>
       <body className={inter.className}>
+        <NavProgressBar />
         <AuthProvider>
           <RootShell>
             <ClientLayout>{children}</ClientLayout>

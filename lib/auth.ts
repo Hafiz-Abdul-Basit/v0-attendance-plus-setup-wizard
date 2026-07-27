@@ -99,11 +99,13 @@ export const authOptions: NextAuthOptions = {
           session.user.canSeeSetups = flags.canSeeSetups
           session.user.canEditAllSnippets = flags.canEditAllSnippets
           session.user.canSeeAppMenu = flags.canSeeAppMenu
+          session.user.canSeeAzureTasks = flags.canSeeAzureTasks
         } else {
           session.user.canSeeSetupClients = false
           session.user.canSeeSetups = false
           session.user.canEditAllSnippets = false
           session.user.canSeeAppMenu = false
+          session.user.canSeeAzureTasks = false
         }
       }
       return session
@@ -124,16 +126,18 @@ const flagsCache = new Map<
     canSeeSetups: boolean
     canEditAllSnippets: boolean
     canSeeAppMenu: boolean
+    canSeeAzureTasks: boolean
     cachedAt: number
   }
 >()
 const FLAGS_TTL_MS = 30_000
 
-async function loadTabVisibilityFlags(userId: string): Promise<{
+export async function loadTabVisibilityFlags(userId: string): Promise<{
   canSeeSetupClients: boolean
   canSeeSetups: boolean
   canEditAllSnippets: boolean
   canSeeAppMenu: boolean
+  canSeeAzureTasks: boolean
 }> {
   const cached = flagsCache.get(userId)
   if (cached && Date.now() - cached.cachedAt < FLAGS_TTL_MS) {
@@ -142,13 +146,14 @@ async function loadTabVisibilityFlags(userId: string): Promise<{
       canSeeSetups: cached.canSeeSetups,
       canEditAllSnippets: cached.canEditAllSnippets,
       canSeeAppMenu: cached.canSeeAppMenu,
+      canSeeAzureTasks: cached.canSeeAzureTasks,
     }
   }
   try {
     const supabase = getSupabaseAdmin()
     const { data, error } = await supabase
       .from("users")
-      .select("can_see_setup_clients, can_see_setups, can_edit_all_snippets, can_see_app_menu")
+      .select("can_see_setup_clients, can_see_setups, can_edit_all_snippets, can_see_app_menu, can_see_azure_tasks")
       .eq("id", userId)
       .maybeSingle()
     if (error || !data) {
@@ -165,6 +170,7 @@ async function loadTabVisibilityFlags(userId: string): Promise<{
         canSeeSetups: false,
         canEditAllSnippets: false,
         canSeeAppMenu: false,
+        canSeeAzureTasks: false,
       }
     }
     const result = {
@@ -172,6 +178,7 @@ async function loadTabVisibilityFlags(userId: string): Promise<{
       canSeeSetups: Boolean(data.can_see_setups),
       canEditAllSnippets: Boolean(data.can_edit_all_snippets),
       canSeeAppMenu: Boolean(data.can_see_app_menu),
+      canSeeAzureTasks: Boolean(data.can_see_azure_tasks),
     }
     flagsCache.set(userId, { ...result, cachedAt: Date.now() })
     return result
@@ -183,6 +190,7 @@ async function loadTabVisibilityFlags(userId: string): Promise<{
       canSeeSetups: false,
       canEditAllSnippets: false,
       canSeeAppMenu: false,
+      canSeeAzureTasks: false,
     }
   }
 }
@@ -229,6 +237,60 @@ export async function requireAdmin(request: Request) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 })
   }
   return auth
+}
+
+/**
+ * Authorization helper for the Azure Tasks surface.
+ *
+ * Returns `true` if the signed-in user is allowed to use the Azure
+ * Tasks dashboard and its API. The check is opt-in: admins always
+ * pass; everyone else must have the `can_see_azure_tasks` flag set
+ * by an admin via the Admin Panel.
+ *
+ * Pass the already-fetched `session.user` (e.g. in a server component
+ * after `getServerSession`) — the helper reads role + flag. Used by
+ * the /azure-tasks page and the API routes.
+ */
+export function canAccessAzureTasks(
+  user: { role: string; canSeeAzureTasks?: boolean } | null | undefined,
+): boolean {
+  if (!user) return false
+  if (user.role === "admin") return true
+  return Boolean(user.canSeeAzureTasks)
+}
+
+/**
+ * Server-only variant: enforce the same check inside a route handler.
+ * On failure returns a 403 NextResponse; on success returns the auth
+ * payload (so the handler can also use `auth.userId` for logging).
+ *
+ * Note: requires the route to have called `requireAuth` first so we
+ * have the userId. We re-fetch the user's capability flag from the DB
+ * (bypassing the cached JWT) so an admin's mid-session flag toggle
+ * applies immediately.
+ */
+export async function requireAzureTasksAccess(request: Request) {
+  const { getToken } = await import("next-auth/jwt")
+  const token = await getToken({
+    req: request as unknown as NextRequest,
+    secret: process.env.NEXTAUTH_SECRET,
+  })
+  if (!token || !token.userId) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  }
+  const userId = token.userId as string
+  const role = (token.role as Role) ?? "user"
+  if (role === "admin") {
+    return { userId, email: token.email as string, role }
+  }
+  const flags = await loadTabVisibilityFlags(userId)
+  if (!flags.canSeeAzureTasks) {
+    return NextResponse.json(
+      { error: "Forbidden — Azure Tasks access not granted by admin." },
+      { status: 403 },
+    )
+  }
+  return { userId, email: token.email as string, role }
 }
 
 // Helper kept around so callers that already pass a NextRequest still type-check.

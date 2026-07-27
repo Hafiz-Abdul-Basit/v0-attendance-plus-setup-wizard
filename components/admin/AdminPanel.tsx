@@ -33,6 +33,7 @@ import {
   ListChecks,
   Pencil,
   Menu,
+  Sparkles,
 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
@@ -175,14 +176,16 @@ export function AdminPanel() {
   }
 
   // Toggle a per-user capability flag. The key matches the API field name
-  // (camelCase preferred; the API also accepts snake_case for compatibility).
+  // (snake_case for the wire — the API also accepts camelCase for UI
+  // convenience).
   const toggleCapability = async (
     u: AdminUser,
     key:
       | "can_see_setup_clients"
       | "can_see_setups"
       | "can_edit_all_snippets"
-      | "can_see_app_menu",
+      | "can_see_app_menu"
+      | "can_see_azure_tasks",
     value: boolean,
   ) => {
     setBusyUserId(u.id)
@@ -201,7 +204,9 @@ export function AdminPanel() {
           ? "Setups"
           : key === "can_edit_all_snippets"
           ? "Edit All Snippets"
-          : "Main App Menu"
+          : key === "can_see_app_menu"
+          ? "Main App Menu"
+          : "Azure Tasks"
       toast.success(`${u.email}: ${label} ${value ? "enabled" : "disabled"}`)
       // Optimistic local patch so the UI feels instant even before the reload.
       await mutateUsers()
@@ -447,6 +452,16 @@ export function AdminPanel() {
                                   description="Show the Main App Menu tab. Non-admins can view the menu and copy/download the JSON; admins can also edit it."
                                   onChange={(v) =>
                                     toggleCapability(u, "can_see_app_menu", v)
+                                  }
+                                />
+                                <CapabilityToggle
+                                  label="Azure Tasks"
+                                  icon={<Sparkles className="w-3.5 h-3.5" />}
+                                  enabled={u.can_see_azure_tasks}
+                                  disabled={busy}
+                                  description="Show the Azure Tasks link in the wizard header / profile menu. Non-admins who are granted this flag can browse work items and download attachments, but cannot change the upstream Azure configuration."
+                                  onChange={(v) =>
+                                    toggleCapability(u, "can_see_azure_tasks", v)
                                   }
                                 />
                                 {u.role === "admin" && (

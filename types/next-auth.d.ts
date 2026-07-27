@@ -22,6 +22,7 @@ declare module "next-auth" {
       canSeeSetups: boolean
       canEditAllSnippets: boolean
       canSeeAppMenu: boolean
+      canSeeAzureTasks: boolean
     }
   }
 
@@ -34,6 +35,7 @@ declare module "next-auth" {
     canSeeSetups?: boolean
     canEditAllSnippets?: boolean
     canSeeAppMenu?: boolean
+    canSeeAzureTasks?: boolean
   }
 }
 
@@ -46,5 +48,6 @@ declare module "next-auth/jwt" {
     canSeeSetups?: boolean
     canEditAllSnippets?: boolean
     canSeeAppMenu?: boolean
+    canSeeAzureTasks?: boolean
   }
 }

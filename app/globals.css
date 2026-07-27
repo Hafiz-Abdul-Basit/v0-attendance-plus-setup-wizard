@@ -95,6 +95,62 @@ div#v0-built-with-button-39f1df66-2902-4a9d-a54a-e8e5ca4c3a8c {
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: #94a3b8;
 }
+
+/**
+ * Modern slim vertical scroller for the Azure Tasks list. Fades in the
+ * track on hover so the page reads as "scrollable" without drawing
+ * attention to the chrome.
+ */
+.az-task-scroller {
+  scrollbar-width: thin;
+  /* Firefox: thumb color first, then a transparent track so the panel
+     background shows through. */
+  scrollbar-color: rgba(148, 163, 184, 0.55) transparent;
+  overflow-y: auto;
+  /* Required for the snap-onto-track effect on WebKit when the panel
+     first becomes scrollable. */
+  overscroll-behavior: contain;
+}
+
+.az-task-scroller::-webkit-scrollbar {
+  width: 8px;
+}
+
+.az-task-scroller::-webkit-scrollbar-track {
+  background: transparent;
+  border-radius: 999px;
+  margin: 4px 0;
+}
+
+.az-task-scroller::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.0);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+  transition: background-color 200ms ease;
+}
+
+.az-task-scroller:hover::-webkit-scrollbar-thumb,
+.az-task-scroller:focus-within::-webkit-scrollbar-thumb,
+.az-task-scroller::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.55);
+  background-clip: padding-box;
+  border: 2px solid transparent;
+}
+
+/**
+ * Hide the main page scrollbar on the Azure Tasks screen — the table
+ * owns the scroll surface so the controls stay anchored at the top.
+ * Targets both the page wrapper and any direct html/body overflow.
+ */
+body.az-tasks-no-page-scroll {
+  overflow: hidden;
+}
+
+body.az-tasks-no-page-scroll main,
+body.az-tasks-no-page-scroll #__next {
+  max-height: 100vh;
+}
 [data-sonner-toast] [data-close-button] {
   top: 8px !important;
   right: 8px !important;

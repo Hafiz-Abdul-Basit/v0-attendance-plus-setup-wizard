@@ -33,10 +33,12 @@ const PutBody = z
     canSeeSetups: z.boolean().optional(),
     canEditAllSnippets: z.boolean().optional(),
     canSeeAppMenu: z.boolean().optional(),
+    canSeeAzureTasks: z.boolean().optional(),
     can_see_setup_clients: z.boolean().optional(),
     can_see_setups: z.boolean().optional(),
     can_edit_all_snippets: z.boolean().optional(),
     can_see_app_menu: z.boolean().optional(),
+    can_see_azure_tasks: z.boolean().optional(),
   })
   .transform((raw) => ({
     id: raw.id,
@@ -47,6 +49,8 @@ const PutBody = z
     canEditAllSnippets:
       raw.canEditAllSnippets ?? raw.can_edit_all_snippets,
     canSeeAppMenu: raw.canSeeAppMenu ?? raw.can_see_app_menu,
+    canSeeAzureTasks:
+      raw.canSeeAzureTasks ?? raw.can_see_azure_tasks,
   }))
 
 const DeleteBody = z.object({
@@ -69,7 +73,7 @@ export async function GET(request: Request) {
     const res = await supabase
       .from("users")
       .select(
-        "id, email, name, role, can_see_setup_clients, can_see_setups, can_edit_all_snippets, can_see_app_menu, created_at, updated_at",
+        "id, email, name, role, can_see_setup_clients, can_see_setups, can_edit_all_snippets, can_see_app_menu, can_see_azure_tasks, created_at, updated_at",
       )
       .order("created_at", { ascending: true })
     if (res.error && /can_see_|can_edit_all_snippets/.test(res.error.message)) {
@@ -91,6 +95,7 @@ export async function GET(request: Request) {
         can_see_setups: false,
         can_edit_all_snippets: false,
         can_see_app_menu: false,
+        can_see_azure_tasks: false,
       }))
     } else if (res.error) {
       return NextResponse.json({ error: res.error.message }, { status: 500 })
@@ -138,7 +143,7 @@ export async function PUT(request: Request) {
       { status: 400 },
     )
   }
-  const { id, role, canSeeSetupClients, canSeeSetups, canEditAllSnippets, canSeeAppMenu } = parsed.data
+  const { id, role, canSeeSetupClients, canSeeSetups, canEditAllSnippets, canSeeAppMenu, canSeeAzureTasks } = parsed.data
   if (id === auth.userId && role !== undefined && role !== "admin") {
     return NextResponse.json(
       { error: "You cannot demote yourself out of admin." },
@@ -180,6 +185,7 @@ export async function PUT(request: Request) {
   if (canSeeSetups !== undefined) patch.can_see_setups = canSeeSetups
   if (canEditAllSnippets !== undefined) patch.can_edit_all_snippets = canEditAllSnippets
   if (canSeeAppMenu !== undefined) patch.can_see_app_menu = canSeeAppMenu
+  if (canSeeAzureTasks !== undefined) patch.can_see_azure_tasks = canSeeAzureTasks
   if (Object.keys(patch).length === 0) {
     return NextResponse.json({ error: "No fields to update." }, { status: 400 })
   }
@@ -189,7 +195,7 @@ export async function PUT(request: Request) {
     .update(patch)
     .eq("id", id)
     .select(
-      "id, email, name, role, can_see_setup_clients, can_see_setups, can_edit_all_snippets, can_see_app_menu, created_at, updated_at",
+      "id, email, name, role, can_see_setup_clients, can_see_setups, can_edit_all_snippets, can_see_app_menu, can_see_azure_tasks, created_at, updated_at",
     )
     .single()
   if (error || !data) {
