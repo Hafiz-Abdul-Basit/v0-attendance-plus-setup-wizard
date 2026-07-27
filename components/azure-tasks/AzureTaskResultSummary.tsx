@@ -1,4 +1,4 @@
-"use client"
+"use client";
 
 /**
  * AzureTaskResultSummary — single horizontal strip combining the search
@@ -23,7 +23,7 @@
  * (driving the header KPI strip), which is over the full filtered set.
  */
 
-import * as React from "react"
+import * as React from "react";
 import {
   AlertCircle,
   CheckCircle2,
@@ -32,23 +32,23 @@ import {
   Search,
   Timer,
   X,
-} from "lucide-react"
+} from "lucide-react";
 
-import { cn } from "@/lib/utils"
-import type { AzureWorkItem } from "./types"
+import { cn } from "@/lib/utils";
+import type { AzureWorkItem } from "./types";
 
 interface AzureTaskResultSummaryProps {
-  items: AzureWorkItem[]
-  total: number
-  isLoading: boolean
-  refreshedAt?: number | null
+  items: AzureWorkItem[];
+  total: number;
+  isLoading: boolean;
+  refreshedAt?: number | null;
   /** Wire up the search bar (left side). */
   search: {
-    value: string | undefined
-    onChange: (next: string | undefined) => void
-    placeholder?: string
-  }
-  className?: string
+    value: string | undefined;
+    onChange: (next: string | undefined) => void;
+    placeholder?: string;
+  };
+  className?: string;
 }
 
 const DONE_STATES = new Set([
@@ -57,18 +57,18 @@ const DONE_STATES = new Set([
   "resolved",
   "completed",
   "removed",
-])
+]);
 
 function isOpen(state: string): boolean {
-  return !DONE_STATES.has(state.toLowerCase())
+  return !DONE_STATES.has(state.toLowerCase());
 }
 
 function timeAgo(ts: number): string {
-  const diffSec = Math.max(0, Math.round((Date.now() - ts) / 1000))
-  if (diffSec < 60) return "just now"
-  if (diffSec < 3600) return `${Math.round(diffSec / 60)}m ago`
-  if (diffSec < 86_400) return `${Math.round(diffSec / 3600)}h ago`
-  return `${Math.round(diffSec / 86_400)}d ago`
+  const diffSec = Math.max(0, Math.round((Date.now() - ts) / 1000));
+  if (diffSec < 60) return "just now";
+  if (diffSec < 3600) return `${Math.round(diffSec / 60)}m ago`;
+  if (diffSec < 86_400) return `${Math.round(diffSec / 3600)}h ago`;
+  return `${Math.round(diffSec / 86_400)}d ago`;
 }
 
 export function AzureTaskResultSummary({
@@ -80,59 +80,56 @@ export function AzureTaskResultSummary({
   className,
 }: AzureTaskResultSummaryProps) {
   const { open, done, overdue } = React.useMemo(() => {
-    let openCount = 0
-    let doneCount = 0
-    let overdueCount = 0
-    const now = Date.now()
+    let openCount = 0;
+    let doneCount = 0;
+    let overdueCount = 0;
+    const now = Date.now();
     for (const it of items) {
-      if (isOpen(it.state)) openCount += 1
-      else doneCount += 1
+      if (isOpen(it.state)) openCount += 1;
+      else doneCount += 1;
       if (
         it.targetDate &&
         isOpen(it.state) &&
         new Date(it.targetDate).getTime() < now
       ) {
-        overdueCount += 1
+        overdueCount += 1;
       }
     }
-    return { open: openCount, done: doneCount, overdue: overdueCount }
-  }, [items])
+    return { open: openCount, done: doneCount, overdue: overdueCount };
+  }, [items]);
 
-  const inputRef = React.useRef<HTMLInputElement>(null)
-  const [mac, setMac] = React.useState(false)
+  const inputRef = React.useRef<HTMLInputElement>(null);
+  const [mac, setMac] = React.useState(false);
 
   // Platform detection for the ⌘K vs Ctrl+K hint.
   React.useEffect(() => {
     if (typeof navigator !== "undefined") {
-      setMac(/Mac|iPhone|iPad|iPod/.test(navigator.platform))
+      setMac(/Mac|iPhone|iPad|iPod/.test(navigator.platform));
     }
-  }, [])
+  }, []);
 
   // ⌘K / Ctrl+K focuses the input from anywhere on the page. Escape
   // clears the search when the input has a value, otherwise blurs.
   React.useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
-        e.preventDefault()
-        inputRef.current?.focus()
+        e.preventDefault();
+        inputRef.current?.focus();
       }
-      if (
-        e.key === "Escape" &&
-        document.activeElement === inputRef.current
-      ) {
+      if (e.key === "Escape" && document.activeElement === inputRef.current) {
         if (search.value) {
-          e.preventDefault()
-          search.onChange(undefined)
+          e.preventDefault();
+          search.onChange(undefined);
         } else {
-          inputRef.current?.blur()
+          inputRef.current?.blur();
         }
       }
-    }
-    document.addEventListener("keydown", handler)
-    return () => document.removeEventListener("keydown", handler)
-  }, [search.value, search.onChange])
+    };
+    document.addEventListener("keydown", handler);
+    return () => document.removeEventListener("keydown", handler);
+  }, [search.value, search.onChange]);
 
-  const searchActive = Boolean(search.value)
+  const searchActive = Boolean(search.value);
 
   return (
     <div
@@ -145,7 +142,7 @@ export function AzureTaskResultSummary({
       {/* ── Left: search input ─────────────────────────────────────── */}
       <div
         className={cn(
-          "group relative flex items-center w-full sm:w-72 md:w-80 lg:w-96",
+          "group relative flex items-center w-full sm:w-96 md:w-[500px] lg:w-[650px] xl:w-[750px]",
           "bg-gray-50 border border-gray-200 rounded-xl px-2.5 transition-all",
           "focus-within:bg-white focus-within:border-blue-400 focus-within:shadow-sm focus-within:ring-4 focus-within:ring-blue-100/60",
           searchActive && "bg-blue-50/30 border-blue-300",
@@ -153,12 +150,13 @@ export function AzureTaskResultSummary({
       >
         <Search
           className={cn(
-            "w-4 h-4 shrink-0 transition-colors",
+            "w-5 h-5 shrink-0 transition-colors",
             searchActive
               ? "text-blue-600"
               : "text-gray-400 group-focus-within:text-blue-600",
           )}
         />
+
         <input
           ref={inputRef}
           type="search"
@@ -167,31 +165,30 @@ export function AzureTaskResultSummary({
           spellCheck={false}
           aria-label="Search work items"
           placeholder={
-            search.placeholder ??
-            "Search by title, id, tag, or assignee…"
+            search.placeholder ?? "Search by title, id, tag, or assignee…"
           }
           value={search.value ?? ""}
-          onChange={(e) =>
-            search.onChange(e.target.value || undefined)
-          }
+          onChange={(e) => search.onChange(e.target.value || undefined)}
           className={cn(
             "flex-1 min-w-0 bg-transparent outline-none border-0",
             "h-8 text-sm text-gray-900 placeholder:text-gray-400 px-2",
           )}
         />
+
         {searchActive ? (
           <button
             type="button"
             aria-label="Clear search"
             onClick={() => {
-              search.onChange(undefined)
-              inputRef.current?.focus()
+              search.onChange(undefined);
+              inputRef.current?.focus();
             }}
             className="p-1 rounded-md text-gray-400 hover:text-gray-700 hover:bg-gray-100"
           >
             <X className="w-3.5 h-3.5" />
           </button>
         ) : null}
+
         <kbd
           aria-hidden
           className={cn(
@@ -244,26 +241,26 @@ export function AzureTaskResultSummary({
         ) : null}
       </div>
     </div>
-  )
+  );
 }
 
 function Divider() {
-  return <span className="h-4 w-px bg-gray-200" aria-hidden />
+  return <span className="h-4 w-px bg-gray-200" aria-hidden />;
 }
 
 interface ChipProps {
-  icon: React.ReactNode
-  label: string
-  value: number
-  tone: "amber" | "emerald" | "red"
-  loading?: boolean
+  icon: React.ReactNode;
+  label: string;
+  value: number;
+  tone: "amber" | "emerald" | "red";
+  loading?: boolean;
 }
 
 const TONE_CLASSES: Record<ChipProps["tone"], string> = {
   amber: "text-amber-700 bg-amber-50 border-amber-200",
   emerald: "text-emerald-700 bg-emerald-50 border-emerald-200",
   red: "text-red-700 bg-red-50 border-red-200",
-}
+};
 
 function Chip({ icon, label, value, tone, loading }: ChipProps) {
   return (
@@ -279,5 +276,5 @@ function Chip({ icon, label, value, tone, loading }: ChipProps) {
         {loading ? "…" : value.toLocaleString()}
       </span>
     </div>
-  )
+  );
 }
