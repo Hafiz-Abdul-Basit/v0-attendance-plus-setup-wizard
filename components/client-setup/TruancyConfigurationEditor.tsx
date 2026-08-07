@@ -32,7 +32,7 @@ export function TruancyConfigurationEditor() {
     Period: "SchoolYear",
     Action: "Truancy Warning Letter 1",
     Category: "UnExcused Absence",
-    CampusType: "'Elementary School'; 'Middle School'; 'High School'; 'Alternative School'",
+    CampusType: "'Elementary School'; 'Middle School'; 'High School'",
     ChooseAction: "Truancy Warning Letter 1:WL1",
     IsConsecutive: false,
     Description: "Interventions to be proposed on 3 absences in school year",
@@ -58,14 +58,13 @@ export function TruancyConfigurationEditor() {
     "Periods Skipped",
   ];
   const campusTypeOptions = [
+    "'Elementary School'; 'Middle School'; 'High School'; 'Alternative School'",
     "'Elementary School'; 'Middle School'; 'High School'",
-    "'Elementary school'; 'Middle school'; 'High school'",
     "'Middle School'; 'High School'",
     "'Elementary School'; 'Middle School'",
-    "'Elementary school'; 'Middle school'",
-    "'Elementary school'",
-    "'Middle school'",
-    "'High school'",
+    "'Elementary School'",
+    "'Middle School'",
+    "'High School'",
   ];
   const isConsecutiveOptions = [true, false];
 
