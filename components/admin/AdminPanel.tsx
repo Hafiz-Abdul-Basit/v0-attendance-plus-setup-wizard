@@ -52,6 +52,7 @@ import {
   type AdminActivity,
 } from "@/hooks/use-admin-activity"
 import { ActivityDashboard } from "@/components/admin/ActivityDashboard"
+import { ChatbotSettings } from "@/components/admin/ChatbotSettings"
 
 type Tab = "users" | "snippets"
 
@@ -326,6 +327,13 @@ export function AdminPanel() {
             activity={activity}
             isLoading={activityLoading}
           />
+        </div>
+
+        {/* Chatbot Settings — admin-controlled master toggle + per-user
+            overrides. Placed directly under the activity banner so it's
+            the first thing an admin sees when they open the panel. */}
+        <div className="mb-6">
+          <ChatbotSettings />
         </div>
 
         {/* Tabs */}

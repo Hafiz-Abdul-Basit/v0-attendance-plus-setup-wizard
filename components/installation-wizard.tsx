@@ -20,6 +20,7 @@ import { SnippetsContent } from "@/components/snippets-content";
 import { useSnippets } from "@/hooks/use-snippets";
 import { InteractiveGuides } from "@/components/interactive-guides";
 import { ClientSetupAgent } from "@/components/ClientSetupAgent";
+import { CHATBOT_ACTION_EVENT, type ChatbotAction } from "@/lib/chatbot-events";
 import logo from "../public/Develop by Abdul Basit.png";
 import Image from "next/image";
 import { SetupsTabs } from "@/components/client-setup/SetupsTabs";
@@ -320,6 +321,30 @@ export function InstallationWizard() {
   const [showSetupAgent, setShowSetupAgent] = useState(false); // New state for Setup Agent
   const [showSetups, setShowSetups] = useState(false); // New state for Setups
   const [showAppMenu, setShowAppMenu] = useState(false); // New state for Main App Menu
+
+  // Snip chatbot → wizard bridge. The chat widget (mounted in
+  // app/ClientLayout.tsx) dispatches CustomEvent("snip:action", action)
+  // when the user clicks "Apply" on a tab-switch suggestion. We flip
+  // our existing boolean flags to render the matching view. The
+  // exclusive-or pattern means switching to "snippets" hides all the
+  // others, and vice versa.
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent<ChatbotAction>).detail
+      if (detail.type !== "switch-tab") return
+      const tab = detail.payload.tab
+      setShowSnippets(tab === "snippets")
+      setShowSetupAgent(tab === "setup-agent")
+      setShowSetups(tab === "setups")
+      setShowAppMenu(tab === "app-menu")
+    }
+    window.addEventListener(CHATBOT_ACTION_EVENT, handler as EventListener)
+    return () =>
+      window.removeEventListener(
+        CHATBOT_ACTION_EVENT,
+        handler as EventListener,
+      )
+  }, [])
 
   // Snippets — fetched from API via SWR, shared with <SnippetsContent> via prop.
   // `isLoading` is forwarded so the child renders the skeleton immediately

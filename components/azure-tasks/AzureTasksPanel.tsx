@@ -67,20 +67,13 @@ import type { AzureWorkItem, AzureWorkItemQuery } from "./types"
 const PAGE_SIZE = 100
 
 /**
- * Default "From" date for the work-item list — three months back from
- * today. The user can still widen or narrow the range via the filter
- * bar; this is just the view the panel opens with.
+ * Default query state when the user opens /azure-tasks directly (no
+ * URL params, no chat-bridge intent). We intentionally don't seed a
+ * "from" date here — the panel should show *everything* by default,
+ * and the user can narrow the window via the filter bar or via a
+ * chatbot suggestion.
  */
-function defaultFromIso(): string {
-  const d = new Date()
-  d.setMonth(d.getMonth() - 3)
-  d.setHours(0, 0, 0, 0)
-  return d.toISOString()
-}
-
-const EMPTY_QUERY: AzureWorkItemQuery = {
-  from: defaultFromIso(),
-}
+const EMPTY_QUERY: AzureWorkItemQuery = {}
 
 const DEFAULT_SORT: AzureTaskSort = { key: "changedDate", dir: "desc" }
 
@@ -104,9 +97,27 @@ const queryBinding = {
     const out: Partial<AzureWorkItemQuery> = {}
     const from = params.get("from")
     if (from) out.from = from
+
+    // Snip chatbot bridge: the widget navigates with
+    // `?daysBack=<n>` for relative phrases ("last 3 days").
+    // We resolve it to an absolute ISO `from` here so downstream
+    // code only has to deal with one shape.
+    const daysBack = params.get("daysBack")
+    if (daysBack && /^\d{1,4}$/.test(daysBack)) {
+      const n = parseInt(daysBack, 10)
+      if (n >= 1 && n <= 365) {
+        const d = new Date()
+        d.setDate(d.getDate() - n)
+        d.setHours(0, 0, 0, 0)
+        out.from = d.toISOString()
+      }
+    }
+
     const to = params.get("to")
     if (to) out.to = to
-    const q = params.get("q")
+    // Accept `q` (panel convention) AND `search` (chat widget URL) —
+    // both populate the free-text filter.
+    const q = params.get("q") ?? params.get("search")
     if (q) out.q = q
     const assignee = params.get("assignee")
     if (assignee) out.assignee = assignee
@@ -183,6 +194,14 @@ export function AzureTasksPanel() {
   // Cache of relation-expanded work items, keyed by id. Persisted across
   // re-renders so opening the same row twice doesn't refetch.
   const [expandedTasks, setExpandedTasks] = React.useState<Record<number, AzureWorkItem>>({})
+
+  // Snip chatbot bridge: the chat widget navigates here using URL
+  // params (?search, ?daysBack, ?from, ?to). The `useQueryState`
+  // hook above already reads those params from `window.location.search`
+  // on first mount (see `queryBinding.fromUrl`), so we don't need a
+  // separate bridge effect here. An earlier version used a
+  // localStorage handoff, but parent effects run AFTER child effects
+  // in React, so the panel read the keys too early and missed them.
 
   // Resolve the display name to use for the "Only mine" filter. Prefer
   // the session's user.name; fall back to the email if the JWT didn't

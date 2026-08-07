@@ -53,6 +53,7 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { useSnippets, type ApiSnippet } from "@/hooks/use-snippets";
 import { SnippetEditorModal } from "@/components/snippet-editor-modal";
 import { cn } from "@/lib/utils";
+import { CHATBOT_ACTION_EVENT, type ChatbotAction } from "@/lib/chatbot-events";
 
 /**
  * Lightweight relative-time formatter — no dependency on date-fns / dayjs.
@@ -573,6 +574,36 @@ export function SnippetsContent({
       setFavorites(new Set(JSON.parse(savedFavorites)));
     }
   }, []);
+
+  // Snip chatbot → snippet bridge. The chat widget (mounted in
+  // app/ClientLayout.tsx) dispatches CustomEvent("snip:action", action)
+  // when the user clicks "Apply" on a search/filter suggestion. We act
+  // on it here by driving our existing search and folder state — no
+  // extra plumbing required.
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent<ChatbotAction>).detail
+      if (detail.type === "search-snippets") {
+        // A fresh query implies "drop any folder filter so the search
+        // isn't masked by an unrelated category."
+        setSelectedFolder(null)
+        setLocalSearchQuery(detail.payload.query)
+        toast.success(`Filtered to "${detail.payload.query}"`)
+      } else if (detail.type === "filter-category") {
+        // A category filter implies "drop any active search so the user
+        // sees the full category, not the intersection."
+        setLocalSearchQuery("")
+        setSelectedFolder(detail.payload.category)
+        toast.success(`Showing only "${detail.payload.category}"`)
+      }
+    }
+    window.addEventListener(CHATBOT_ACTION_EVENT, handler as EventListener)
+    return () =>
+      window.removeEventListener(
+        CHATBOT_ACTION_EVENT,
+        handler as EventListener,
+      )
+  }, [])
 
   // Save favorites to localStorage
   const saveFavorites = (newFavorites: Set<string>) => {
