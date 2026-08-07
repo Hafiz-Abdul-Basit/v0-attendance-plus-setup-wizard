@@ -183,3 +183,59 @@ create index if not exists users_password_reset_token_idx
 alter table public.users
   add column if not exists can_see_setup_clients boolean not null default false,
   add column if not exists can_see_setups       boolean not null default false;
+
+-- ============================================================
+-- APP-WIDE SETTINGS (key/value store)
+-- Holds the master chatbot_enabled toggle plus any future
+-- app-wide config. Seeded with chatbot_enabled = true on schema
+-- apply so the chat widget is on by default for fresh installs.
+-- ============================================================
+create table if not exists public.app_settings (
+  key text primary key,
+  value jsonb not null,
+  updated_at timestamptz not null default now()
+);
+
+drop trigger if exists app_settings_set_updated_at on public.app_settings;
+create trigger app_settings_set_updated_at
+  before update on public.app_settings
+  for each row execute function public.set_updated_at();
+
+insert into public.app_settings (key, value)
+  values ('chatbot_enabled', 'true'::jsonb)
+  on conflict (key) do nothing;
+
+-- ── Per-user chatbot override ────────────────────────────────────────
+-- New column on users. 'inherit' (default) follows the global toggle,
+-- 'enabled' / 'disabled' pin the user regardless of the global setting.
+-- Global OFF always wins — checked in lib/chatbot.ts.
+alter table public.users
+  add column if not exists chatbot_access text not null default 'inherit';
+
+do $$
+begin
+  if not exists (
+    select 1 from pg_constraint where conname = 'users_chatbot_access_check'
+  ) then
+    alter table public.users
+      add constraint users_chatbot_access_check
+      check (chatbot_access in ('inherit', 'enabled', 'disabled'));
+  end if;
+end$$;
+
+-- ── Row-Level Security for app_settings ──────────────────────────────
+alter table public.app_settings enable row level security;
+
+drop policy if exists "app_settings_no_anon_read" on public.app_settings;
+create policy "app_settings_no_anon_read"
+  on public.app_settings
+  for select
+  using (false);
+
+drop policy if exists "app_settings_service_role_write" on public.app_settings;
+create policy "app_settings_service_role_write"
+  on public.app_settings
+  for all
+  to service_role
+  using (true)
+  with check (true);
