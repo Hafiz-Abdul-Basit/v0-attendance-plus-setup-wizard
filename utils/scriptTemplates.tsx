@@ -19,17 +19,39 @@ const DOWNLOADS_PATH = `${BASE_PATH}\\Downloads`
 export const scriptTemplates = {
   chrome: (): ScriptSection => ({
     title: 'Chrome Browser Installation',
-    description: 'Download and install Google Chrome browser',
+    description: 'Download and install the consumer (non-enterprise) Google Chrome browser',
     commands: [
       '# ===== CHROME BROWSER INSTALLATION =====',
+      // Consumer Chrome standalone installer served by Google's official
+      // download redirect. Excludes the enterprise MSI variant and the
+      // guid-appended URL that breaks when the campaign token rotates.
       `$ChromePath = "${DOWNLOADS_PATH}\\ChromeSetup.exe"`,
-      '$ChromeUrl = "https://dl.google.com/chrome/install/googlechromestandaloneenterprise64.msi"',
-      'Write-Host "Downloading Chrome..."',
-      'Invoke-WebRequest -Uri $ChromeUrl -OutFile $ChromePath',
-      'Write-Host "Installing Chrome..."',
-      'Start-Process -FilePath $ChromePath -ArgumentList "/S /install" -Wait',
-      'Write-Host "Chrome installation completed!"',
+      '$ChromeUrl = "https://dl.google.com/chrome/install/ChromeStandaloneSetup64.exe"',
+      'New-Item -ItemType Directory -Path (Split-Path -Parent $ChromePath) -Force | Out-Null',
+      'Write-Host "Downloading Google Chrome (consumer edition)..."',
+      'try {',
+      '    Invoke-WebRequest -Uri $ChromeUrl -OutFile $ChromePath -UseBasicParsing -ErrorAction Stop',
+      '    Write-Host "Chrome downloaded successfully."',
+      '} catch {',
+      '    Write-Host "Chrome download failed: $($_.Exception.Message)"',
+      '    exit 1',
+      '}',
+      'if (Test-Path $ChromePath) {',
+      '    Write-Host "Installing Google Chrome..."',
+      '    try {',
+      '        $process = Start-Process -FilePath $ChromePath -ArgumentList "/silent","/install" -Wait -PassThru',
+      '        if ($process.ExitCode -eq 0) {',
+      '            Write-Host "Google Chrome installed successfully!"',
+      '        } else {',
+      '            Write-Host "Chrome installer returned exit code: $($process.ExitCode)"',
+      '        }',
+      '    } catch {',
+      '        Write-Host "Chrome installation failed: $($_.Exception.Message)"',
+      '        exit 1',
+      '    }',
+      '}',
       'Remove-Item $ChromePath -Force -ErrorAction SilentlyContinue',
+      'Write-Host "Chrome setup completed."',
       '',
     ],
   }),
@@ -73,15 +95,24 @@ export const scriptTemplates = {
 
   dotnet: (): ScriptSection => ({
     title: '.NET 8 Installation',
-    description: 'Download and install .NET 8 SDK and Hosting Bundle',
+    description: 'Download and install the latest .NET 8 Hosting Bundle at runtime',
     commands: [
       '# ===== .NET 8 INSTALLATION =====',
+      // Resolved at runtime from Microsoft\'s official release index so the
+      // latest 8.x patch is always used (no hardcoded version). The channel
+      // "8.0" is pinned because the project targets .NET 8 specifically;
+      // the patch level is fetched live.
       `$DotnetPath = "${DOWNLOADS_PATH}\\dotnet-hosting.exe"`,
-      '$DotnetUrl = "https://dotnetcli.blob.core.windows.net/dotnet/release-metadata/releases-index.json"',
-      'Write-Host "Downloading .NET 8 Hosting Bundle..."',
-      '# Get latest .NET 8 hosting bundle URL from official source',
-      '$DotnetUrl = "https://aka.ms/dotnet/8.0/windowshosting"',
-      'Invoke-WebRequest -Uri $DotnetUrl -OutFile $DotnetPath',
+      'Write-Host "Resolving the latest .NET 8 hosting bundle URL..."',
+      '$releasesIndex = Invoke-RestMethod -Uri "https://dotnetcli.blob.core.windows.net/dotnet/release-metadata/releases-index.json" -UseBasicParsing',
+      '$channel8 = $releasesIndex."releases-index" | Where-Object { $_.channelVersion -eq "8.0" } | Select-Object -First 1',
+      '$DotnetUrl = $channel8."windowsdesktop-hybrid-runtime-x64"',
+      'if (-not $DotnetUrl) {',
+      '    # Fallback: well-known stable redirect used by the .NET team.',
+      '    $DotnetUrl = "https://aka.ms/dotnet/8.0/windowshosting"',
+      '}',
+      'Write-Host "Downloading .NET 8 Hosting Bundle from $DotnetUrl ..."',
+      'Invoke-WebRequest -Uri $DotnetUrl -OutFile $DotnetPath -UseBasicParsing',
       'Write-Host "Installing .NET 8..."',
       'Start-Process -FilePath $DotnetPath -ArgumentList "/install /quiet /norestart" -Wait',
       'Write-Host ".NET 8 installation completed!"',
@@ -94,13 +125,17 @@ export const scriptTemplates = {
 
   erlang: (): ScriptSection => ({
     title: 'Erlang Runtime Installation',
-    description: 'Install Erlang OTP (required for RabbitMQ)',
+    description: 'Install Erlang OTP 27.3.4.13 (pinned to match RabbitMQ 4.3.1)',
     commands: [
       '# ===== ERLANG INSTALLATION =====',
+      // PINNED VERSION — required by the project to match RabbitMQ 4.3.1.
+      // Erlang and RabbitMQ share an ABI compatibility matrix; changing
+      // either without the other breaks the broker. Do NOT edit unless the
+      // project explicitly upgrades both.
       `$ErlangPath = "${DOWNLOADS_PATH}\\erlang-setup.exe"`,
-      '$ErlangUrl = "https://github.com/erlang/otp/releases/download/OTP-26.2.1/otp_win64_26.2.1.exe"',
-      'Write-Host "Downloading Erlang OTP..."',
-      'Invoke-WebRequest -Uri $ErlangUrl -OutFile $ErlangPath',
+      '$ErlangUrl = "https://github.com/erlang/otp/releases/download/OTP-27.3.4.13/otp_win64_27.3.4.13.exe"',
+      'Write-Host "Downloading Erlang OTP 27.3.4.13 (pinned)..."',
+      'Invoke-WebRequest -Uri $ErlangUrl -OutFile $ErlangPath -UseBasicParsing',
       'Write-Host "Installing Erlang..."',
       'Start-Process -FilePath $ErlangPath -ArgumentList "/S" -Wait',
       'Write-Host "Erlang installation completed!"',
@@ -111,18 +146,21 @@ export const scriptTemplates = {
 
   rabbitmq: (): ScriptSection => ({
     title: 'RabbitMQ Installation',
-    description: 'Install and configure RabbitMQ message broker',
+    description: 'Install and configure RabbitMQ 4.3.1 (pinned to match Erlang 27.3.4.13)',
     commands: [
       '# ===== RABBITMQ INSTALLATION =====',
+      // PINNED VERSION — required by the project to match Erlang 27.3.4.13.
+      // See the comment in `erlang` above. Do NOT edit unless the project
+      // explicitly upgrades both.
       `$RabbitMqPath = "${DOWNLOADS_PATH}\\rabbitmq-setup.exe"`,
-      '$RabbitMqUrl = "https://github.com/rabbitmq/rabbitmq-server/releases/download/v3.12.12/rabbitmq-server-3.12.12.exe"',
-      'Write-Host "Downloading RabbitMQ..."',
-      'Invoke-WebRequest -Uri $RabbitMqUrl -OutFile $RabbitMqPath',
+      '$RabbitMqUrl = "https://github.com/rabbitmq/rabbitmq-server/releases/download/v4.3.1/rabbitmq-server-4.3.1.exe"',
+      'Write-Host "Downloading RabbitMQ 4.3.1 (pinned)..."',
+      'Invoke-WebRequest -Uri $RabbitMqUrl -OutFile $RabbitMqPath -UseBasicParsing',
       'Write-Host "Installing RabbitMQ..."',
       'Start-Process -FilePath $RabbitMqPath -ArgumentList "/S" -Wait',
       'Write-Host "RabbitMQ installation completed!"',
       'Write-Host "Enabling RabbitMQ Management Plugin..."',
-      'Set-Location "C:\\Program Files\\RabbitMQ Server\\rabbitmq_server-3.12.12\\sbin"',
+      'Set-Location "C:\\Program Files\\RabbitMQ Server\\rabbitmq_server-4.3.1\\sbin"',
       '.\\rabbitmq-plugins.bat enable rabbitmq_management',
       'Write-Host "RabbitMQ is running on http://localhost:15672 (guest/guest)"',
       'Remove-Item $RabbitMqPath -Force -ErrorAction SilentlyContinue',
@@ -132,13 +170,35 @@ export const scriptTemplates = {
 
   mongodb: (): ScriptSection => ({
     title: 'MongoDB Installation',
-    description: 'Install MongoDB Community Edition with tools',
+    description: 'Install the latest stable MongoDB Community Edition at runtime',
     commands: [
       '# ===== MONGODB INSTALLATION =====',
+      // Resolved at runtime by scraping MongoDB\'s official community-edition
+      // releases page and picking the highest stable Windows x64 MSI. This
+      // means every new install gets the latest patch without the script
+      // being edited. MongoDB does not publish a static "latest" MSI URL,
+      // so we read the page on each run.
       `$MongoDbPath = "${DOWNLOADS_PATH}\\mongodb-setup.msi"`,
-      '$MongoDbUrl = "https://fastdl.mongodb.org/windows/mongodb-windows-x86_64-7.0.5-signed.msi"',
-      'Write-Host "Downloading MongoDB Community Edition..."',
-      'Invoke-WebRequest -Uri $MongoDbUrl -OutFile $MongoDbPath',
+      'Write-Host "Resolving the latest MongoDB Community Edition MSI URL..."',
+      '$releasesPage = Invoke-WebRequest -Uri "https://www.mongodb.com/try/download/community-edition/releases" -UseBasicParsing',
+      '$msiPattern = \'mongodb-windows-x86_64-(\\d+\\.\\d+\\.\\d+)-signed\\.msi\'',
+      '$candidates = @()',
+      'foreach ($link in $releasesPage.Links) {',
+      '    if ($link.href -match $msiPattern) {',
+      '        $ver = [version]$Matches[1]',
+      '        $url = $link.href',
+      '        if ($url -notmatch "^https?://") { $url = "https://www.mongodb.com" + $url }',
+      '        elseif ($url -match "^//") { $url = "https:" + $url }',
+      '        $candidates += [pscustomobject]@{ Version = $ver; Url = $url }',
+      '    }',
+      '}',
+      '$MongoDbUrl = ($candidates | Sort-Object Version -Descending | Select-Object -First 1).Url',
+      'if (-not $MongoDbUrl) {',
+      '    # Fallback to a known-good recent release if the page structure changes.',
+      '    $MongoDbUrl = "https://fastdl.mongodb.org/windows/mongodb-windows-x86_64-8.0.28-signed.msi"',
+      '}',
+      'Write-Host "Downloading MongoDB Community Edition from $MongoDbUrl ..."',
+      'Invoke-WebRequest -Uri $MongoDbUrl -OutFile $MongoDbPath -UseBasicParsing',
       'Write-Host "Installing MongoDB..."',
       'Start-Process -FilePath "msiexec.exe" -ArgumentList "/i $MongoDbPath /passive /norestart" -Wait',
       'Write-Host "MongoDB installation completed!"',

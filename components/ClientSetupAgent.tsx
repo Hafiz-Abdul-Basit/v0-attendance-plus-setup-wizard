@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
-import { Plus, BarChart3, AlertCircle, CheckCircle2, Clock, TrendingUp, AlertTriangle, Info, Trash2 } from 'lucide-react'
+import { Plus, BarChart3, AlertCircle, CheckCircle2, Clock, TrendingUp, AlertTriangle, Info, Trash2, Server } from 'lucide-react'
 import { toast } from 'sonner'
 import {
   ClientSetup,
@@ -13,8 +13,16 @@ import { ClientForm } from '@/components/client-setup/ClientForm'
 import { InstallationSelector } from '@/components/client-setup/InstallationSelector'
 import { ScriptGenerator } from '@/components/client-setup/ScriptGenerator'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
+import { ServerSetup } from '@/components/client-setup/ServerSetup'
 
-type Tab = 'dashboard' | 'new-client' | 'select-installations' | 'script-generator'
+type Tab =
+  | 'dashboard'
+  | 'new-client'
+  | 'select-installations'
+  | 'script-generator'
+  // Extended by the Server Setup / IIS Deployment feature. The original
+  // four tabs above are unchanged and continue to work as before.
+  | 'server-setup'
 
 export function ClientSetupAgent() {
   const [clients, setClients] = useState<ClientSetup[]>([])
@@ -189,10 +197,25 @@ export function ClientSetupAgent() {
                 <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Setup Agent</h1>
                 <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">Manage and automate client deployments</p>
               </div>
-              <Button onClick={handleAddClient} className="gap-2 bg-blue-600 hover:bg-blue-700">
-                <Plus className="w-4 h-4" />
-                New Client
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button onClick={handleAddClient} className="gap-2 bg-blue-600 hover:bg-blue-700">
+                  <Plus className="w-4 h-4" />
+                  New Client
+                </Button>
+                {/*
+                  * Entry point for the new "Server Setup / IIS Deployment" tab.
+                  * Sits beside the existing "New Client" button so the original
+                  * dashboard UX is not changed.
+                  */}
+                <Button
+                  variant="outline"
+                  onClick={() => setActiveTab('server-setup')}
+                  className="gap-2 border-slate-300 dark:border-slate-700"
+                >
+                  <Server className="w-4 h-4" />
+                  Server Setup
+                </Button>
+              </div>
             </div>
 
             {/* Quick Insights */}
@@ -323,6 +346,33 @@ export function ClientSetupAgent() {
                 client={selectedClient}
                 onBack={handleBackToClient}
               />
+            </div>
+          )}
+
+          {activeTab === 'server-setup' && (
+            <div className="space-y-6">
+              <div className="bg-white dark:bg-slate-900 rounded-lg shadow-sm border border-slate-200 dark:border-slate-800 p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
+                      Server Setup / IIS Deployment
+                    </h2>
+                    <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
+                      Configure deployment paths, download Azure DevOps artifacts,
+                      configure MongoDB, IIS, and SSL. Run idempotent PowerShell
+                      scripts on the target Windows server as Administrator.
+                    </p>
+                  </div>
+                  <Button
+                    variant="outline"
+                    onClick={handleBackToDashboard}
+                    className="gap-2 border-slate-300 dark:border-slate-700"
+                  >
+                    ← Back to Dashboard
+                  </Button>
+                </div>
+              </div>
+              <ServerSetup />
             </div>
           )}
         </div>
