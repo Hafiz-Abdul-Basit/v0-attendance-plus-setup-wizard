@@ -22,14 +22,10 @@
  */
 
 import * as React from "react"
-import { ArrowDown, ArrowUp, ArrowUpDown, ChevronDown, ChevronRight, Inbox, Loader2, Paperclip } from "lucide-react"
+import { ArrowDown, ArrowUp, ArrowUpDown, ChevronRight, Inbox, Loader2, Paperclip } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 import type { AzureWorkItem } from "./types"
-import {
-  AzureTaskRowExpansion,
-  AzureTaskRowExpansionPlaceholder,
-} from "./AzureTaskRowExpansion"
 
 export type AzureTaskSortKey =
   | "id"
@@ -110,13 +106,6 @@ function stateChipClass(state: string): string {
     return "bg-red-100 text-red-800 border-red-200"
   }
   return "bg-indigo-100 text-indigo-800 border-indigo-200"
-}
-
-function priorityChipClass(priority: number | null): string {
-  if (priority == null) return "bg-gray-100 text-gray-500 border-gray-200"
-  if (priority <= 1) return "bg-red-100 text-red-800 border-red-200"
-  if (priority === 2) return "bg-amber-100 text-amber-800 border-amber-200"
-  return "bg-gray-100 text-gray-700 border-gray-200"
 }
 
 function formatDate(iso: string | null | undefined): string {
@@ -308,8 +297,8 @@ export function AzureTaskTable({
                 className="hidden lg:table-cell"
               />
               <SortableHeader
-                label="Priority"
-                sortKey="priority"
+                label="Created"
+                sortKey="createdDate"
                 sort={sort}
                 onSortChange={onSortChange}
                 className="hidden lg:table-cell"
@@ -366,30 +355,24 @@ export function AzureTaskTable({
             ) : (
               sorted.map((task) => {
                 const isExpanded = expansion.expandedTaskId === task.id
-                const expandedData = expansion.expandedTasks[task.id]
-                const showExpansionError =
-                  isExpanded && expansion.isExpansionError && !expandedData
-                const showExpansionLoading =
-                  isExpanded &&
-                  (expansion.isExpansionLoading ||
-                    (!expandedData && !expansion.isExpansionError))
                 return (
                   <React.Fragment key={task.id}>
                     <tr
                       className={cn(
                         "transition-colors cursor-pointer",
                         isExpanded
-                          ? "bg-blue-50/60 hover:bg-blue-50"
+                          ? "bg-blue-50 hover:bg-blue-50 shadow-[inset_3px_0_0_0_rgb(37,99,235)]"
                           : "hover:bg-gray-50",
                       )}
                       onClick={() => onRowToggle(task)}
                     >
                       <td className={cn(cellClass, "w-10 text-gray-500")}>
-                        {isExpanded ? (
-                          <ChevronDown className="w-4 h-4 text-blue-600" />
-                        ) : (
-                          <ChevronRight className="w-4 h-4 text-gray-400" />
-                        )}
+                        <ChevronRight
+                          className={cn(
+                            "w-4 h-4",
+                            isExpanded ? "text-blue-600" : "text-gray-400",
+                          )}
+                        />
                       </td>
                       <td className={cn(cellClass, "font-mono text-gray-600")}>
                         {task.id}
@@ -442,19 +425,11 @@ export function AzureTaskTable({
                           <span className="text-gray-400">Unassigned</span>
                         )}
                       </td>
-                      <td className={cn(cellClass, "hidden lg:table-cell")}>
-                        {task.priority != null ? (
-                          <span
-                            className={cn(
-                              "text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border",
-                              priorityChipClass(task.priority),
-                            )}
-                          >
-                            P{task.priority}
-                          </span>
-                        ) : (
-                          <span className="text-gray-400">—</span>
-                        )}
+                      <td className={cn(cellClass, "hidden lg:table-cell text-gray-600")}>
+                        <div>{formatRelative(task.createdDate)}</div>
+                        <div className="text-[11px] text-gray-400">
+                          {formatDate(task.createdDate)}
+                        </div>
                       </td>
                       <td className={cn(cellClass, "hidden md:table-cell text-gray-600")}>
                         <div>{formatRelative(task.changedDate)}</div>
@@ -492,22 +467,6 @@ export function AzureTaskTable({
                         )}
                       </td>
                     </tr>
-                    {isExpanded ? (
-                      <tr>
-                        <td colSpan={10} className="p-0">
-                          {showExpansionLoading || showExpansionError ? (
-                            <AzureTaskRowExpansionPlaceholder
-                              taskId={task.id}
-                              isLoading={showExpansionLoading}
-                              isError={showExpansionError}
-                              onRetry={expansion.onExpansionRetry}
-                            />
-                          ) : (
-                            <AzureTaskRowExpansion task={expandedData} />
-                          )}
-                        </td>
-                      </tr>
-                    ) : null}
                   </React.Fragment>
                 )
               })

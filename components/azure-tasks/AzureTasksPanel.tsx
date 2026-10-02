@@ -35,7 +35,7 @@
 
 import * as React from "react"
 import { useSession } from "next-auth/react"
-import { Check, Loader2, RefreshCw, Sparkles } from "lucide-react"
+import { Check, Loader2, PackageOpen, RefreshCw, Sparkles } from "lucide-react"
 import { toast } from "sonner"
 import Link from "next/link"
 
@@ -45,8 +45,14 @@ import { useQueryState } from "@/hooks/use-query-state"
 import { STALE_DAYS } from "@/lib/azure-devops/client-safe"
 import { cn } from "@/lib/utils"
 
+import { AzureTaskDrawer } from "./AzureTaskDrawer"
+import { AzureTaskExportDialog } from "./AzureTaskExportDialog"
 import { AzureTaskKpiStrip } from "./AzureTaskKpiStrip"
-import { AzureTaskFilters, deriveFilterOptions } from "./AzureTaskFilters"
+import {
+  AzureTaskFilters,
+  deriveFilterOptions,
+  type AzureTaskExtraFilters,
+} from "./AzureTaskFilters"
 import { AzureTaskQuickRanges } from "./AzureTaskQuickRanges"
 import { AzureTaskResultSummary } from "./AzureTaskResultSummary"
 import { AzureTaskToggles } from "./AzureTaskToggles"
@@ -74,6 +80,7 @@ const PAGE_SIZE = 100
  * chatbot suggestion.
  */
 const EMPTY_QUERY: AzureWorkItemQuery = {}
+const EMPTY_EXTRA: AzureTaskExtraFilters = {}
 
 const DEFAULT_SORT: AzureTaskSort = { key: "changedDate", dir: "desc" }
 
@@ -174,6 +181,20 @@ const sortBinding = {
   },
 }
 
+
+// Client-side filter (attachments) mirrored to the URL.
+const extraBinding = {
+  fromUrl(params: URLSearchParams): Partial<AzureTaskExtraFilters> {
+    const out: Partial<AzureTaskExtraFilters> = {}
+    const att = params.get("att")
+    if (att === "with" || att === "without") out.attachments = att
+    return out
+  },
+  toUrl(value: AzureTaskExtraFilters): Record<string, string | undefined> {
+    return { att: value.attachments }
+  },
+}
+
 export function AzureTasksPanel() {
   const { data: session, status } = useSession()
 
@@ -185,6 +206,10 @@ export function AzureTasksPanel() {
   const [sort, setSort] = useQueryState<AzureTaskSort>({
     defaultValue: DEFAULT_SORT,
     binding: sortBinding,
+  })
+  const [extra, setExtra] = useQueryState<AzureTaskExtraFilters>({
+    defaultValue: EMPTY_EXTRA,
+    binding: extraBinding,
   })
   const [debouncedQuery, setDebouncedQuery] =
     React.useState<AzureWorkItemQuery>(EMPTY_QUERY)
@@ -350,8 +375,52 @@ export function AzureTasksPanel() {
     )
     observer.observe(node)
     return () => observer.disconnect()
-  }, [debouncedQuery])
+    // `swr.tasks.length` re-creates the observer after each page, so if
+    // the sentinel is STILL on screen (tall monitor, few rows) it fires
+    // again. If it is off-screen nothing loads — real lazy loading.
+  }, [debouncedQuery, swr.tasks.length])
 
+
+  // ---- Client-side filter: attachments ----
+  const visibleTasks = React.useMemo(() => {
+    if (!extra.attachments) return swr.tasks
+    return swr.tasks.filter((t) => {
+      if (extra.attachments === "with" && !(t.attachmentCount > 0)) return false
+      if (extra.attachments === "without" && t.attachmentCount > 0) return false
+      return true
+    })
+  }, [swr.tasks, extra.attachments])
+  const clientFilterActive = Boolean(extra.attachments)
+
+  // ---- Export pack ----
+  const [exportOpen, setExportOpen] = React.useState(false)
+  const tasksRef = React.useRef<AzureWorkItem[]>([])
+  tasksRef.current = visibleTasks
+
+  /**
+   * Only called when the user presses "Create pack": pulls every
+   * remaining page for the CURRENT filters, then returns the list
+   * (attachments filter applied). Normal browsing stays lazy.
+   */
+  const loadAllTasks = React.useCallback(async (): Promise<AzureWorkItem[]> => {
+    const wait = (ms: number) => new Promise((r) => setTimeout(r, ms))
+    for (let i = 0; i < 100; i++) {
+      await wait(60) // let React publish the latest swr state into the refs
+      if (!swrHasMoreRef.current) break
+      if (swrIsLoadingMoreRef.current || swrIsLoadingRef.current) continue
+      try {
+        await swrLoadMoreRef.current()
+      } catch {
+        break
+      }
+    }
+    await wait(120)
+    return tasksRef.current
+  }, [])
+  const rangeLabel =
+    query.from || query.to
+      ? `${(query.from ?? "").slice(0, 10) || "start"}_to_${(query.to ?? "").slice(0, 10) || "today"}`
+      : "all-dates"
   const isAuthed = status === "authenticated"
   const isAuthLoading = status === "loading"
 
@@ -382,6 +451,7 @@ export function AzureTasksPanel() {
   // ---- Handlers ----
   const handleReset = () => {
     setQuery(EMPTY_QUERY)
+    setExtra(EMPTY_EXTRA)
     setSort(DEFAULT_SORT)
   }
 
@@ -460,13 +530,19 @@ export function AzureTasksPanel() {
   // table itself renders the "no items match" placeholder — no need
   // for a second empty-state footer.)
   const showCaughtUp = !swr.hasMore && swr.tasks.length > 0 && !swr.isLoading
+  const shownCount = clientFilterActive ? visibleTasks.length : swr.total
 
   return (
     // Full-viewport layout. The page-level <header> is sticky
     // (z-30); the panel content scrolls beneath it. The control bar
     // sits at the top (KPI summary + filters as one horizontal
     // strip); the table fills the remaining height via `flex-1`.
-    <div className="flex flex-col h-[calc(100vh-65px)]">
+    <div
+      className={cn(
+        "flex flex-col h-[calc(100vh-65px)] transition-[padding] duration-200",
+        expandedTaskId != null && "lg:pr-[560px]",
+      )}
+    >
       {/* Slim top header: title on the left, KPI strip + Refresh on
           the right. The four KPI tiles (Total / Active / Completed /
           Overdue) used to live as their own "Work item overview"
@@ -491,6 +567,17 @@ export function AzureTasksPanel() {
             summary={swr.summary}
             isLoading={swr.isLoading}
           />
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setExportOpen(true)}
+            disabled={swr.isLoading || swr.total === 0}
+            className="gap-1 border-blue-600 bg-blue-600 text-white hover:bg-blue-700 hover:text-white disabled:bg-blue-300 disabled:border-blue-300 disabled:text-white"
+            title="Download attachments and key changes for the current filters as one zip"
+          >
+            <PackageOpen className="w-4 h-4" />
+            Export pack
+          </Button>
           <Button
             variant="outline"
             size="sm"
@@ -538,6 +625,8 @@ export function AzureTasksPanel() {
           <AzureTaskFilters
             value={query}
             onChange={setQuery}
+            extra={extra}
+            onExtraChange={setExtra}
             onReset={handleReset}
             options={filterOptions}
             items={swr.tasks}
@@ -559,8 +648,8 @@ export function AzureTasksPanel() {
             single row. Replaces the previous two-row layout that had
             a standalone search section above the chip strip. */}
         <AzureTaskResultSummary
-          items={swr.tasks}
-          total={swr.total}
+          items={visibleTasks}
+          total={shownCount}
           isLoading={swr.isLoading}
           refreshedAt={refreshedAt}
           search={{
@@ -582,7 +671,7 @@ export function AzureTasksPanel() {
           className="az-task-scroller flex-1 min-h-0 rounded-2xl"
         >
           <AzureTaskTable
-            tasks={swr.tasks}
+            tasks={visibleTasks}
             isLoading={swr.isLoading}
             isError={swr.isError}
             errorMessage={errorMessage}
@@ -614,14 +703,31 @@ export function AzureTasksPanel() {
               showCaughtUp ? (
                 <div className="flex items-center justify-center gap-2 px-4 py-4 text-xs text-gray-500 bg-white border-t border-gray-100">
                   <Check className="w-3.5 h-3.5 text-emerald-500" />
-                  You're all caught up · {swr.total.toLocaleString()} work item
-                  {swr.total === 1 ? "" : "s"} loaded
+                  You're all caught up · {shownCount.toLocaleString()} work item
+                  {shownCount === 1 ? "" : "s"}
+                  {clientFilterActive ? " match your filters" : " loaded"}
                 </div>
               ) : null
             }
           />
         </div>
       </div>
+      <AzureTaskDrawer
+        taskId={expandedTaskId}
+        task={expandedTaskId != null ? expandedTasks[expandedTaskId] : undefined}
+        isLoading={expansion.isLoading}
+        isError={expansion.isError}
+        onRetry={handleExpansionRetry}
+        onClose={() => setExpandedTaskId(null)}
+      />
+      <AzureTaskExportDialog
+        open={exportOpen}
+        onClose={() => setExportOpen(false)}
+        rangeLabel={rangeLabel}
+        hasDateRange={Boolean(query.from || query.to)}
+        totalCount={clientFilterActive ? visibleTasks.length : swr.total}
+        loadAllTasks={loadAllTasks}
+      />
     </div>
   )
 }

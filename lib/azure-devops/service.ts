@@ -294,6 +294,27 @@ export async function getWorkItems(
       }
     }
 
+    // IMPORTANT: Azure's batch endpoint (`GET /wit/workitems?ids=…`) does
+    // NOT preserve the order of the ids we pass in — it returns each
+    // batch of ≤200 items sorted by id. The WIQL `ORDER BY ChangedDate
+    // DESC` is therefore lost, and page 1 ended up holding the lowest
+    // ids of the first batch instead of the most recently changed items
+    // (the newest tasks only showed up after scrolling / searching).
+    // Re-apply the ordering here, before caching and paging: newest
+    // ChangedDate first, higher id first on ties.
+    fetched.sort((x, y) => {
+      const tx = x.changedDate ? Date.parse(x.changedDate) : 0
+      const ty = y.changedDate ? Date.parse(y.changedDate) : 0
+      if (ty !== tx) return ty - tx
+      return y.id - x.id
+    })
+
+    // Temporary diagnostic (safe to delete): proves THIS version of the
+    // file is the one running. Look for it in the `npm run dev` terminal.
+    console.log(
+      `[azure-tasks] sorted ${fetched.length} items by ChangedDate DESC — newest: #${fetched[0]?.id} (${fetched[0]?.changedDate})`,
+    )
+
     items = fetched
     cacheSet(upstreamKey, { items, fetchedAt: Date.now() })
   }

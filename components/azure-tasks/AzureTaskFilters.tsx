@@ -5,8 +5,8 @@
  *
  * Renders:
  *   - "From" / "To" date inputs
- *   - Assignee, state, and type dropdowns (options derived from loaded
- *     data so we don't need a separate identities endpoint)
+ *   - Assignee and Attachments dropdowns (assignee options derived from
+ *     loaded data so we don't need a separate identities endpoint)
  *   - Reset button (only visible when any filter is active)
  *
  * The bar is fully controlled: parent owns `value` and we report changes
@@ -31,8 +31,19 @@ import {
   type FilterPopoverSelectOption,
 } from "./FilterPopoverSelect";
 
+/**
+ * Client-side-only filters (they don't go to the Azure API, they run
+ * over the work items already loaded in the panel).
+ */
+export interface AzureTaskExtraFilters {
+  /** "with" = only tasks that have attachments, "without" = none. */
+  attachments?: "with" | "without";
+}
+
 interface AzureTaskFiltersProps {
   value: AzureWorkItemQuery;
+  extra?: AzureTaskExtraFilters;
+  onExtraChange?: (next: AzureTaskExtraFilters) => void;
   onChange: (next: AzureWorkItemQuery) => void;
   onReset: () => void;
   options: {
@@ -69,6 +80,8 @@ const dateInputToIso = (v: string): string | undefined => {
 
 export function AzureTaskFilters({
   value,
+  extra = {},
+  onExtraChange,
   onChange,
   onReset,
   options,
@@ -76,8 +89,17 @@ export function AzureTaskFilters({
   className,
 }: AzureTaskFiltersProps) {
   const hasActiveFilters = Boolean(
-    value.from || value.to || value.assignee || value.state || value.type,
+    value.from || value.to || value.assignee || extra.attachments,
   );
+
+  const attachmentOptions = React.useMemo<FilterPopoverSelectOption[]>(() => {
+    const withCount = items ? items.filter((i) => i.attachmentCount > 0).length : undefined;
+    const withoutCount = items && withCount !== undefined ? items.length - withCount : undefined;
+    return [
+      { value: "with", label: "With attachments", hint: withCount !== undefined ? `${withCount}` : undefined },
+      { value: "without", label: "Without attachments", hint: withoutCount !== undefined ? `${withoutCount}` : undefined },
+    ];
+  }, [items]);
 
   // Items is optional; only count when we have loaded data to count over.
   const assigneeOptions = React.useMemo<FilterPopoverSelectOption[]>(
@@ -90,27 +112,6 @@ export function AzureTaskFilters({
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [options.assignees, items],
   );
-  const stateOptions = React.useMemo<FilterPopoverSelectOption[]>(
-    () =>
-      options.states.map((s) => ({
-        value: s,
-        label: s,
-        hint: items ? `${countByState(items, s)}` : undefined,
-      })),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [options.states, items],
-  );
-  const typeOptions = React.useMemo<FilterPopoverSelectOption[]>(
-    () =>
-      options.types.map((t) => ({
-        value: t,
-        label: t,
-        hint: items ? `${countByType(items, t)}` : undefined,
-      })),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [options.types, items],
-  );
-
   return (
     <div
       className={cn(
@@ -118,7 +119,7 @@ export function AzureTaskFilters({
         className,
       )}
     >
-      <div className="flex items-center gap-3 flex-wrap xl:flex-nowrap">
+      <div className="flex items-center gap-3 flex-wrap">
         {/* Filter Label */}
         <div className="flex items-center gap-2 text-sm font-semibold text-gray-700 shrink-0">
           <Filter className="w-4 h-4" />
@@ -165,32 +166,30 @@ export function AzureTaskFilters({
           />
         </div>
 
-        {/* State */}
-        <div className="min-w-[180px] flex-1">
-          <FilterPopoverSelect
-            label="State"
-            value={value.state}
-            options={stateOptions}
-            placeholder="All states"
-            onChange={(v) => onChange({ ...value, state: v })}
-          />
-        </div>
-
-        {/* Type */}
-        <div className="min-w-[180px] flex-1">
-          <FilterPopoverSelect
-            label="Type"
-            value={value.type}
-            options={typeOptions}
-            placeholder="All types"
-            onChange={(v) => onChange({ ...value, type: v })}
-          />
-        </div>
+        {/* Attachments (client-side) */}
+        {onExtraChange ? (
+          <div className="min-w-[200px] flex-1">
+            <FilterPopoverSelect
+              label="Attachments"
+              value={extra.attachments}
+              options={attachmentOptions}
+              placeholder="Any"
+              onChange={(v) =>
+                onExtraChange({
+                  ...extra,
+                  attachments: v === "with" || v === "without" ? v : undefined,
+                })
+              }
+            />
+          </div>
+        ) : null}
 
         {/* Active-filter pills (visible when set) */}
         <ActiveFilterPills
           value={value}
           onChange={onChange}
+          extra={extra}
+          onExtraChange={onExtraChange}
           hasActiveFilters={hasActiveFilters}
         />
 
@@ -220,10 +219,14 @@ export function AzureTaskFilters({
 function ActiveFilterPills({
   value,
   onChange,
+  extra,
+  onExtraChange,
   hasActiveFilters,
 }: {
   value: AzureWorkItemQuery
   onChange: (next: AzureWorkItemQuery) => void
+  extra: AzureTaskExtraFilters
+  onExtraChange?: (next: AzureTaskExtraFilters) => void
   hasActiveFilters: boolean
 }) {
   if (!hasActiveFilters) return null
@@ -231,18 +234,6 @@ function ActiveFilterPills({
     label: string
     onClear: () => void
   }> = []
-  if (value.state) {
-    pills.push({
-      label: `State · ${value.state}`,
-      onClear: () => onChange({ ...value, state: undefined }),
-    })
-  }
-  if (value.type) {
-    pills.push({
-      label: `Type · ${value.type}`,
-      onClear: () => onChange({ ...value, type: undefined }),
-    })
-  }
   if (value.assignee) {
     pills.push({
       label: `Assignee · ${value.assignee}`,
@@ -259,6 +250,12 @@ function ActiveFilterPills({
     pills.push({
       label: `To · ${new Date(value.to).toISOString().slice(0, 10)}`,
       onClear: () => onChange({ ...value, to: undefined }),
+    })
+  }
+  if (extra.attachments && onExtraChange) {
+    pills.push({
+      label: `Attachments · ${extra.attachments === "with" ? "with" : "without"}`,
+      onClear: () => onExtraChange({ ...extra, attachments: undefined }),
     })
   }
   if (pills.length === 0) return null
@@ -289,18 +286,6 @@ function countByAssignee(items: AzureWorkItem[], name: string): number {
   for (const it of items) {
     if (it.assignedTo?.displayName === name) n += 1
   }
-  return n
-}
-
-function countByState(items: AzureWorkItem[], state: string): number {
-  let n = 0
-  for (const it of items) if (it.state === state) n += 1
-  return n
-}
-
-function countByType(items: AzureWorkItem[], type: string): number {
-  let n = 0
-  for (const it of items) if (it.type === type) n += 1
   return n
 }
 

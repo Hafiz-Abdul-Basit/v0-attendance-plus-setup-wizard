@@ -33,6 +33,12 @@ import { AzureTaskCommentsSection } from "./AzureTaskCommentsSection";
 
 interface AzureTaskRowExpansionProps {
   task: AzureWorkItem;
+  /**
+   * "inline" = old in-table expansion (capped height, 2 columns).
+   * "drawer" = side drawer body: single column, meta first, the drawer
+   * itself owns the scrolling so there is no inner height cap.
+   */
+  variant?: "inline" | "drawer";
 }
 
 function formatDateTime(iso: string | null | undefined): string {
@@ -104,7 +110,8 @@ function humanFileSize(bytes: number | null | undefined): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-export function AzureTaskRowExpansion({ task }: AzureTaskRowExpansionProps) {
+export function AzureTaskRowExpansion({ task, variant = "inline" }: AzureTaskRowExpansionProps) {
+  const isDrawer = variant === "drawer";
   const attachments = task.attachments ?? [];
   // Distinguish three states for the attachments section:
   //   1. We have a list (even if empty) → render it (or "no attachments")
@@ -115,7 +122,13 @@ export function AzureTaskRowExpansion({ task }: AzureTaskRowExpansionProps) {
   const hasAttachments = attachments.length > 0 || task.attachmentCount > 0;
 
   return (
-    <div className="bg-gradient-to-br from-blue-50/60 via-white to-indigo-50/40 border-y border-blue-100 px-6 py-5">
+    <div
+      className={
+        isDrawer
+          ? "bg-white px-5 py-4"
+          : "bg-gradient-to-br from-blue-50/60 via-white to-indigo-50/40 border-y border-blue-100 px-6 py-5"
+      }
+    >
       {/* Inner scroll shell — when a work item has a long description, a
           big comment thread, or lots of attachments, the expansion panel
           would otherwise push the rest of the table down and force the
@@ -136,10 +149,22 @@ export function AzureTaskRowExpansion({ task }: AzureTaskRowExpansionProps) {
           table. We deliberately do NOT propagate scroll events from
           here back to the parent — the row stays a single row in the
           table regardless of how tall the inner content gets. */}
-      <div className="az-task-scroller az-task-inner-scroller max-h-[min(70vh,40rem)] overflow-y-auto pr-2 -mr-2">
-      <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_280px] gap-6">
+      <div
+        className={
+          isDrawer
+            ? ""
+            : "az-task-scroller az-task-inner-scroller max-h-[min(70vh,40rem)] overflow-y-auto pr-2 -mr-2"
+        }
+      >
+      <div
+        className={
+          isDrawer
+            ? "flex flex-col gap-5"
+            : "grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_280px] gap-6"
+        }
+      >
         {/* Left: main content */}
-        <div className="min-w-0 space-y-4">
+        <div className={cn("min-w-0", isDrawer ? "flex flex-col gap-4" : "space-y-4")}>
           {/* Title + meta */}
           <div>
             <div className="flex items-center gap-2 flex-wrap mb-2">
@@ -177,21 +202,33 @@ export function AzureTaskRowExpansion({ task }: AzureTaskRowExpansionProps) {
             <h3 className="text-base font-semibold text-gray-900 leading-snug">
               {task.title}
             </h3>
-            <p className="text-xs text-gray-500 mt-1">
-              Last updated {formatDateTime(task.changedDate)}
-              {task.changedBy?.displayName
-                ? ` by ${task.changedBy.displayName}`
-                : ""}
-            </p>
+            {!isDrawer ? (
+              <p className="text-xs text-gray-500 mt-1">
+                Last updated {formatDateTime(task.changedDate)}
+                {task.changedBy?.displayName
+                  ? ` by ${task.changedBy.displayName}`
+                  : ""}
+              </p>
+            ) : null}
           </div>
+
+          {/* Drawer: one compact meta block instead of the tall sidebar */}
+          {isDrawer ? <CompactMeta task={task} /> : null}
 
           {/* Description */}
           <div>
             <div className="text-[10px] uppercase tracking-wider text-gray-500 font-semibold mb-1.5">
               Description
             </div>
-            <div className="text-sm text-gray-800 bg-white border border-gray-200 rounded-md p-3 whitespace-pre-wrap font-mono leading-relaxed">
-              {task.description || (
+            <div
+              className={cn(
+                "text-sm text-gray-800 bg-white border border-gray-200 rounded-md p-3 whitespace-pre-wrap font-mono leading-relaxed",
+                isDrawer && "text-xs max-h-64 overflow-y-auto",
+              )}
+            >
+              {task.description ? (
+                task.description
+              ) : (
                 <span className="text-gray-400">No description provided.</span>
               )}
             </div>
@@ -199,11 +236,13 @@ export function AzureTaskRowExpansion({ task }: AzureTaskRowExpansionProps) {
 
           {/* Comments — fetched lazily via SWR when this row is expanded.
               The component renders its own loading/error/empty states. */}
-          <AzureTaskCommentsSection workItemId={task.id} />
+          <div className={cn(isDrawer && "order-5")}>
+            <AzureTaskCommentsSection workItemId={task.id} />
+          </div>
 
           {/* Tags */}
           {task.tags.length > 0 ? (
-            <div>
+            <div className={cn(isDrawer && "order-6")}>
               <div className="text-[10px] uppercase tracking-wider text-gray-500 font-semibold mb-1.5 flex items-center gap-1">
                 <Tag className="w-3 h-3" />
                 Tags
@@ -222,7 +261,7 @@ export function AzureTaskRowExpansion({ task }: AzureTaskRowExpansionProps) {
           ) : null}
 
           {/* Attachments */}
-          <div>
+          <div className={cn(isDrawer && "order-4")}>
             <div className="text-[10px] uppercase tracking-wider text-gray-500 font-semibold mb-1.5 flex items-center gap-1">
               <Paperclip className="w-3 h-3" />
               Attachments
@@ -344,6 +383,7 @@ export function AzureTaskRowExpansion({ task }: AzureTaskRowExpansionProps) {
         </div>
 
         {/* Right: meta sidebar */}
+        {!isDrawer ? (
         <div className="min-w-0 space-y-3 text-sm">
           <div className="bg-white border border-gray-200 rounded-md p-3 space-y-2.5">
             <SidebarRow
@@ -410,9 +450,47 @@ export function AzureTaskRowExpansion({ task }: AzureTaskRowExpansionProps) {
             Open in Azure DevOps
           </a>
         </div>
+        ) : null}
       </div>
       </div>
     </div>
+  );
+}
+
+/**
+ * CompactMeta — the slim metadata block used in the drawer. Only shows
+ * what is useful: assignee, created / changed, iteration. Start/target
+ * dates, created-by and area are shown only when they carry information
+ * (set, or different from what is already visible).
+ */
+function CompactMeta({ task }: { task: AzureWorkItem }) {
+  const rows: Array<{ label: string; value: string }> = [
+    { label: "Assigned to", value: task.assignedTo?.displayName ?? "Unassigned" },
+    { label: "Created", value: formatDateOnly(task.createdDate) },
+    { label: "Changed", value: formatDateTime(task.changedDate) },
+  ];
+  const createdBy = task.createdBy?.displayName;
+  if (createdBy && createdBy !== task.assignedTo?.displayName) {
+    rows.splice(1, 0, { label: "Created by", value: createdBy });
+  }
+  if (task.startDate) rows.push({ label: "Start", value: formatDateOnly(task.startDate) });
+  if (task.targetDate) rows.push({ label: "Target", value: formatDateOnly(task.targetDate) });
+  rows.push({ label: "Iteration", value: task.iterationPath ?? "—" });
+  if (task.areaPath && task.areaPath !== task.iterationPath) {
+    rows.push({ label: "Area", value: task.areaPath });
+  }
+  return (
+    <dl className="grid grid-cols-2 gap-x-4 gap-y-2 rounded-md border border-gray-200 bg-gray-50/70 px-3 py-2.5 text-xs">
+      {rows.map((r) => (
+        <div
+          key={r.label}
+          className={cn("min-w-0", (r.label === "Iteration" || r.label === "Area") && "col-span-2")}
+        >
+          <dt className="text-[10px] uppercase tracking-wider text-gray-500 font-medium">{r.label}</dt>
+          <dd className="text-gray-800 break-words">{r.value}</dd>
+        </div>
+      ))}
+    </dl>
   );
 }
 
@@ -452,7 +530,7 @@ export function AzureTaskRowExpansionPlaceholder({
   onRetry?: () => void;
 }) {
   return (
-    <div className="bg-gradient-to-br from-blue-50/60 via-white to-indigo-50/40 border-y border-blue-100 px-6 py-5">
+    <div className="bg-white px-5 py-4">
       <div className="flex items-center gap-2 text-sm text-gray-500">
         {isLoading ? (
           <>

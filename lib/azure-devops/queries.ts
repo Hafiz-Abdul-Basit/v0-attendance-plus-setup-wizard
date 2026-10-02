@@ -157,14 +157,25 @@ const asTags = (v: unknown): string[] => {
  */
 const stripHtml = (s: string): string =>
   s
+    // Line breaks first, so multi-line text (and SQL pasted into
+    // comments as <div>/<br> lines) keeps its lines.
     .replace(/<br\s*\/?>/gi, "\n")
-    .replace(/<\/p>/gi, "\n\n")
-    .replace(/<[^>]+>/g, "")
+    .replace(/<\/(p|div|li|tr|h[1-6]|pre|blockquote)>/gi, "\n")
+    // Remove ONLY real HTML tags. The old `<[^>]+>` also deleted
+    // everything between a "<" and the next ">" in SQL such as
+    // `WHERE a <5 AND b> 3`, silently corrupting queries / procedures.
+    .replace(
+      /<\/?(?:p|div|span|br|b|i|u|s|em|strong|a|ul|ol|li|table|thead|tbody|tfoot|tr|td|th|pre|code|h[1-6]|img|blockquote|font|hr|sup|sub|small|center|label|section|article)(?:\s[^<>]*)?\/?>/gi,
+      "",
+    )
     .replace(/&nbsp;/g, " ")
-    .replace(/&amp;/g, "&")
     .replace(/&lt;/g, "<")
     .replace(/&gt;/g, ">")
     .replace(/&quot;/g, '"')
+    .replace(/&apos;|&#39;/g, "'")
+    .replace(/&#(\d+);/g, (_m, n) => String.fromCodePoint(Number(n)))
+    // `&amp;` last so "&amp;lt;" decodes to "&lt;", not "<".
+    .replace(/&amp;/g, "&")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
 

@@ -8,6 +8,7 @@ export { AzureTasksPanel } from "./AzureTasksPanel"
 export { AzureTaskSummaryCards } from "./AzureTaskSummaryCards"
 export { AzureTaskKpiStrip } from "./AzureTaskKpiStrip"
 export { AzureTaskFilters, deriveFilterOptions } from "./AzureTaskFilters"
+export type { AzureTaskExtraFilters } from "./AzureTaskFilters"
 export { AzureTaskTable } from "./AzureTaskTable"
 export type {
   AzureTaskSort,
@@ -33,3 +34,4 @@ export type {
 } from "./types"
 export { FilterPopoverSelect } from "./FilterPopoverSelect"
 export type { FilterPopoverSelectOption } from "./FilterPopoverSelect"
+export { AzureTaskExportDialog } from "./AzureTaskExportDialog"
