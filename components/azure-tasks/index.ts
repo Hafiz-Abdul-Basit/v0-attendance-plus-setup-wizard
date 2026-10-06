@@ -24,8 +24,6 @@ export {
   detectQuickRange,
 } from "./AzureTaskQuickRanges"
 export type { QuickRange, QuickRangeId } from "./AzureTaskQuickRanges"
-export { AzureTaskResultSummary } from "./AzureTaskResultSummary"
-export { AzureTaskToggles } from "./AzureTaskToggles"
 export type {
   AzureWorkItem,
   AzureWorkItemQuery,
@@ -35,3 +33,4 @@ export type {
 export { FilterPopoverSelect } from "./FilterPopoverSelect"
 export type { FilterPopoverSelectOption } from "./FilterPopoverSelect"
 export { AzureTaskExportDialog } from "./AzureTaskExportDialog"
+export { AzureTaskSearchBar } from "./AzureTaskSearchBar"

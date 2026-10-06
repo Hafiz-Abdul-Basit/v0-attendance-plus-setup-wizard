@@ -57,6 +57,8 @@ interface AzureTaskFiltersProps {
    * Optional; without it, we just render the option labels.
    */
   items?: AzureWorkItem[];
+  /** Server-side counts per state (whole filtered set) for the Status dropdown hints. */
+  stateCounts?: Record<string, number>;
   /** Extra className for the outer wrapper. */
   className?: string;
 }
@@ -86,10 +88,18 @@ export function AzureTaskFilters({
   onReset,
   options,
   items,
+  stateCounts,
   className,
 }: AzureTaskFiltersProps) {
   const hasActiveFilters = Boolean(
-    value.from || value.to || value.assignee || extra.attachments,
+    value.from ||
+      value.to ||
+      value.assignee ||
+      value.state ||
+      value.type ||
+      value.onlyMine ||
+      value.stale ||
+      extra.attachments,
   );
 
   const attachmentOptions = React.useMemo<FilterPopoverSelectOption[]>(() => {
@@ -111,6 +121,15 @@ export function AzureTaskFilters({
       })),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [options.assignees, items],
+  );
+  const stateOptions = React.useMemo<FilterPopoverSelectOption[]>(
+    () =>
+      options.states.map((st) => ({
+        value: st,
+        label: st,
+        hint: stateCounts?.[st] != null ? `${stateCounts[st]}` : undefined,
+      })),
+    [options.states, stateCounts],
   );
   return (
     <div
@@ -163,6 +182,17 @@ export function AzureTaskFilters({
             placeholder="All assignees"
             searchable
             onChange={(v) => onChange({ ...value, assignee: v })}
+          />
+        </div>
+
+        {/* Status (server-side filter) */}
+        <div className="min-w-[180px] flex-1">
+          <FilterPopoverSelect
+            label="Status"
+            value={value.state}
+            options={stateOptions}
+            placeholder="All statuses"
+            onChange={(v) => onChange({ ...value, state: v })}
           />
         </div>
 
@@ -238,6 +268,22 @@ function ActiveFilterPills({
     pills.push({
       label: `Assignee · ${value.assignee}`,
       onClear: () => onChange({ ...value, assignee: undefined }),
+    })
+  }
+  // Set by the Snip chatbot / URL only (no dedicated controls) — still shown and removable.
+  if (value.onlyMine) {
+    pills.push({ label: "Only mine", onClear: () => onChange({ ...value, onlyMine: undefined }) })
+  }
+  if (value.stale) {
+    pills.push({ label: "Stale (30d+)", onClear: () => onChange({ ...value, stale: undefined }) })
+  }
+  if (value.type) {
+    pills.push({ label: `Type · ${value.type}`, onClear: () => onChange({ ...value, type: undefined }) })
+  }
+  if (value.state) {
+    pills.push({
+      label: `Status · ${value.state}`,
+      onClear: () => onChange({ ...value, state: undefined }),
     })
   }
   if (value.from) {

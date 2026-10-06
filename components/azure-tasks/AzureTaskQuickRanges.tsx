@@ -107,6 +107,12 @@ interface AzureTaskQuickRangesProps {
   from: string | undefined;
   to: string | undefined;
   onChange: (next: { from?: string; to?: string }) => void;
+  /**
+   * ISO time of the last Export pack. When set, an extra
+   * "Since last export" chip appears — one click to export only what
+   * changed after the previous pack.
+   */
+  lastExportAt?: string | null;
   className?: string;
 }
 
@@ -114,9 +120,12 @@ export function AzureTaskQuickRanges({
   from,
   to,
   onChange,
+  lastExportAt,
   className,
 }: AzureTaskQuickRangesProps) {
-  const activeId = detectQuickRange(from, to);
+  const sinceFrom = lastExportAt ? startOfDayIso(new Date(lastExportAt)) : null;
+  const sinceActive = sinceFrom != null && from === sinceFrom && to == null;
+  const activeId = sinceActive ? "since-last" : detectQuickRange(from, to);
   return (
     <div
       className={cn(
@@ -129,6 +138,21 @@ export function AzureTaskQuickRanges({
         Range
       </div>
       <div className="flex items-center gap-1 flex-wrap">
+        {sinceFrom ? (
+          <button
+            type="button"
+            title="Only tasks changed since your last Export pack"
+            onClick={() => onChange({ from: sinceFrom, to: undefined })}
+            className={cn(
+              "px-3 py-1 rounded-full text-xs font-medium transition-colors border",
+              sinceActive
+                ? "bg-emerald-600 text-white border-emerald-600"
+                : "bg-emerald-50 text-emerald-800 border-emerald-200 hover:bg-emerald-100",
+            )}
+          >
+            Since last export ({new Date(sinceFrom).toLocaleDateString(undefined, { month: "short", day: "numeric" })})
+          </button>
+        ) : null}
         {QUICK_RANGES.map((range) => {
           const isActive = activeId === range.id;
           return (
@@ -148,7 +172,7 @@ export function AzureTaskQuickRanges({
           );
         })}
       </div>
-      {activeId == null ? (
+      {activeId == null || sinceActive ? (
         <button
           type="button"
           onClick={() => onChange({ from: undefined, to: undefined })}

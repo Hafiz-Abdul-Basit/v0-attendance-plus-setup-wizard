@@ -54,8 +54,8 @@ import {
   type AzureTaskExtraFilters,
 } from "./AzureTaskFilters"
 import { AzureTaskQuickRanges } from "./AzureTaskQuickRanges"
-import { AzureTaskResultSummary } from "./AzureTaskResultSummary"
-import { AzureTaskToggles } from "./AzureTaskToggles"
+import { AzureTaskSearchBar } from "./AzureTaskSearchBar"
+import { getLastExport } from "./pack-state"
 import {
   AzureTaskTable,
   type AzureTaskSort,
@@ -213,7 +213,6 @@ export function AzureTasksPanel() {
   })
   const [debouncedQuery, setDebouncedQuery] =
     React.useState<AzureWorkItemQuery>(EMPTY_QUERY)
-  const [refreshedAt, setRefreshedAt] = React.useState<number | null>(null)
   // Which row is expanded (inline, replaces the old modal dialog).
   const [expandedTaskId, setExpandedTaskId] = React.useState<number | null>(null)
   // Cache of relation-expanded work items, keyed by id. Persisted across
@@ -228,28 +227,21 @@ export function AzureTasksPanel() {
   // localStorage handoff, but parent effects run AFTER child effects
   // in React, so the panel read the keys too early and missed them.
 
-  // Resolve the display name to use for the "Only mine" filter. Prefer
-  // the session's user.name; fall back to the email if the JWT didn't
-  // include a name. We pass this to the server as `currentUserName`.
-  const currentUserName = React.useMemo(() => {
-    const name = session?.user?.name?.trim()
-    if (name) return name
-    const email = session?.user?.email?.trim()
-    return email || null
-  }, [session?.user?.name, session?.user?.email])
-
   // Build the query that actually goes to the server — include the
   // resolved user name when `onlyMine` is on so the SWR cache key is
   // unique per signed-in user.
+  // "Only mine" / "Stale" no longer have toggle buttons, but the Snip chatbot
+  // (and old bookmarks) can still set them through the URL — keep honouring
+  // that. They show up as removable pills in the Filters card.
+  const currentUserName = React.useMemo(() => {
+    const name = session?.user?.name?.trim()
+    if (name) return name
+    return session?.user?.email?.trim() || null
+  }, [session?.user?.name, session?.user?.email])
   const serverQuery = React.useMemo<AzureWorkItemQuery>(() => {
     if (!query.onlyMine) return query
-    if (!currentUserName) {
-      return { ...query, onlyMine: false }
-    }
-    return {
-      ...query,
-      currentUserName,
-    }
+    if (!currentUserName) return { ...query, onlyMine: false }
+    return { ...query, currentUserName }
   }, [query, currentUserName])
 
   // Debounce search input (and any other field) so we don't hammer
@@ -293,20 +285,18 @@ export function AzureTasksPanel() {
     }
   }, [expandedTaskId, expansion.task])
 
-  // Record when the most recent successful fetch landed so the result
-  // summary can show "Refreshed 12s ago".
-  React.useEffect(() => {
-    if (swr.data && !swr.isLoading) {
-      setRefreshedAt(Date.now())
-    }
-  }, [swr.data, swr.isLoading])
-
   // Derive dropdown options from the items we've already loaded so the
   // user can pick from real values rather than typing them.
-  const filterOptions = React.useMemo(
-    () => deriveFilterOptions(swr.tasks),
-    [swr.tasks],
-  )
+  const knownStatesRef = React.useRef<Set<string>>(new Set())
+  const filterOptions = React.useMemo(() => {
+    const base = deriveFilterOptions(swr.tasks)
+    for (const st of base.states) knownStatesRef.current.add(st)
+    for (const st of Object.keys(swr.summary?.byState ?? {})) knownStatesRef.current.add(st)
+    return {
+      ...base,
+      states: Array.from(knownStatesRef.current).sort((a, b) => a.localeCompare(b)),
+    }
+  }, [swr.tasks, swr.summary])
 
   // ---- Lazy-load wiring (must run before the auth gate) ----
   // The panel owns the *only* scrollable element on this screen (see
@@ -394,6 +384,28 @@ export function AzureTasksPanel() {
 
   // ---- Export pack ----
   const [exportOpen, setExportOpen] = React.useState(false)
+  const [lastExportAt, setLastExportAt] = React.useState<string | null>(null)
+  // Chatbot / link bridge: /azure-tasks?daysBack=90&export=1 opens Export pack
+  // as soon as the list has loaded (the range from the URL is applied by then).
+  const exportFromUrlRef = React.useRef<boolean>(false)
+  React.useEffect(() => {
+    const p = new URLSearchParams(window.location.search)
+    if (p.get("export") === "1") {
+      exportFromUrlRef.current = true
+      p.delete("export")
+      const qs = p.toString()
+      window.history.replaceState(null, "", `${window.location.pathname}${qs ? `?${qs}` : ""}`)
+    }
+  }, [])
+  React.useEffect(() => {
+    if (exportFromUrlRef.current && !swr.isLoading && swr.total > 0) {
+      exportFromUrlRef.current = false
+      setExportOpen(true)
+    }
+  }, [swr.isLoading, swr.total])
+  React.useEffect(() => {
+    setLastExportAt(getLastExport())
+  }, [])
   const tasksRef = React.useRef<AzureWorkItem[]>([])
   tasksRef.current = visibleTasks
 
@@ -459,10 +471,6 @@ export function AzureTasksPanel() {
     setQuery((q) => ({ ...q, ...range }))
   }
 
-  const handleTogglesChange = (toggles: { onlyMine?: boolean; stale?: boolean }) => {
-    setQuery((q) => ({ ...q, ...toggles }))
-  }
-
   // Toggle the inline expansion. The previous implementation opened a
   // modal — we now flip the row open in place so the user keeps their
   // bearings in the table while reading full details.
@@ -500,7 +508,6 @@ export function AzureTasksPanel() {
       if (expandedTaskId != null) {
         await expansion.mutate()
       }
-      setRefreshedAt(Date.now())
       toast.success("Refreshed")
     } catch (err) {
       toast.error(
@@ -512,8 +519,6 @@ export function AzureTasksPanel() {
   const errorMessage =
     swr.error instanceof Error ? swr.error.message : "Failed to load work items"
 
-  const onlyMineActive = Boolean(query.onlyMine) && Boolean(currentUserName)
-  const staleActive = Boolean(query.stale)
 
   // Pre-build the expansion state bag to keep the table's prop shape tidy.
   const expansionState = {
@@ -573,7 +578,7 @@ export function AzureTasksPanel() {
             onClick={() => setExportOpen(true)}
             disabled={swr.isLoading || swr.total === 0}
             className="gap-1 border-blue-600 bg-blue-600 text-white hover:bg-blue-700 hover:text-white disabled:bg-blue-300 disabled:border-blue-300 disabled:text-white"
-            title="Download attachments and key changes for the current filters as one zip"
+            title="One click: attachments + key changes + SQL + checklist for the current filters, as one zip"
           >
             <PackageOpen className="w-4 h-4" />
             Export pack
@@ -601,22 +606,17 @@ export function AzureTasksPanel() {
           the viewport while the user is reading rows. */}
       <div className="border-b border-gray-200 bg-white/70 backdrop-blur-sm">
         <div className="px-4 lg:px-6 py-3 space-y-3">
-          {/* Quick ranges + toggles on a single row. Toggles sit at
-              the right so the eye lands on "Range" first (the more
-              common adjustment). */}
+          {/* Search (left) + quick date ranges (right) on one row. */}
           <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_auto] gap-3 items-stretch">
+            <AzureTaskSearchBar
+              value={query.q}
+              onChange={(q) => setQuery((prev) => ({ ...prev, q }))}
+            />
             <AzureTaskQuickRanges
               from={query.from}
               to={query.to}
               onChange={handleRangeChange}
-              className="!rounded-xl"
-            />
-            <AzureTaskToggles
-              onlyMine={onlyMineActive}
-              stale={staleActive}
-              onChange={handleTogglesChange}
-              staleDays={STALE_DAYS}
-              currentUserName={currentUserName}
+              lastExportAt={lastExportAt}
               className="!rounded-xl"
             />
           </div>
@@ -630,6 +630,7 @@ export function AzureTasksPanel() {
             onReset={handleReset}
             options={filterOptions}
             items={swr.tasks}
+            stateCounts={swr.summary?.byState}
             className="!rounded-xl"
           />
         </div>
@@ -643,21 +644,7 @@ export function AzureTasksPanel() {
           globals.css) so the controls stay anchored and the
           IntersectionObserver driving lazy-loading can see the sentinel
           without any page-level scroll interfering. */}
-      <div className="flex-1 min-h-0 flex flex-col p-4 lg:p-5 gap-4">
-        {/* Search bar (left) + Open/Done/Overdue chips (right) on a
-            single row. Replaces the previous two-row layout that had
-            a standalone search section above the chip strip. */}
-        <AzureTaskResultSummary
-          items={visibleTasks}
-          total={shownCount}
-          isLoading={swr.isLoading}
-          refreshedAt={refreshedAt}
-          search={{
-            value: query.q,
-            onChange: (q) => setQuery((prev) => ({ ...prev, q })),
-          }}
-        />
-
+      <div className="flex-1 min-h-0 flex flex-col p-4 lg:p-5 pt-3 lg:pt-3 gap-4">
         {/* Table container — the *only* scrollable element on this
             screen. The slim `az-task-scroller` style in globals.css
             gives a modern WebKit/Firefox scrollbar that fades in on
@@ -725,6 +712,8 @@ export function AzureTasksPanel() {
         onClose={() => setExportOpen(false)}
         rangeLabel={rangeLabel}
         hasDateRange={Boolean(query.from || query.to)}
+        autoStart={Boolean(query.from || query.to)}
+        onExported={setLastExportAt}
         totalCount={clientFilterActive ? visibleTasks.length : swr.total}
         loadAllTasks={loadAllTasks}
       />
