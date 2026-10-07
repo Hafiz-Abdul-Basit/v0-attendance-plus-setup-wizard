@@ -46,7 +46,7 @@ import { STALE_DAYS } from "@/lib/azure-devops/client-safe"
 import { cn } from "@/lib/utils"
 
 import { AzureTaskDrawer } from "./AzureTaskDrawer"
-import { AzureTaskExportDialog } from "./AzureTaskExportDialog"
+import { ExportPackProvider, useExportPackContext, useHasExportPackProvider } from "./ExportPackProvider"
 import { AzureTaskKpiStrip } from "./AzureTaskKpiStrip"
 import {
   AzureTaskFilters,
@@ -195,7 +195,7 @@ const extraBinding = {
   },
 }
 
-export function AzureTasksPanel() {
+function AzureTasksPanelInner() {
   const { data: session, status } = useSession()
 
   // ---- Hooks (all declared above the auth-gate) ----
@@ -383,10 +383,34 @@ export function AzureTasksPanel() {
   const clientFilterActive = Boolean(extra.attachments)
 
   // ---- Export pack ----
-  const [exportOpen, setExportOpen] = React.useState(false)
+  // The run itself + the floating island live in <ExportPackProvider> (mounted
+  // in the app layout), so they survive leaving this page and coming back.
+  const { pack, syncPending, openOrToggle, closePromptIfIdle } = useExportPackContext()
   const [lastExportAt, setLastExportAt] = React.useState<string | null>(null)
-  // Chatbot / link bridge: /azure-tasks?daysBack=90&export=1 opens Export pack
-  // as soon as the list has loaded (the range from the URL is applied by then).
+  const hasDateRange = Boolean(query.from || query.to)
+  const rangeLabel = hasDateRange
+    ? `${(query.from ?? "").slice(0, 10) || "start"}_to_${(query.to ?? "").slice(0, 10) || "today"}`
+    : "all-dates"
+  const exportTotal = clientFilterActive ? visibleTasks.length : swr.total
+
+  // Keep the export prompt in sync with the filters on screen right now.
+  React.useEffect(() => {
+    syncPending({
+      job: { query: serverQuery, attachments: extra.attachments, rangeLabel },
+      meta: { hasDateRange, totalCount: exportTotal },
+    })
+  }, [serverQuery, extra.attachments, rangeLabel, hasDateRange, exportTotal, syncPending])
+
+  // Leaving this page while the prompt is open (not started): hide it.
+  const closePromptRef = React.useRef(closePromptIfIdle)
+  closePromptRef.current = closePromptIfIdle
+  React.useEffect(() => () => closePromptRef.current(), [])
+
+  /** Header button: opens the "use Gemini?" prompt, or shows / hides the island while a pack runs. */
+  const handleExportClick = openOrToggle
+
+  // Chatbot / link bridge: /azure-tasks?daysBack=90&export=1 opens the export
+  // prompt as soon as the list has loaded (the range from the URL is applied by then).
   const exportFromUrlRef = React.useRef<boolean>(false)
   React.useEffect(() => {
     const p = new URLSearchParams(window.location.search)
@@ -400,39 +424,14 @@ export function AzureTasksPanel() {
   React.useEffect(() => {
     if (exportFromUrlRef.current && !swr.isLoading && swr.total > 0) {
       exportFromUrlRef.current = false
-      setExportOpen(true)
+      handleExportClick()
     }
-  }, [swr.isLoading, swr.total])
+  }, [swr.isLoading, swr.total, handleExportClick])
+
+  // "Since last export" chip: read once, refresh after every finished pack.
   React.useEffect(() => {
     setLastExportAt(getLastExport())
-  }, [])
-  const tasksRef = React.useRef<AzureWorkItem[]>([])
-  tasksRef.current = visibleTasks
-
-  /**
-   * Only called when the user presses "Create pack": pulls every
-   * remaining page for the CURRENT filters, then returns the list
-   * (attachments filter applied). Normal browsing stays lazy.
-   */
-  const loadAllTasks = React.useCallback(async (): Promise<AzureWorkItem[]> => {
-    const wait = (ms: number) => new Promise((r) => setTimeout(r, ms))
-    for (let i = 0; i < 100; i++) {
-      await wait(60) // let React publish the latest swr state into the refs
-      if (!swrHasMoreRef.current) break
-      if (swrIsLoadingMoreRef.current || swrIsLoadingRef.current) continue
-      try {
-        await swrLoadMoreRef.current()
-      } catch {
-        break
-      }
-    }
-    await wait(120)
-    return tasksRef.current
-  }, [])
-  const rangeLabel =
-    query.from || query.to
-      ? `${(query.from ?? "").slice(0, 10) || "start"}_to_${(query.to ?? "").slice(0, 10) || "today"}`
-      : "all-dates"
+  }, [pack.status])
   const isAuthed = status === "authenticated"
   const isAuthLoading = status === "loading"
 
@@ -575,13 +574,19 @@ export function AzureTasksPanel() {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => setExportOpen(true)}
-            disabled={swr.isLoading || swr.total === 0}
+            onClick={handleExportClick}
+            disabled={pack.status === "idle" && (swr.isLoading || exportTotal === 0)}
             className="gap-1 border-blue-600 bg-blue-600 text-white hover:bg-blue-700 hover:text-white disabled:bg-blue-300 disabled:border-blue-300 disabled:text-white"
-            title="One click: attachments + key changes + SQL + checklist for the current filters, as one zip"
+            title="One click: attachments + key changes + SQL + checklist for the current filters, as one zip. Runs in the background."
           >
-            <PackageOpen className="w-4 h-4" />
-            Export pack
+            {pack.status === "running" ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : pack.status === "done" ? (
+              <Check className="w-4 h-4" />
+            ) : (
+              <PackageOpen className="w-4 h-4" />
+            )}
+            {pack.status === "running" ? "Exporting…" : pack.status === "done" ? "Pack ready" : "Export pack"}
           </Button>
           <Button
             variant="outline"
@@ -707,17 +712,23 @@ export function AzureTasksPanel() {
         onRetry={handleExpansionRetry}
         onClose={() => setExpandedTaskId(null)}
       />
-      <AzureTaskExportDialog
-        open={exportOpen}
-        onClose={() => setExportOpen(false)}
-        rangeLabel={rangeLabel}
-        hasDateRange={Boolean(query.from || query.to)}
-        autoStart={Boolean(query.from || query.to)}
-        onExported={setLastExportAt}
-        totalCount={clientFilterActive ? visibleTasks.length : swr.total}
-        loadAllTasks={loadAllTasks}
-      />
     </div>
+  )
+}
+
+/**
+ * Public panel. If <ExportPackProvider> is mounted in a layout (recommended —
+ * the export then survives page changes) it is used as is; otherwise the panel
+ * provides its own, which still works while this page stays open.
+ */
+export function AzureTasksPanel() {
+  const hasProvider = useHasExportPackProvider()
+  return hasProvider ? (
+    <AzureTasksPanelInner />
+  ) : (
+    <ExportPackProvider>
+      <AzureTasksPanelInner />
+    </ExportPackProvider>
   )
 }
 

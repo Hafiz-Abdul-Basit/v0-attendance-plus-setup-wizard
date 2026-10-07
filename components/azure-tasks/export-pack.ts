@@ -46,8 +46,8 @@ const KEY_CHANGES_URL = "/api/azure-tasks/key-changes"
 
 const CONCURRENCY = 4
 /** Max characters of task text sent to Gemini per request (≈5k tokens in, so SQL copied back verbatim fits the output limit). */
-const AI_BATCH_CHARS = 20_000
-const AI_BATCH_MAX_TASKS = 8
+const AI_BATCH_CHARS = 30_000
+const AI_BATCH_MAX_TASKS = 12
 
 export type KeyChangeAction = "add" | "update" | "remove" | "other"
 
@@ -59,6 +59,8 @@ export interface KeyChange {
   target: string
   /** e.g. "Setup Configuration" collection / section. */
   location: string
+  /** Application / service the file belongs to (e.g. "Message Hub"). May be empty. */
+  project?: string
   key: string
   value: string
   /** One-line original instruction, trimmed. */
@@ -348,6 +350,7 @@ export async function buildExportPack(
       ? `Gemini is reading new/changed tasks (${reusedFromCache} reused from the last run)…`
       : "Gemini is reading descriptions & comments…"
     let usedModel = ""
+    let gapSec = 4
     const useLocal = (batch: AiTask[]) => {
       const r = localExtract(batch.map((u) => ({ id: u.id, title: u.title, description: u.description, comments: u.comments })))
       keyChanges.push(...r.changes)
@@ -395,6 +398,7 @@ export async function buildExportPack(
             keyChanges.push(...((j.changes ?? []) as KeyChange[]))
             sqlScripts.push(...((j.sql ?? []) as SqlScript[]))
             if (j.model) usedModel = String(j.model)
+            if (Number(j.gapSec) > 0) gapSec = Number(j.gapSec)
             if (j.truncated) {
               errors.push(`Gemini batch ${i + 1}/${batches.length}: output hit the length limit — some SQL may be incomplete.`)
               for (const u of batches[i]) failedIds.add(u.id)
@@ -444,7 +448,14 @@ export async function buildExportPack(
         break
       }
       // Small pause between requests: free-tier keys allow only a few requests per minute.
-      if (i < batches.length - 1) await new Promise((r) => setTimeout(r, 3000))
+      // Stay under the free-tier requests-per-minute limit (Flash 5/min, Flash-Lite 15/min).
+      if (i < batches.length - 1) {
+        for (let left = Math.max(3, gapSec); left > 0; left--) {
+          if (opts.skipAi?.current || signal.aborted) break
+          onProgress({ phase: "ai", done: i + 1, total: batches.length, message: `Next Gemini request in ${left}s (free-tier limit)…` })
+          await new Promise((r) => setTimeout(r, 1000))
+        }
+      }
     }
     saveAiCache(cache)
     if (localTaskIds.size > 0) {
@@ -654,7 +665,7 @@ function renderChecklist(a: {
   ]
   if (a.localTaskIds.length) {
     out.push(
-      `NOTE — Gemini was unavailable for ${a.localTaskIds.length} task(s); their keys/SQL were found by local pattern matching and may be incomplete: ${a.localTaskIds.slice(0, 20).map((i) => `#${i}`).join(", ")}${a.localTaskIds.length > 20 ? ", …" : ""}`,
+      `NOTE — ${a.localTaskIds.length} task(s) were read by local pattern matching instead of Gemini; their keys/SQL may be incomplete: ${a.localTaskIds.slice(0, 20).map((i) => `#${i}`).join(", ")}${a.localTaskIds.length > 20 ? ", …" : ""}`,
       "",
     )
   }
@@ -684,7 +695,7 @@ function renderChecklist(a: {
     if (keys.length) {
       out.push("    Keys:")
       for (const c of keys) {
-        const where = [c.target || "Config", c.location].filter(Boolean).join(" > ")
+        const where = canon(c).heading
         const newer = latestTaskByKey.get(keyId(c))
         const superseded = newer != null && newer !== t.id ? `   (superseded by #${newer} — skip)` : ""
         out.push(`      [ ] ${c.action.toUpperCase()}  ${where} > ${c.key} = ${c.action === "remove" ? "<remove>" : c.value || "<no value>"}${superseded}`)
@@ -716,8 +727,7 @@ function renderChecklist(a: {
   return out.join("\n")
 }
 
-const keyId = (c: Pick<KeyChange, "target" | "location" | "key">) =>
-  `${c.target}|${c.location}|${c.key}`.toLowerCase()
+const keyId = (c: KeyChange) => canon(c).id
 
 interface KeyConflict {
   id: string
@@ -741,7 +751,7 @@ function findKeyConflicts(changes: KeyChange[], texts: PackTaskText[]): KeyConfl
     const newest = sorted[sorted.length - 1]
     out.push({
       id,
-      label: [newest.target || "Config", newest.location, newest.key].filter(Boolean).join(" > "),
+      label: `${canon(newest).heading} › ${newest.key}`,
       latestTaskId: newest.taskId,
       versions: sorted.map((c) => ({
         taskId: c.taskId,
@@ -821,29 +831,92 @@ function dedupeChanges(list: KeyChange[]): KeyChange[] {
 export function renderKeyChangesTxt(changes: KeyChange[], texts: PackTaskText[]): string {
   if (!changes.length) return "No key changes found.\n"
   const changed = new Map(texts.map((t) => [t.id, t.changedDate]))
+  // Same key in the same place, written with different labels by different tasks
+  // ("SetupConfig in Mongo" / "SetupConfig MongoDB") → ONE entry, newest task wins.
   const latest = new Map<string, KeyChange>()
+  const taskIdsByKey = new Map<string, Set<number>>()
   for (const c of changes) {
-    const k = `${c.target}|${c.location}|${c.key}`.toLowerCase()
+    const k = canon(c).id
     const prev = latest.get(k)
     if (!prev || (changed.get(c.taskId) ?? "") > (changed.get(prev.taskId) ?? "")) latest.set(k, c)
+    taskIdsByKey.set(k, (taskIdsByKey.get(k) ?? new Set()).add(c.taskId))
   }
-  const groups = new Map<string, { head: string; items: KeyChange[] }>()
-  for (const c of latest.values()) {
-    const head = [c.target || "Config", c.location].filter(Boolean).join(" › ")
-    // "app.config" and "App.config" are the same place: group case-insensitively.
-    const gk = head.toLowerCase()
-    const existing = groups.get(gk)
-    if (existing) existing.items.push(c)
-    else groups.set(gk, { head, items: [c] })
+  const groups = new Map<string, { head: string; items: KeyChange[]; tasks: Set<number> }>()
+  for (const [k, c] of latest) {
+    const head = canon(c).heading
+    const g = groups.get(head.toLowerCase()) ?? { head, items: [], tasks: new Set<number>() }
+    g.items.push(c)
+    g.tasks.add(c.taskId)
+    groups.set(head.toLowerCase(), g)
   }
   const out: string[] = []
-  for (const { head, items } of Array.from(groups.values()).sort((a, b) => a.head.localeCompare(b.head))) {
-    out.push(head)
+  for (const { head, items, tasks } of Array.from(groups.values()).sort((a, b) => a.head.localeCompare(b.head))) {
+    // The task number tells you which task to open when the place is not obvious.
+    const ids = Array.from(tasks).slice(0, 4).map((i) => `#${i}`).join(", ")
+    out.push(`${head}   (task ${ids}${tasks.size > 4 ? ", …" : ""})`)
     for (const c of items.sort((a, b) => a.key.localeCompare(b.key))) {
-      // A key whose value the task never states is listed by name only.
-      out.push(c.action === "remove" ? `${c.key} = <remove>` : c.value ? `${c.key} = ${c.value}` : c.key)
+      out.push(
+        c.action === "remove"
+          ? `${c.key} = <remove>`
+          : `${c.key} = ${c.value ? c.value : "(value not stated in the task)"}`,
+      )
     }
     out.push("")
   }
   return out.join("\n")
+}
+
+/**
+ * Canonical identity of a key. Gemini (and people) label the same place
+ * many ways — "SetupConfig in Mongo", "SetupConfig MongoDB", "Config ›
+ * SetupConfiguration" — so identity is built from what matters:
+ *   system (MongoDB / appsettings.json / App.config …)
+ *   project (only for file-based settings — which app it belongs to)
+ *   section (collection / section name, e.g. RabbitMQ)
+ *   key name
+ * For MongoDB the same key name is the same key, whatever the label.
+ */
+const STRIP_WORDS =
+  /appsettings\.production|appsetting\.production|appsettings\.json|appsettings|appsetting|app\.config|web\.config|mongodb|mongo|setupconfiguration|setupconfig|\bconfig\b|\bin\b/gi
+
+interface Canon {
+  system: string
+  project: string
+  section: string
+  id: string
+  heading: string
+}
+
+function canon(c: KeyChange): Canon {
+  const target = (c.target ?? "").trim()
+  const location = (c.location ?? "").trim()
+  const txt = `${target} ${location} ${c.project ?? ""}`
+  let system: string
+  if (/mongo|setup\s*config|setup\s*param|global\s*param/i.test(txt)) system = "MongoDB"
+  else if (/appsetting/i.test(txt)) system = "appsettings.json"
+  else if (/web\.config/i.test(txt)) system = "Web.config"
+  else if (/app\.config/i.test(txt)) system = "App.config"
+  else system = target && !/^config$/i.test(target) ? target : "Config"
+
+  let project = (c.project ?? "").trim()
+  if (!project && system !== "MongoDB" && !/^(appsettings\.json|web\.config|app\.config|config)$/i.test(system)) {
+    project = ""
+  } else if (!project && system !== "MongoDB") {
+    project = target.replace(STRIP_WORDS, " ").replace(/\s+/g, " ").replace(/[\\/_:.\- ]+$/g, "").trim()
+  }
+  if (system === "MongoDB") project = ""
+
+  let section = location.replace(/\s+section$/i, "").trim()
+  const stripped = section.replace(STRIP_WORDS, " ").replace(/\s+/g, " ").trim()
+  if (!stripped || stripped.toLowerCase() === system.toLowerCase()) section = ""
+  if (system === "MongoDB" && (!section || /^setup\s*config(uration)?$/i.test(section)) && /setup\s*config/i.test(txt)) {
+    section = "Setup Configuration"
+  }
+
+  const id =
+    system === "MongoDB"
+      ? `mongodb||${c.key}`.toLowerCase()
+      : `${system}|${project}|${section}|${c.key}`.toLowerCase()
+  const heading = `${system}${project ? ` — ${project}` : ""}${section ? ` › ${section}` : ""}`
+  return { system, project, section, id, heading }
 }

@@ -49,8 +49,9 @@ A work item may say things like:
 Focus on MongoDB and appsettings / config-file keys.
 For every EXPLICIT instruction to add, update or remove a configuration key / setting / flag, return one object.
 - Only report what the text clearly says. Never invent keys or values.
-- "target" = system or file (MongoDB, appsettings.json, SQL table, Azure App Config…). Empty string if unknown.
-- "location" = collection / section / table in brackets or nearby (e.g. "Setup Configuration"). Empty string if unknown.
+- "target" = ONLY the kind of place: "MongoDB", "appsettings.json", "App.config", "Web.config", "SQL"… Never put an application name here. Empty string if unknown.
+- "project" = the application / service / project the file belongs to (e.g. "Message Hub", "Esign Client Project", "CourtManagement.API"). Empty string if the task does not say (do NOT guess). Always empty for MongoDB.
+- "location" = the collection / section inside it (e.g. "Setup Configuration", "RabbitMQ"). Do not repeat the target or project here. Empty string if unknown.
 - "value" = the FULL value exactly as written, including quotes and long strings. Never shorten it. Empty string if none given.
 - "note" = the original sentence, max 200 chars.
 - "source" = "description" or "comment".
@@ -77,12 +78,37 @@ If a task has nothing for a part, return nothing for it. Return JSON only.`
 let workingModel: string | null = null
 let modelCache: { at: number; names: string[] } | null = null
 
+/**
+ * Free-tier quotas differ a lot: Flash-Lite models allow ~15 requests/min and
+ * ~500/day, regular Flash models only ~5/min and ~20/day. So Flash-Lite goes
+ * FIRST, then the Flash models (newest first), then the rest.
+ */
 function rankModels(names: string[]): string[] {
-  const score = (n: string) => (/flash-lite/i.test(n) ? 1 : /flash/i.test(n) ? 0 : 2)
+  // "-latest" names are aliases of a model that is also listed by its own name
+  // (same quota), so they go last.
+  const score = (n: string) => (/latest/i.test(n) ? 3 : /flash-lite/i.test(n) ? 0 : /flash/i.test(n) ? 1 : 2)
   return [...names].sort((a, b) => score(a) - score(b) || b.localeCompare(a, undefined, { numeric: true }))
 }
 
-async function candidateModels(apiKey: string, primary: string, fallback?: string): Promise<string[]> {
+/** Used only when Google's ListModels is unreachable. */
+const STATIC_MODELS = ["gemini-3.5-flash-lite", "gemini-3.8-flash", "gemini-3.7-flash", "gemini-3.6-flash", "gemini-3.5-flash"]
+
+// A model that answered 429 / 404 is skipped for a while, so the next batches
+// do not waste a request (and the per-minute budget) on a model known to be full.
+const cooldown = new Map<string, { until: number; kind: "day" | "minute" | "other" }>()
+const coolDownModel = (model: string, kind: "day" | "minute" | "other", sec: number) =>
+  cooldown.set(model, { until: Date.now() + sec * 1000, kind })
+const isCooling = (model: string) => {
+  const c = cooldown.get(model)
+  if (!c) return false
+  if (c.until <= Date.now()) {
+    cooldown.delete(model)
+    return false
+  }
+  return true
+}
+
+async function candidateModels(apiKey: string, primary?: string, fallback?: string): Promise<string[]> {
   const now = Date.now()
   if (!modelCache || now - modelCache.at > 60 * 60 * 1000) {
     try {
@@ -105,8 +131,9 @@ async function candidateModels(apiKey: string, primary: string, fallback?: strin
       /* ListModels is best-effort */
     }
   }
-  const all = [workingModel, primary, fallback, ...(modelCache?.names ?? [])].filter(Boolean) as string[]
-  return Array.from(new Set(all)).slice(0, 6)
+  const listed = modelCache?.names?.length ? modelCache.names : STATIC_MODELS
+  const all = [workingModel, primary, fallback, ...listed].filter(Boolean) as string[]
+  return Array.from(new Set(all)).slice(0, 8)
 }
 
 /** GET = diagnostics: which models this key can use and which one is active. */
@@ -117,8 +144,12 @@ export async function GET() {
   }
   const apiKey = process.env.GEMINI_API_KEY ?? process.env.GOOGLE_API_KEY
   if (!apiKey) return NextResponse.json({ error: "GEMINI_API_KEY is not set" }, { status: 500 })
-  const models = await candidateModels(apiKey, process.env.GEMINI_MODEL ?? "gemini-3.8-flash", process.env.GEMINI_FALLBACK_MODEL)
-  return NextResponse.json({ candidates: models, working: workingModel })
+  const models = await candidateModels(apiKey, process.env.GEMINI_MODEL, process.env.GEMINI_FALLBACK_MODEL)
+  return NextResponse.json({
+    candidates: models,
+    working: workingModel,
+    cooling: Array.from(cooldown.entries()).map(([m, c]) => ({ model: m, kind: c.kind, secondsLeft: Math.max(0, Math.round((c.until - Date.now()) / 1000)) })),
+  })
 }
 
 export async function POST(req: Request) {
@@ -153,7 +184,7 @@ export async function POST(req: Request) {
     })
     .join("\n\n")
 
-  const primary = process.env.GEMINI_MODEL ?? "gemini-3.8-flash"
+  const primary = process.env.GEMINI_MODEL || undefined
   const fallback = process.env.GEMINI_FALLBACK_MODEL
   const body = JSON.stringify({
     systemInstruction: { parts: [{ text: SYSTEM }] },
@@ -173,6 +204,7 @@ export async function POST(req: Request) {
                 taskId: { type: "INTEGER" },
                 action: { type: "STRING", enum: ["add", "update", "remove", "other"] },
                 target: { type: "STRING" },
+                project: { type: "STRING" },
                 location: { type: "STRING" },
                 key: { type: "STRING" },
                 value: { type: "STRING" },
@@ -252,8 +284,11 @@ export async function POST(req: Request) {
 
   // Walk the candidate models until one answers. Stay inside the 60s route budget.
   const started = Date.now()
-  const candidates = await candidateModels(apiKey, primary, fallback)
-  const tried: string[] = []
+  const allCandidates = await candidateModels(apiKey, primary, fallback)
+  const candidates = allCandidates.filter((m) => !isCooling(m))
+  const tried: string[] = allCandidates
+    .filter((m) => isCooling(m))
+    .map((m) => `${m}: skipped (${cooldown.get(m)?.kind === "day" ? "daily quota used up" : "rate-limited"}, ~${Math.ceil(((cooldown.get(m)?.until ?? 0) - Date.now()) / 1000)}s left)`)
   let res: Response | null = null
   let failure: GeminiFailure | null = null
   let usedModel = ""
@@ -267,8 +302,8 @@ export async function POST(req: Request) {
         break outer
       }
       failure = await readFailure(res)
-      tried.push(`${model}: ${failure.status}${failure.quota === "day" ? " no/used-up quota" : failure.quota === "minute" ? " per-minute limit" : ""}`)
-      // Short per-minute limit or a brief overload: wait once and retry the SAME model.
+      tried.push(`${model}: ${failure.status}${failure.quota === "day" ? " daily quota used up" : failure.quota === "minute" ? " per-minute limit" : ""}`)
+      // Per-minute limit with a short wait: wait once and retry the SAME model.
       const waitSec =
         failure.status === 429 && failure.quota !== "day"
           ? failure.retryAfterSec != null && failure.retryAfterSec <= 15
@@ -281,8 +316,34 @@ export async function POST(req: Request) {
         await sleep(waitSec * 1000)
         continue
       }
-      break // otherwise: move on to the next model
+      // Remember the dead end so the next requests skip this model.
+      if (failure.status === 429) {
+        if (failure.quota === "day") coolDownModel(model, "day", 6 * 3600)
+        else coolDownModel(model, "minute", Math.max(20, (failure.retryAfterSec ?? 45) + 2))
+      } else if (failure.status === 404 || failure.status === 400) {
+        coolDownModel(model, "other", 24 * 3600)
+      } else if (TEMPORARY.has(failure.status)) {
+        coolDownModel(model, "other", 20)
+      }
+      break // move on to the next model
     }
+  }
+
+  // Everything is cooling down / used up: answer right away with the facts.
+  if (!res && candidates.length === 0 && allCandidates.length > 0) {
+    const remaining = allCandidates.map((m) => cooldown.get(m)).filter(Boolean) as Array<{ until: number; kind: string }>
+    const soonest = Math.max(1, Math.ceil((Math.min(...remaining.map((c) => c.until)) - Date.now()) / 1000))
+    const allDay = remaining.length > 0 && remaining.every((c) => c.kind === "day")
+    return NextResponse.json(
+      {
+        error: `Every Gemini model on this key is at its limit (${tried.join(" · ")}). Free-tier Flash models allow only ~20 requests/day and 5/minute (Flash-Lite ~500/day). Wait, or enable billing in Google AI Studio.`,
+        retryable: !allDay,
+        retryAfterSec: allDay ? null : soonest,
+        quota: allDay ? "day" : "minute",
+        tried,
+      },
+      { status: 429 },
+    )
   }
 
   if (!res || !res.ok) {
@@ -317,6 +378,7 @@ export async function POST(req: Request) {
         taskTitle: titles.get(c.taskId) ?? "",
         action: c.action ?? "other",
         target: c.target ?? "",
+        project: c.project ?? "",
         location: c.location ?? "",
         key: String(c.key).trim(),
         value: c.value ?? "",
@@ -333,7 +395,14 @@ export async function POST(req: Request) {
         sql: c.sql,
         source: c.source === "comment" ? "comment" : "description",
       }))
-    return NextResponse.json({ changes, sql, truncated: finish === "MAX_TOKENS", model: usedModel })
+    return NextResponse.json({
+      changes,
+      sql,
+      truncated: finish === "MAX_TOKENS",
+      model: usedModel,
+      // Seconds the client should leave between requests to stay under the free-tier per-minute limit.
+      gapSec: /lite/i.test(usedModel) ? 4 : 13,
+    })
   } catch {
     return NextResponse.json({ error: "Gemini returned unparseable output (output too long?)" }, { status: 502 })
   }

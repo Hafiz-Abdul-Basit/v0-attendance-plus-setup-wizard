@@ -32,5 +32,7 @@ export type {
 } from "./types"
 export { FilterPopoverSelect } from "./FilterPopoverSelect"
 export type { FilterPopoverSelectOption } from "./FilterPopoverSelect"
-export { AzureTaskExportDialog } from "./AzureTaskExportDialog"
+export { AzureTaskExportIsland } from "./AzureTaskExportIsland"
+export { useExportPack } from "./use-export-pack"
 export { AzureTaskSearchBar } from "./AzureTaskSearchBar"
+export { ExportPackProvider, useExportPackContext } from "./ExportPackProvider"
