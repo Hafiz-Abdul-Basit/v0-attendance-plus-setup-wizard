@@ -34,17 +34,6 @@ import { cn } from "@/lib/utils"
 import { downloadBlob, type PackProgress } from "./export-pack"
 import type { ExportPackController } from "./use-export-pack"
 
-/** Ask once (from a click) so a "pack ready" notification can reach you in another tab. */
-export function requestNotifyPermission(): void {
-  try {
-    if (typeof Notification !== "undefined" && Notification.permission === "default") {
-      void Notification.requestPermission()
-    }
-  } catch {
-    /* unsupported */
-  }
-}
-
 function overallPct(p: PackProgress | null, status: ExportPackController["status"]): number | null {
   if (status === "done") return 100
   if (!p) return null
@@ -178,7 +167,9 @@ export function AzureTaskExportIsland({
       : status === "done" && result
         ? `Pack ready · ${result.taskCount} tasks`
         : status === "error"
-          ? "Export failed"
+          ? error?.startsWith("The export was interrupted")
+            ? "Export interrupted"
+            : "Export failed"
           : "Export pack"
   const sub =
     status === "running"
@@ -208,7 +199,7 @@ export function AzureTaskExportIsland({
           transition: "width 320ms cubic-bezier(.2,.8,.2,1), border-radius 320ms, background-color 300ms",
         }}
         className={cn(
-          "fixed left-1/2 top-[76px] z-40 -translate-x-1/2 overflow-hidden text-white shadow-2xl ring-1 ring-white/10",
+          "fixed left-1/2 top-[76px] z-[70] -translate-x-1/2 overflow-hidden text-white shadow-2xl ring-1 ring-white/10",
           status === "done" ? "bg-emerald-700" : status === "error" ? "bg-red-700" : "bg-gray-950",
         )}
       >

@@ -18,3 +18,40 @@ export function setLastExport(iso: string): void {
     /* best effort */
   }
 }
+
+/** Ask once (from a click) so a "pack ready" notification can reach you in another tab. */
+export function requestNotifyPermission(): void {
+  try {
+    if (typeof Notification !== "undefined" && Notification.permission === "default") {
+      void Notification.requestPermission()
+    }
+  } catch {
+    /* unsupported */
+  }
+}
+
+const ACTIVE_KEY = "azure-pack-active"
+
+/** A run that was in progress — lets the next page load say "interrupted" instead of silently losing it. */
+export function saveActiveRun(v: unknown): void {
+  try {
+    window.localStorage.setItem(ACTIVE_KEY, JSON.stringify(v))
+  } catch {
+    /* best effort */
+  }
+}
+export function clearActiveRun(): void {
+  try {
+    window.localStorage.removeItem(ACTIVE_KEY)
+  } catch {
+    /* best effort */
+  }
+}
+export function readActiveRun<T>(): T | null {
+  try {
+    const raw = window.localStorage.getItem(ACTIVE_KEY)
+    return raw ? (JSON.parse(raw) as T) : null
+  } catch {
+    return null
+  }
+}

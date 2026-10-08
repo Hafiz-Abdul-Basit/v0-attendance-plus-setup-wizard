@@ -46,7 +46,7 @@ import { STALE_DAYS } from "@/lib/azure-devops/client-safe"
 import { cn } from "@/lib/utils"
 
 import { AzureTaskDrawer } from "./AzureTaskDrawer"
-import { ExportPackProvider, useExportPackContext, useHasExportPackProvider } from "./ExportPackProvider"
+import { useExportPackContext } from "./ExportPackProvider"
 import { AzureTaskKpiStrip } from "./AzureTaskKpiStrip"
 import {
   AzureTaskFilters,
@@ -383,8 +383,9 @@ function AzureTasksPanelInner() {
   const clientFilterActive = Boolean(extra.attachments)
 
   // ---- Export pack ----
-  // The run itself + the floating island live in <ExportPackProvider> (mounted
-  // in the app layout), so they survive leaving this page and coming back.
+  // The run lives in export-store.ts and the island in its own React root on
+  // <body> — neither belongs to this page, so leaving the page (e.g. "Back to
+  // wizard") does not stop or hide them. This hook only READS / controls them.
   const { pack, syncPending, openOrToggle, closePromptIfIdle } = useExportPackContext()
   const [lastExportAt, setLastExportAt] = React.useState<string | null>(null)
   const hasDateRange = Boolean(query.from || query.to)
@@ -716,20 +717,9 @@ function AzureTasksPanelInner() {
   )
 }
 
-/**
- * Public panel. If <ExportPackProvider> is mounted in a layout (recommended —
- * the export then survives page changes) it is used as is; otherwise the panel
- * provides its own, which still works while this page stays open.
- */
+/** Public panel. */
 export function AzureTasksPanel() {
-  const hasProvider = useHasExportPackProvider()
-  return hasProvider ? (
-    <AzureTasksPanelInner />
-  ) : (
-    <ExportPackProvider>
-      <AzureTasksPanelInner />
-    </ExportPackProvider>
-  )
+  return <AzureTasksPanelInner />
 }
 
 // Keep the unused type exports so future filter hooks can import them

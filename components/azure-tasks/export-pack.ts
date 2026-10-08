@@ -431,6 +431,7 @@ export async function buildExportPack(
             }
           }
         }
+        saveAiCache(cache) // keep progress even if the page is reloaded mid-run
       } catch (e) {
         if ((e as Error).name === "AbortError") throw e
         for (const u of batches[i]) failedIds.add(u.id)
@@ -475,7 +476,7 @@ export async function buildExportPack(
 
   /* ---- 4. key-changes.txt + zip ---- */
   onProgress({ phase: "zip", done: 0, total: 1, message: "Building zip…" })
-  const keyChangesTxt = renderKeyChangesTxt(keyChanges, texts)
+  const keyChangesTxt = renderKeyChangesTxt(keyChanges, texts, opts.rangeLabel)
   if (opts.includeKeyChanges) zip.file("key-changes.txt", keyChangesTxt)
   if (sqlScripts.length) zip.file("sql-scripts.sql", renderSqlFile(sqlScripts, texts))
   const conflicts = findKeyConflicts(keyChanges, texts)
@@ -828,41 +829,112 @@ function dedupeChanges(list: KeyChange[]): KeyChange[] {
  *   appsettings.json
  *   SomeKey = value
  */
-export function renderKeyChangesTxt(changes: KeyChange[], texts: PackTaskText[]): string {
+/** Break a long JSON value into readable lines (one array item / property per line). */
+function formatKeyValue(raw: string): { inline: string | null; block: string[] } {
+  const v = raw.trim()
+  if (/^[[{]/.test(v)) {
+    try {
+      const parsed: unknown = JSON.parse(v)
+      const compact = JSON.stringify(parsed)
+      if (compact.length <= 80) return { inline: compact, block: [] }
+      if (Array.isArray(parsed)) {
+        return {
+          inline: null,
+          block: ["[", ...parsed.map((it, i) => `  ${JSON.stringify(it)}${i < parsed.length - 1 ? "," : ""}`), "]"],
+        }
+      }
+      if (parsed && typeof parsed === "object") {
+        const entries = Object.entries(parsed as Record<string, unknown>)
+        return {
+          inline: null,
+          block: ["{", ...entries.map(([k, val], i) => `  ${JSON.stringify(k)}: ${JSON.stringify(val)}${i < entries.length - 1 ? "," : ""}`), "}"],
+        }
+      }
+    } catch {
+      /* not valid JSON — show as written */
+    }
+  }
+  if (v.includes("\n")) return { inline: null, block: v.split("\n").map((l) => l.trimEnd()) }
+  return { inline: v, block: [] }
+}
+
+/**
+ * key-changes.txt — made to be read top to bottom in Notepad:
+ *   • a short header and a "where to apply" index
+ *   • one section per place (MongoDB › Setup Configuration, appsettings.json — Message Hub …)
+ *   • one entry per key:  [ADD #1367]  Name = value
+ *     long JSON values are laid out one item per line
+ *   • if the same key was changed in several tasks only the NEWEST value is shown,
+ *     with a note naming the older tasks to ignore
+ */
+export function renderKeyChangesTxt(changes: KeyChange[], texts: PackTaskText[], rangeLabel?: string): string {
   if (!changes.length) return "No key changes found.\n"
   const changed = new Map(texts.map((t) => [t.id, t.changedDate]))
-  // Same key in the same place, written with different labels by different tasks
-  // ("SetupConfig in Mongo" / "SetupConfig MongoDB") → ONE entry, newest task wins.
   const latest = new Map<string, KeyChange>()
-  const taskIdsByKey = new Map<string, Set<number>>()
   for (const c of changes) {
     const k = canon(c).id
     const prev = latest.get(k)
     if (!prev || (changed.get(c.taskId) ?? "") > (changed.get(prev.taskId) ?? "")) latest.set(k, c)
-    taskIdsByKey.set(k, (taskIdsByKey.get(k) ?? new Set()).add(c.taskId))
   }
-  const groups = new Map<string, { head: string; items: KeyChange[]; tasks: Set<number> }>()
-  for (const [k, c] of latest) {
+  const olderByKey = new Map<string, number[]>()
+  for (const cf of findKeyConflicts(changes, texts)) {
+    olderByKey.set(cf.id, cf.versions.filter((v) => !v.latest).map((v) => v.taskId))
+  }
+
+  const groups = new Map<string, { head: string; items: Array<{ id: string; c: KeyChange }> }>()
+  for (const [id, c] of latest) {
     const head = canon(c).heading
-    const g = groups.get(head.toLowerCase()) ?? { head, items: [], tasks: new Set<number>() }
-    g.items.push(c)
-    g.tasks.add(c.taskId)
+    const g = groups.get(head.toLowerCase()) ?? { head, items: [] }
+    g.items.push({ id, c })
     groups.set(head.toLowerCase(), g)
   }
-  const out: string[] = []
-  for (const { head, items, tasks } of Array.from(groups.values()).sort((a, b) => a.head.localeCompare(b.head))) {
-    // The task number tells you which task to open when the place is not obvious.
-    const ids = Array.from(tasks).slice(0, 4).map((i) => `#${i}`).join(", ")
-    out.push(`${head}   (task ${ids}${tasks.size > 4 ? ", …" : ""})`)
-    for (const c of items.sort((a, b) => a.key.localeCompare(b.key))) {
-      out.push(
-        c.action === "remove"
-          ? `${c.key} = <remove>`
-          : `${c.key} = ${c.value ? c.value : "(value not stated in the task)"}`,
-      )
+  const ordered = Array.from(groups.values()).sort((a, b) => a.head.localeCompare(b.head))
+
+  const LINE = "=".repeat(72)
+  const THIN = "-".repeat(72)
+  const out: string[] = [
+    LINE,
+    ` KEY CHANGES${rangeLabel ? `   ${rangeLabel.replace("_to_", "  ->  ")}` : ""}`,
+    ` ${latest.size} key${latest.size === 1 ? "" : "s"} in ${ordered.length} place${ordered.length === 1 ? "" : "s"}`,
+    LINE,
+    " How to read:   [ADD #1367]  Name = value",
+    "                 ADD = new key   UPDATE = change an existing key   REMOVE = delete it",
+    "                 #1367 = the task to open for details",
+    " Same key changed in several tasks? Only the NEWEST value is listed.",
+    "",
+    " WHERE TO APPLY",
+  ]
+  ordered.forEach((g, i) => out.push(`   ${i + 1}. ${g.head}   (${g.items.length} key${g.items.length === 1 ? "" : "s"})`))
+  out.push("")
+
+  ordered.forEach((g, i) => {
+    out.push(THIN, ` ${i + 1}. ${g.head}`, THIN)
+    for (const { id, c } of g.items.sort((a, b) => a.c.key.localeCompare(b.c.key))) {
+      const tag = `[${c.action === "add" ? "ADD" : c.action === "update" ? "UPDATE" : c.action === "remove" ? "REMOVE" : "SET"} #${c.taskId}]`
+      const pad = " ".repeat(Math.max(2, 16 - tag.length))
+      const indent = " ".repeat(tag.length + pad.length)
+      if (c.action === "remove") {
+        out.push(`${tag}${pad}${c.key}   (remove this key)`)
+      } else if (!c.value.trim()) {
+        out.push(`${tag}${pad}${c.key} = (value not stated in the task)`)
+      } else {
+        const f = formatKeyValue(c.value)
+        if (f.inline !== null) {
+          out.push(`${tag}${pad}${c.key} = ${f.inline}`)
+        } else {
+          out.push(`${tag}${pad}${c.key} =`)
+          for (const l of f.block) out.push(`${indent}${l}`)
+        }
+      }
+      const older = olderByKey.get(id)
+      if (older?.length) {
+        out.push(`${indent}! Older task${older.length === 1 ? "" : "s"} ${older.map((n) => `#${n}`).join(", ")} had a different value — ignore ${older.length === 1 ? "it" : "them"}, this is the newest.`)
+      }
+      // Breathing room after multi-line entries; short one-liners stay tightly listed.
+      if (older?.length || /=$/.test(out[out.length - 1] ?? "") || out[out.length - 1]?.startsWith(indent)) out.push("")
     }
-    out.push("")
-  }
+    if (out[out.length - 1] !== "") out.push("")
+  })
   return out.join("\n")
 }
 
