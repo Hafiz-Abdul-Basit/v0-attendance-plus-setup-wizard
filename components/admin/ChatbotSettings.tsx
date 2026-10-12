@@ -18,10 +18,11 @@
  * `CapabilityToggle` rows.
  */
 import * as React from "react"
-import { Loader2, MessageCircle, ShieldAlert, Sparkles } from "lucide-react"
+import { Loader2, MessageCircle, Search, ShieldAlert, Sparkles } from "lucide-react"
 import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
+import { Switch } from "@/components/ui/switch"
 import { cn } from "@/lib/utils"
 import {
   useAdminChatbotSettings,
@@ -33,6 +34,7 @@ export function ChatbotSettings() {
   const { settings, isLoading, isError, mutate } = useAdminChatbotSettings()
   const [busyGlobal, setBusyGlobal] = React.useState(false)
   const [busyUserId, setBusyUserId] = React.useState<string | null>(null)
+  const [query, setQuery] = React.useState("")
 
   const toggleGlobal = async (next: boolean) => {
     if (!settings || settings.chatbotEnabled === next) return
@@ -88,6 +90,13 @@ export function ChatbotSettings() {
     const overridden = overrides.filter((u) => u.access !== "inherit").length
     return { enabledCount: enabled, overriddenCount: overridden }
   }, [overrides])
+  const visibleOverrides = React.useMemo(() => {
+    const q = query.trim().toLowerCase()
+    if (!q) return overrides
+    return overrides.filter(
+      (u) => u.email.toLowerCase().includes(q) || (u.name?.toLowerCase().includes(q) ?? false),
+    )
+  }, [overrides, query])
 
   const statusLabel = React.useMemo(() => {
     if (!settings) return ""
@@ -173,14 +182,24 @@ export function ChatbotSettings() {
 
       {/* Per-user overrides */}
       <div className="px-5 py-4">
-        <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center justify-between gap-3 mb-3 flex-wrap">
           <div>
             <h3 className="text-sm font-semibold text-gray-900">
               Per-user overrides
             </h3>
             <p className="text-xs text-gray-500">
-              Pin a user to Enabled or Disabled. Global OFF always wins.
+              Pin a user On or Off; Inherit follows the global switch. Global OFF always wins.
             </p>
+          </div>
+          <div className="relative w-full sm:w-60">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search users…"
+              aria-label="Search users"
+              className="h-9 w-full rounded-lg border border-gray-200 bg-white pl-8 pr-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-300"
+            />
           </div>
         </div>
 
@@ -189,9 +208,9 @@ export function ChatbotSettings() {
             <Loader2 className="w-4 h-4 animate-spin mr-2" />
             Loading users…
           </div>
-        ) : overrides.length === 0 ? (
+        ) : visibleOverrides.length === 0 ? (
           <div className="py-6 text-center text-gray-500 text-sm">
-            No users yet.
+            {overrides.length === 0 ? "No users yet." : "No users match."}
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -199,11 +218,11 @@ export function ChatbotSettings() {
               <thead className="text-gray-500 text-xs uppercase tracking-wider">
                 <tr>
                   <th className="px-3 py-2 text-left font-medium">User</th>
-                  <th className="px-3 py-2 text-left font-medium">Access</th>
+                  <th className="px-3 py-2 text-right font-medium">Access</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-purple-100">
-                {overrides.map((u) => {
+                {visibleOverrides.map((u) => {
                   const busy = busyUserId === u.userId
                   const dropdownDisabled = busy || !settings?.chatbotEnabled
                   return (
@@ -216,31 +235,12 @@ export function ChatbotSettings() {
                           {u.email}
                         </div>
                       </td>
-                      <td className="px-3 py-2">
-                        <select
+                      <td className="px-3 py-2 text-right">
+                        <AccessControl
                           value={u.access}
                           disabled={dropdownDisabled}
-                          onChange={(e) =>
-                            void setUserAccess(
-                              u,
-                              e.target.value as ChatbotAccess,
-                            )
-                          }
-                          className={cn(
-                            "h-9 rounded-md border-2 bg-white px-2 text-xs font-medium",
-                            "focus:outline-none focus:border-purple-500",
-                            "disabled:opacity-50 disabled:cursor-not-allowed",
-                            u.access === "enabled"
-                              ? "border-green-300 text-green-700"
-                              : u.access === "disabled"
-                                ? "border-red-300 text-red-700"
-                                : "border-gray-200 text-gray-600",
-                          )}
-                        >
-                          <option value="inherit">Inherit</option>
-                          <option value="enabled">Enabled</option>
-                          <option value="disabled">Disabled</option>
-                        </select>
+                          onChange={(access) => void setUserAccess(u, access)}
+                        />
                       </td>
                     </tr>
                   )
@@ -266,40 +266,50 @@ function StatusDot({ color, label }: { color: string; label: string }) {
   )
 }
 
-function Switch({
-  checked,
+const ACCESS_OPTIONS: Array<{ value: ChatbotAccess; label: string; active: string }> = [
+  { value: "inherit", label: "Inherit", active: "bg-white text-gray-800 shadow-sm" },
+  { value: "enabled", label: "On", active: "bg-emerald-500 text-white shadow-sm" },
+  { value: "disabled", label: "Off", active: "bg-red-500 text-white shadow-sm" },
+]
+
+/** Inherit / On / Off segmented control for one user's chatbot access. */
+function AccessControl({
+  value,
   disabled,
   onChange,
-  label,
 }: {
-  checked: boolean
+  value: ChatbotAccess
   disabled?: boolean
-  onChange: (next: boolean) => void
-  label: string
+  onChange: (next: ChatbotAccess) => void
 }) {
   return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={checked}
-      aria-label={label}
-      disabled={disabled}
-      onClick={() => onChange(!checked)}
+    <div
+      role="radiogroup"
+      aria-label="Chatbot access"
       className={cn(
-        "relative inline-flex h-7 w-12 items-center rounded-full transition-colors",
-        "focus:outline-none focus:ring-2 focus:ring-purple-300 focus:ring-offset-2",
-        "disabled:opacity-50 disabled:cursor-not-allowed",
-        checked
-          ? "bg-gradient-to-br from-purple-600 to-indigo-600"
-          : "bg-gray-300",
+        "inline-flex items-center rounded-lg bg-gray-100 p-0.5",
+        disabled && "opacity-50 pointer-events-none",
       )}
     >
-      <span
-        className={cn(
-          "inline-block h-5 w-5 transform rounded-full bg-white shadow-md transition-transform",
-          checked ? "translate-x-6" : "translate-x-1",
-        )}
-      />
-    </button>
+      {ACCESS_OPTIONS.map((o) => {
+        const active = o.value === value
+        return (
+          <button
+            key={o.value}
+            type="button"
+            role="radio"
+            aria-checked={active}
+            disabled={disabled}
+            onClick={() => !active && onChange(o.value)}
+            className={cn(
+              "rounded-md px-2.5 py-1 text-xs font-medium transition-colors",
+              active ? o.active : "text-gray-600 hover:text-gray-900",
+            )}
+          >
+            {o.label}
+          </button>
+        )
+      })}
+    </div>
   )
 }
