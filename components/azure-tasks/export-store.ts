@@ -28,6 +28,8 @@ export interface ExportJob {
   rangeLabel: string
   /** true = ask Gemini; false = local pattern matching only (earlier Gemini results are still reused). */
   useGemini?: boolean
+  /** Client (Azure DevOps agent) selected for this pack; the export is recorded against it. */
+  client?: string
 }
 
 export interface PendingExport {
@@ -47,6 +49,8 @@ export interface StoreState {
   visible: boolean
   expanded: boolean
   pending: PendingExport | null
+  /** Set when the pack downloaded but saving the client's export record failed. */
+  recordError: string | null
 }
 
 const OPTIONS_KEY = "azure-pack-options"
@@ -63,6 +67,7 @@ const INITIAL: StoreState = {
   visible: false,
   expanded: false,
   pending: null,
+  recordError: null,
 }
 
 let state: StoreState = INITIAL
@@ -152,6 +157,32 @@ async function fetchAllTasks(job: ExportJob, signal: AbortSignal, onCount: (n: n
   })
 }
 
+/**
+ * Save "this user exported this client now" on the server so the next
+ * export can start from here. Never fails the pack — the zip is already
+ * downloaded; returns an error message for the island to show instead.
+ */
+async function recordClientExport(job: ExportJob, taskCount: number): Promise<string | null> {
+  try {
+    const res = await fetch("/api/azure-tasks/clients", {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        client: job.client,
+        from: job.query.from,
+        to: job.query.to,
+        taskCount,
+      }),
+    })
+    if (res.ok) return null
+    const b = (await res.json().catch(() => ({}))) as { error?: string }
+    return b.error ?? `Couldn't save the export record (${res.status}).`
+  } catch {
+    return "Couldn't save the export record (network error)."
+  }
+}
+
 /* ------------------------------ actions ------------------------------ */
 
 export function setIncludeAttachments(v: boolean) {
@@ -217,6 +248,7 @@ export async function start(job: ExportJob) {
     status: "running",
     usedGemini: job.useGemini !== false,
     error: null,
+    recordError: null,
     result: null,
     finishedAt: null,
     startedAt: Date.now(),
@@ -232,14 +264,16 @@ export async function start(job: ExportJob) {
       includeAttachments: state.includeAttachments,
       includeKeyChanges: true,
       rangeLabel: job.rangeLabel,
+      client: job.client,
       signal: ctrl.signal,
       skipAi: skipAiRef,
       onProgress: (p) => set({ progress: p }),
     })
     downloadBlob(r.blob, r.fileName)
     setLastExport(new Date().toISOString())
+    const recordError = job.client ? await recordClientExport(job, r.taskCount) : null
     clearActiveRun()
-    set({ result: r, finishedAt: Date.now(), status: "done" })
+    set({ result: r, finishedAt: Date.now(), status: "done", recordError })
   } catch (e) {
     clearActiveRun()
     if ((e as Error).name === "AbortError") {

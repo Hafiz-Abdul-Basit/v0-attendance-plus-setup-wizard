@@ -349,4 +349,23 @@ export class AzureDevOpsClient {
 
     return res
   }
+
+  /**
+   * List the organization's agent pools (org-level, not project-scoped).
+   * Needs the PAT scope "Agent Pools (Read)".
+   */
+  async listAgentPools(): Promise<{
+    count: number
+    value: Array<{ id: number; name: string; isHosted?: boolean; poolType?: string }>
+  }> {
+    return this.request(`/_apis/distributedtask/pools`)
+  }
+
+  /** List the agents registered in one agent pool. */
+  async listAgents(poolId: number): Promise<{
+    count: number
+    value: Array<{ id: number; name: string; status?: string; enabled?: boolean }>
+  }> {
+    return this.request(`/_apis/distributedtask/pools/${poolId}/agents`)
+  }
 }

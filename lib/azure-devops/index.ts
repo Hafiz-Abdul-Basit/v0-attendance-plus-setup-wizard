@@ -23,7 +23,9 @@ export {
   OAuthCredentialProvider,
 } from "./auth"
 export type { AzureCredentialProvider } from "./auth"
+export type { AzureClientAgent } from "./service"
 export {
+  getClientAgents,
   getWorkItems,
   getWorkItemById,
   getWorkItemComments,

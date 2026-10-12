@@ -814,3 +814,63 @@ export async function getWorkItemComments(
     hasMore,
   }
 }
+
+// --- Clients (agents in the organization's agent pools) ------------------
+
+/** A client = a self-hosted Azure Pipelines agent installed for that client. */
+export interface AzureClientAgent {
+  name: string
+  pool: string
+  /** Agent status reported by Azure DevOps ("online" / "offline"). */
+  online: boolean
+  enabled: boolean
+}
+
+const AGENTS_CACHE_KEY = "agents"
+/** Agents rarely change; keep the list for 10 minutes. */
+const AGENTS_TTL_MS = 10 * 60_000
+
+/**
+ * Every agent in the organization's self-hosted agent pools, sorted by
+ * name. Microsoft-hosted pools ("Azure Pipelines") are skipped — their
+ * agents are throwaway VMs, not clients. If the same agent name appears
+ * in several pools it is listed once (first pool wins).
+ */
+export async function getClientAgents(): Promise<AzureClientAgent[]> {
+  try {
+    getAzureConfig()
+  } catch (err) {
+    if (err instanceof AzureConfigError) {
+      throw new AzureApiError(err.message, 501, "config", null)
+    }
+    throw err
+  }
+  const cached = cacheGet<AzureClientAgent[]>(AGENTS_CACHE_KEY)
+  if (cached) return cached
+
+  return dedupe(AGENTS_CACHE_KEY, async () => {
+    const client = getClient()
+    const pools = (await client.listAgentPools()).value.filter(
+      (p) => !p.isHosted && p.poolType !== "deployment",
+    )
+    const perPool = await mapWithConcurrency(pools, BATCH_CONCURRENCY, async (pool) => {
+      const agents = await client.listAgents(pool.id)
+      return agents.value.map<AzureClientAgent>((a) => ({
+        name: a.name,
+        pool: pool.name,
+        online: a.status === "online",
+        enabled: a.enabled !== false,
+      }))
+    })
+    const byName = new Map<string, AzureClientAgent>()
+    for (const agent of perPool.flat()) {
+      const key = agent.name.toLowerCase()
+      if (!byName.has(key)) byName.set(key, agent)
+    }
+    const list = Array.from(byName.values()).sort((a, b) =>
+      a.name.localeCompare(b.name, undefined, { sensitivity: "base" }),
+    )
+    cacheSet(AGENTS_CACHE_KEY, list, AGENTS_TTL_MS)
+    return list
+  })
+}

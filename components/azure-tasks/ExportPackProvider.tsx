@@ -33,6 +33,7 @@ function IslandHost() {
       hasDateRange={s.pending?.meta.hasDateRange ?? false}
       totalCount={s.pending?.meta.totalCount ?? 0}
       rangeLabel={s.pending?.job.rangeLabel ?? "all-dates"}
+      client={s.pending?.job.client}
     />
   )
 }

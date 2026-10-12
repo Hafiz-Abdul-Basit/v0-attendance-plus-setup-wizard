@@ -95,6 +95,8 @@ interface Props {
   hasDateRange: boolean
   totalCount: number
   rangeLabel: string
+  /** Client selected for this pack; the export is recorded against it. */
+  client?: string
 }
 
 export function AzureTaskExportIsland({
@@ -107,6 +109,7 @@ export function AzureTaskExportIsland({
   hasDateRange,
   totalCount,
   rangeLabel,
+  client,
 }: Props) {
   const { status, progress, result, error } = pack
   const pct = overallPct(progress, status)
@@ -233,6 +236,15 @@ export function AzureTaskExportIsland({
                     {hasDateRange ? <> ({rangeLabel.replace("_to_", " → ")})</> : " (all dates)"}: attachments, keys, SQL and a
                     deployment checklist in one zip. It runs in the background — keep using the app.
                   </p>
+                  {client ? (
+                    <p className="text-[12px] text-white/70">
+                      Client: <b className="text-white">{client}</b> — this export will be saved as your latest for this client.
+                    </p>
+                  ) : (
+                    <p className="text-[12px] text-white/55">
+                      No client selected — pick one next to “Export pack” to track when you last exported for it.
+                    </p>
+                  )}
                   {!hasDateRange ? (
                     <div className="rounded-xl bg-amber-400/15 px-3 py-2 text-amber-100">
                       No date range is selected, so ALL {totalCount.toLocaleString()} tasks will be exported. Pick a range first

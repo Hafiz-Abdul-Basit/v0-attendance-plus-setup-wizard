@@ -40,11 +40,13 @@ import { toast } from "sonner"
 import Link from "next/link"
 
 import { Button } from "@/components/ui/button"
+import { useAzureClients } from "@/hooks/use-azure-clients"
 import { useAzureTask, useAzureTasksPage } from "@/hooks/use-azure-tasks"
 import { useQueryState } from "@/hooks/use-query-state"
 import { STALE_DAYS } from "@/lib/azure-devops/client-safe"
 import { cn } from "@/lib/utils"
 
+import { AzureTaskClientPicker } from "./AzureTaskClientPicker"
 import { AzureTaskDrawer } from "./AzureTaskDrawer"
 import { useExportPackContext } from "./ExportPackProvider"
 import { AzureTaskKpiStrip } from "./AzureTaskKpiStrip"
@@ -53,9 +55,10 @@ import {
   deriveFilterOptions,
   type AzureTaskExtraFilters,
 } from "./AzureTaskFilters"
-import { AzureTaskQuickRanges } from "./AzureTaskQuickRanges"
+import { AzureTaskQuickRanges, startOfDayIso } from "./AzureTaskQuickRanges"
 import { AzureTaskSearchBar } from "./AzureTaskSearchBar"
 import { getLastExport } from "./pack-state"
+import { useExportStoreState } from "./use-export-pack"
 import {
   AzureTaskTable,
   type AzureTaskSort,
@@ -71,6 +74,8 @@ import type { AzureWorkItem, AzureWorkItemQuery } from "./types"
  * items in a 3-month window.
  */
 const PAGE_SIZE = 100
+/** localStorage key for the client last picked in the Export Pack client selector. */
+const SELECTED_CLIENT_KEY = "azure-pack-client"
 
 /**
  * Default query state when the user opens /azure-tasks directly (no
@@ -387,7 +392,22 @@ function AzureTasksPanelInner() {
   // <body> — neither belongs to this page, so leaving the page (e.g. "Back to
   // wizard") does not stop or hide them. This hook only READS / controls them.
   const { pack, syncPending, openOrToggle, closePromptIfIdle } = useExportPackContext()
+  const exportState = useExportStoreState()
   const [lastExportAt, setLastExportAt] = React.useState<string | null>(null)
+
+  // Client the pack is for (an Azure DevOps agent). Remembered per browser
+  // as a convenience; the export history itself is per user on the server.
+  const azureClients = useAzureClients(status === "authenticated")
+  const [selectedClient, setSelectedClient] = React.useState<string | undefined>(undefined)
+  React.useEffect(() => {
+    try {
+      const saved = window.localStorage.getItem(SELECTED_CLIENT_KEY)
+      if (saved) setSelectedClient(saved)
+    } catch {
+      /* storage unavailable */
+    }
+  }, [])
+  const selectedClientInfo = azureClients.clients.find((c) => c.name === selectedClient)
   const hasDateRange = Boolean(query.from || query.to)
   const rangeLabel = hasDateRange
     ? `${(query.from ?? "").slice(0, 10) || "start"}_to_${(query.to ?? "").slice(0, 10) || "today"}`
@@ -397,10 +417,10 @@ function AzureTasksPanelInner() {
   // Keep the export prompt in sync with the filters on screen right now.
   React.useEffect(() => {
     syncPending({
-      job: { query: serverQuery, attachments: extra.attachments, rangeLabel },
+      job: { query: serverQuery, attachments: extra.attachments, rangeLabel, client: selectedClient },
       meta: { hasDateRange, totalCount: exportTotal },
     })
-  }, [serverQuery, extra.attachments, rangeLabel, hasDateRange, exportTotal, syncPending])
+  }, [serverQuery, extra.attachments, rangeLabel, selectedClient, hasDateRange, exportTotal, syncPending])
 
   // Leaving this page while the prompt is open (not started): hide it.
   const closePromptRef = React.useRef(closePromptIfIdle)
@@ -430,9 +450,25 @@ function AzureTasksPanelInner() {
   }, [swr.isLoading, swr.total, handleExportClick])
 
   // "Since last export" chip: read once, refresh after every finished pack.
+  // With a client selected the chip uses that client's last export (this
+  // user, from the server); otherwise the browser's last export of any pack.
   React.useEffect(() => {
     setLastExportAt(getLastExport())
   }, [pack.status])
+  const sinceLastExportAt = selectedClient
+    ? (selectedClientInfo?.lastExport?.at ?? null)
+    : lastExportAt
+
+  // A pack just finished: reload the clients so the new "last export" shows,
+  // and say so if the export record couldn't be saved.
+  const refreshClients = azureClients.refresh
+  React.useEffect(() => {
+    if (pack.status !== "done") return
+    void refreshClients()
+    if (exportState.recordError) {
+      toast.error("Export not recorded for the client", { description: exportState.recordError })
+    }
+  }, [pack.status, exportState.recordError, refreshClients])
   const isAuthed = status === "authenticated"
   const isAuthLoading = status === "loading"
 
@@ -469,6 +505,23 @@ function AzureTasksPanelInner() {
 
   const handleRangeChange = (range: { from?: string; to?: string }) => {
     setQuery((q) => ({ ...q, ...range }))
+  }
+
+  /** Pick a client: remember it and jump the range to "since its last export". */
+  const handleClientChange = (name: string | undefined) => {
+    setSelectedClient(name)
+    try {
+      if (name) window.localStorage.setItem(SELECTED_CLIENT_KEY, name)
+      else window.localStorage.removeItem(SELECTED_CLIENT_KEY)
+    } catch {
+      /* storage unavailable */
+    }
+    const last = azureClients.clients.find((c) => c.name === name)?.lastExport
+    if (last) {
+      handleRangeChange({ from: startOfDayIso(new Date(last.at)), to: undefined })
+    } else if (name) {
+      toast.info(`First export for ${name}`, { description: "Choose the date range to start from." })
+    }
   }
 
   // Toggle the inline expansion. The previous implementation opened a
@@ -572,6 +625,13 @@ function AzureTasksPanelInner() {
             summary={swr.summary}
             isLoading={swr.isLoading}
           />
+          <AzureTaskClientPicker
+            clients={azureClients.clients}
+            value={selectedClient}
+            onChange={handleClientChange}
+            isLoading={azureClients.isLoading}
+            warning={azureClients.error ?? azureClients.agentsError ?? (azureClients.historyUnavailable ? "Export history isn't set up yet (database migration pending)." : null)}
+          />
           <Button
             variant="outline"
             size="sm"
@@ -622,7 +682,7 @@ function AzureTasksPanelInner() {
               from={query.from}
               to={query.to}
               onChange={handleRangeChange}
-              lastExportAt={lastExportAt}
+              lastExportAt={sinceLastExportAt}
               className="!rounded-xl"
             />
           </div>

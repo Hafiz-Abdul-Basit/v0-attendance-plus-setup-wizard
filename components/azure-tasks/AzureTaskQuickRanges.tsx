@@ -25,7 +25,7 @@ export interface QuickRange {
   resolve: (now: Date) => { from?: string; to?: string };
 }
 
-const startOfDayIso = (d: Date): string => {
+export const startOfDayIso = (d: Date): string => {
   const out = new Date(d);
   out.setHours(0, 0, 0, 0);
   return out.toISOString();

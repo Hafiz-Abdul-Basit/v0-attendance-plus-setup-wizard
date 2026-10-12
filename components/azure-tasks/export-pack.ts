@@ -109,6 +109,8 @@ export interface PackOptions {
   includeAttachments: boolean
   includeKeyChanges: boolean
   rangeLabel: string
+  /** Client (Azure DevOps agent) the pack is for — shown in the checklist and file name. */
+  client?: string
   signal: AbortSignal
   /** Set `.current = true` (the "Skip Gemini" button) to stop calling Gemini and read the rest locally. */
   skipAi?: { current: boolean }
@@ -488,6 +490,7 @@ export async function buildExportPack(
       sqlScripts,
       attachments: attachmentJobs,
       rangeLabel: opts.rangeLabel,
+      client: opts.client,
       includeAttachments: opts.includeAttachments,
       includeAi: opts.includeKeyChanges,
       conflicts,
@@ -497,7 +500,8 @@ export async function buildExportPack(
   if (errors.length) zip.file("_errors.txt", errors.join("\n"))
 
   const blob = await zip.generateAsync({ type: "blob", compression: "DEFLATE" })
-  const fileName = `azure-tasks-pack_${opts.rangeLabel.replace(/[^\w.-]+/g, "_")}.zip`
+  const clientPart = opts.client ? `${opts.client}_` : ""
+  const fileName = `azure-tasks-pack_${`${clientPart}${opts.rangeLabel}`.replace(/[^\w.-]+/g, "_")}.zip`
   onProgress({ phase: "done", done: 1, total: 1, message: "Done" })
 
   return {
@@ -648,6 +652,7 @@ function renderChecklist(a: {
   sqlScripts: SqlScript[]
   attachments: Array<{ taskId: number; folder: string; name: string }>
   rangeLabel: string
+  client?: string
   includeAttachments: boolean
   includeAi: boolean
   conflicts: KeyConflict[]
@@ -658,6 +663,7 @@ function renderChecklist(a: {
   )
   const out: string[] = [
     "DEPLOYMENT CHECKLIST",
+    ...(a.client ? [`Client   : ${a.client}`] : []),
     `Range    : ${a.rangeLabel.replace("_to_", " -> ")}`,
     `Generated: ${new Date().toISOString().replace("T", " ").slice(0, 16)} UTC`,
     `Totals   : ${a.texts.length} tasks · ${a.attachments.length} attachments · ${a.keyChanges.length} key changes · ${a.sqlScripts.length} SQL scripts`,
