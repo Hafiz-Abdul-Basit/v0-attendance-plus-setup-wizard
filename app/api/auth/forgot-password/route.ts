@@ -18,6 +18,11 @@ import crypto from "node:crypto"
 
 import { getSupabaseAdmin } from "@/lib/supabase"
 import { sendPasswordResetEmail } from "@/lib/passwordResetEmail"
+import { getClientIp, rateLimit } from "@/lib/rate-limit"
+
+const WINDOW_MS = 60 * 60_000
+const MAX_PER_IP = 10
+const MAX_PER_EMAIL = 3
 
 const Body = z.object({
   email: z.string().email().max(255).transform((s) => s.toLowerCase().trim()),
@@ -36,6 +41,15 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true }) // invalid body — same response
   }
   const { email } = parsed.data
+
+  // Stop reset-email spam. Over the limit we still answer `{ ok: true }`
+  // so the response never reveals anything about the account.
+  if (
+    !rateLimit(`forgot-ip:${getClientIp(request.headers)}`, MAX_PER_IP, WINDOW_MS).ok ||
+    !rateLimit(`forgot-email:${email}`, MAX_PER_EMAIL, WINDOW_MS).ok
+  ) {
+    return NextResponse.json({ ok: true })
+  }
 
   const supabase = getSupabaseAdmin()
   const { data: user } = await supabase

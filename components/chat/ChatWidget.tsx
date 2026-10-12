@@ -7,8 +7,10 @@
  *   1. On mount, fetches GET /api/chatbot-status. If enabled, renders the
  *      launcher + chat panel. If disabled (or the fetch fails), renders
  *      nothing — fail closed. Never discoverable to a user without access.
- *   2. On send, POSTs to /api/chat. The route returns `{ reply, action }`:
- *      `reply` is the visible text, `action` is an optional structured
+ *   2. On send, POSTs to /api/chat. The route streams NDJSON events
+ *      (text deltas, tool start/done, then a final `{ reply, action }`) so
+ *      the reply renders as it is generated and the user sees which tool
+ *      Snip is running. `reply` is the visible text, `action` is an optional structured
  *      payload that the host app can run (search, filter, swap tab,
  *      search Azure Tasks). The widget renders the action as a
  *      confirmation chip — the user has to click "Apply" before anything
@@ -52,6 +54,7 @@ import {
   Send,
   Server,
   Sparkles,
+  Square,
   UserCog,
   X,
 } from "lucide-react";
@@ -83,6 +86,36 @@ interface ChatMessage {
   followups?: string[] | null;
   /** ISO timestamp used for the small "x ago" label below each bubble. */
   sentAt: number;
+  /** True while the reply is still streaming in. */
+  streaming?: boolean;
+  /** Label of the tool Snip is currently running ("Searching snippets"). */
+  toolStatus?: string | null;
+}
+
+/** NDJSON events emitted by /api/chat — see `StreamEvent` in the route. */
+type ChatStreamEvent =
+  | { type: "text"; delta: string }
+  | { type: "tool"; name: string; label: string; status: "start" | "done" }
+  | {
+      type: "done";
+      reply: string;
+      action: ChatbotAction | null;
+      followups: string[] | null;
+    }
+  | { type: "error"; error: string };
+
+/**
+ * What to show while a reply is still streaming: hide the trailing
+ * `snip-action` / `snip-followups` blocks (the final `done` event delivers
+ * them parsed), and temporarily close an open code fence so half-written
+ * code already renders as a code block.
+ */
+function visibleWhileStreaming(raw: string): string {
+  const cut = raw.indexOf("```snip-");
+  let text = cut === -1 ? raw : raw.slice(0, cut);
+  const fences = text.match(/```/g)?.length ?? 0;
+  if (fences % 2 === 1) text += "\n```";
+  return text;
 }
 
 /**
@@ -235,6 +268,8 @@ export function ChatWidget() {
   const scrollRef = React.useRef<HTMLDivElement>(null);
   const inputRef = React.useRef<HTMLTextAreaElement>(null);
   const recognitionRef = React.useRef<SpeechRecognitionLike | null>(null);
+  // Aborts the in-flight /api/chat stream (Stop button, unmount).
+  const abortRef = React.useRef<AbortController | null>(null);
   // Tracks the latest finalised transcript across `onresult` events
   // so we can auto-send when the user stops listening.
   const finalTranscriptRef = React.useRef<string>("");
@@ -298,6 +333,9 @@ export function ChatWidget() {
       cancelled = true;
     };
   }, [isPublicPage]);
+
+  // Cancel any in-flight reply if the widget unmounts.
+  React.useEffect(() => () => abortRef.current?.abort(), []);
 
   // Auto-scroll to the latest message whenever messages change.
   React.useEffect(() => {
@@ -485,65 +523,10 @@ export function ChatWidget() {
     const text = (override ?? input).trim();
     if (!text || busy) return;
 
-    const nextHistory: ChatMessage[] = [
-      ...messages,
-      { role: "user", content: text, sentAt: Date.now() },
-    ];
-    setMessages(nextHistory);
+    const history = messages;
+    setMessages([...history, { role: "user", content: text, sentAt: Date.now() }]);
     if (override === undefined) setInput("");
-    setBusy(true);
-    setError(null);
-
-    try {
-      const res = await fetch("/api/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          message: text,
-          // Send the conversation WITHOUT the just-appended user turn
-          // since the server appends it again as the final entry.
-          history: messages.map((m) => ({ role: m.role, content: m.content })),
-          // The user's chosen (or auto-detected) language. The server
-          // forwards this to the model so replies come back in the
-          // same language the user wrote in.
-          language: effectiveLanguage,
-        }),
-      });
-      const data = (await res.json().catch(() => ({}))) as {
-        reply?: string;
-        action?: ChatbotAction | null;
-        followups?: string[] | null;
-        error?: string;
-      };
-      if (res.status === 403) {
-        // The admin flipped the toggle off mid-session. Lock the panel.
-        setStatus("disabled");
-        setError(data.error ?? "Chatbot is currently disabled");
-        return;
-      }
-      if (!res.ok) {
-        setError(data.error ?? `Request failed (${res.status})`);
-        return;
-      }
-      if (data.reply) {
-        setMessages((prev) => [
-          ...prev,
-          {
-            role: "model",
-            content: data.reply!,
-            action: data.action ?? null,
-            followups: data.followups ?? null,
-            sentAt: Date.now(),
-          },
-        ]);
-      }
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Network error");
-    } finally {
-      setBusy(false);
-      // Re-focus the input on the next tick so the user can keep typing.
-      requestAnimationFrame(() => inputRef.current?.focus());
-    }
+    await streamReply(text, history);
   };
 
   /**
@@ -562,25 +545,35 @@ export function ChatWidget() {
         // regenerated conversation still shows the original question.
         const upToUser = messages.slice(0, i + 1);
         setMessages(upToUser);
-        setError(null);
-        // Re-send using the trimmed history. We bypass the optimistic
-        // append so we don't duplicate the user turn.
-        await sendWithHistory(prompt, upToUser.slice(0, -1));
+        await streamReply(prompt, upToUser.slice(0, -1));
         return;
       }
     }
   };
 
+  /** Abort the in-flight reply (Stop button). Keeps whatever streamed so far. */
+  const stop = () => abortRef.current?.abort();
+
   /**
-   * Internal send helper for cases where we've already appended the
-   * user message ourselves (regenerate) and want to preserve the
-   * existing history exactly. Identical to `send` but takes the
-   * history snapshot explicitly so we don't double-count the user turn.
+   * POST the turn to /api/chat and stream the NDJSON reply into a
+   * placeholder model message. The caller has already appended the user
+   * turn; `history` is the transcript BEFORE it (the server appends
+   * `text` as the final entry).
    */
-  const sendWithHistory = async (text: string, history: ChatMessage[]) => {
-    if (busy) return;
+  const streamReply = async (text: string, history: ChatMessage[]) => {
     setBusy(true);
     setError(null);
+    const controller = new AbortController();
+    abortRef.current = controller;
+
+    // Update the streaming placeholder (always the last message).
+    const patchStreaming = (fn: (m: ChatMessage) => ChatMessage) =>
+      setMessages((prev) => {
+        const last = prev[prev.length - 1];
+        if (!last || last.role !== "model" || !last.streaming) return prev;
+        return [...prev.slice(0, -1), fn(last)];
+      });
+
     try {
       const res = await fetch("/api/chat", {
         method: "POST",
@@ -588,40 +581,101 @@ export function ChatWidget() {
         body: JSON.stringify({
           message: text,
           history: history.map((m) => ({ role: m.role, content: m.content })),
+          // The user's chosen (or auto-detected) language. The server
+          // forwards this to the model so replies come back in the
+          // same language the user wrote in.
           language: effectiveLanguage,
         }),
+        signal: controller.signal,
       });
-      const data = (await res.json().catch(() => ({}))) as {
-        reply?: string;
-        action?: ChatbotAction | null;
-        followups?: string[] | null;
-        error?: string;
-      };
-      if (res.status === 403) {
-        setStatus("disabled");
-        setError(data.error ?? "Chatbot is currently disabled");
-        return;
-      }
-      if (!res.ok) {
+
+      // Pre-stream failures come back as plain JSON with a status.
+      if (!res.ok || !res.body) {
+        const data = (await res.json().catch(() => ({}))) as { error?: string };
+        if (res.status === 403) {
+          // The admin flipped the toggle off mid-session. Lock the panel.
+          setStatus("disabled");
+          setError(data.error ?? "Chatbot is currently disabled");
+          return;
+        }
         setError(data.error ?? `Request failed (${res.status})`);
         return;
       }
-      if (data.reply) {
-        setMessages((prev) => [
-          ...prev,
-          {
-            role: "model",
-            content: data.reply!,
-            action: data.action ?? null,
-            followups: data.followups ?? null,
-            sentAt: Date.now(),
-          },
-        ]);
+
+      setMessages((prev) => [
+        ...prev,
+        { role: "model", content: "", streaming: true, toolStatus: null, sentAt: Date.now() },
+      ]);
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      let raw = "";
+      const handle = (event: ChatStreamEvent) => {
+        switch (event.type) {
+          case "text":
+            raw += event.delta;
+            patchStreaming((m) => ({
+              ...m,
+              content: visibleWhileStreaming(raw),
+              toolStatus: null,
+            }));
+            break;
+          case "tool":
+            patchStreaming((m) => ({
+              ...m,
+              toolStatus: event.status === "start" ? event.label : null,
+            }));
+            break;
+          case "done":
+            patchStreaming((m) => ({
+              ...m,
+              content: event.reply,
+              action: event.action ?? null,
+              followups: event.followups ?? null,
+              streaming: false,
+              toolStatus: null,
+            }));
+            break;
+          case "error":
+            setError(event.error);
+            break;
+        }
+      };
+
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (value) buffer += decoder.decode(value, { stream: true });
+        let nl: number;
+        while ((nl = buffer.indexOf("\n")) !== -1) {
+          const line = buffer.slice(0, nl).trim();
+          buffer = buffer.slice(nl + 1);
+          if (!line) continue;
+          try {
+            handle(JSON.parse(line) as ChatStreamEvent);
+          } catch {
+            /* ignore a malformed line rather than killing the stream */
+          }
+        }
+        if (done) break;
       }
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Network error");
+      // Stop button → keep the partial reply, no error banner.
+      if (!controller.signal.aborted) {
+        setError(e instanceof Error ? e.message : "Network error");
+      }
     } finally {
+      // Finalise a placeholder that never got its `done` event (stopped,
+      // errored): drop it if empty, otherwise keep the partial text.
+      setMessages((prev) => {
+        const last = prev[prev.length - 1];
+        if (!last || last.role !== "model" || !last.streaming) return prev;
+        if (!last.content.trim()) return prev.slice(0, -1);
+        return [...prev.slice(0, -1), { ...last, streaming: false, toolStatus: null }];
+      });
+      abortRef.current = null;
       setBusy(false);
+      // Re-focus the input on the next tick so the user can keep typing.
       requestAnimationFrame(() => inputRef.current?.focus());
     }
   };
@@ -730,22 +784,21 @@ export function ChatWidget() {
               />
             ) : (
               <>
-                {messages.map((m, i) => (
-                  <MessageBubble
-                    key={i}
-                    message={m}
-                    isLast={i === messages.length - 1}
-                    busy={busy}
-                    onRegenerate={regenerate}
-                    onFollowup={(text) => void send(text)}
-                  />
-                ))}
-                {busy && (
-                  <div className="flex items-center gap-2 text-xs text-gray-500 pl-9">
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                    Snip is thinking…
-                  </div>
+                {messages.map((m, i) =>
+                  // An empty streaming placeholder is represented by the
+                  // thinking indicator below instead of a blank bubble.
+                  m.streaming && !m.content ? null : (
+                    <MessageBubble
+                      key={i}
+                      message={m}
+                      isLast={i === messages.length - 1}
+                      busy={busy}
+                      onRegenerate={regenerate}
+                      onFollowup={(text) => void send(text)}
+                    />
+                  ),
                 )}
+                {busy && <ThinkingIndicator last={messages[messages.length - 1]} />}
                 {error && (
                   <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
                     {error}
@@ -814,20 +867,29 @@ export function ChatWidget() {
                   )}
                 </Button>
               )}
-              <Button
-                type="button"
-                size="icon"
-                onClick={() => void send()}
-                disabled={busy || input.trim().length === 0}
-                className="bg-gradient-to-br from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white"
-                aria-label="Send message"
-              >
-                {busy ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
+              {busy ? (
+                <Button
+                  type="button"
+                  size="icon"
+                  onClick={stop}
+                  className="bg-gradient-to-br from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white"
+                  aria-label="Stop generating"
+                  title="Stop"
+                >
+                  <Square className="w-3.5 h-3.5 fill-current" />
+                </Button>
+              ) : (
+                <Button
+                  type="button"
+                  size="icon"
+                  onClick={() => void send()}
+                  disabled={input.trim().length === 0}
+                  className="bg-gradient-to-br from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white"
+                  aria-label="Send message"
+                >
                   <Send className="w-4 h-4" />
-                )}
-              </Button>
+                </Button>
+              )}
             </div>
             <p className="mt-1 text-[10px] text-gray-400 text-center">
               Enter to send · Shift+Enter for newline ·{" "}
@@ -943,6 +1005,23 @@ function EmptyState({
 }
 
 /**
+ * "Snip is thinking…" row under the transcript while a reply is in
+ * flight. Shows the running tool's label instead when Snip is fetching
+ * data, and hides once streamed text is visible (the bubble itself is
+ * the progress indicator then).
+ */
+function ThinkingIndicator({ last }: { last: ChatMessage | undefined }) {
+  const streaming = last?.role === "model" && last.streaming ? last : null;
+  if (streaming && streaming.content && !streaming.toolStatus) return null;
+  return (
+    <div className="flex items-center gap-2 text-xs text-gray-500 pl-9">
+      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+      {streaming?.toolStatus ? `${streaming.toolStatus}…` : "Snip is thinking…"}
+    </div>
+  );
+}
+
+/**
  * One message in the transcript. Model bubbles get a small "Snip" avatar
  * on the left, a hover-revealed bubble-level Copy button, a timestamp,
  * and (optionally) an action suggestion card plus follow-up chips.
@@ -968,7 +1047,7 @@ function MessageBubble({
   onFollowup: (text: string) => void;
 }) {
   const isUser = message.role === "user";
-  const showRegenerate = !isUser && isLast && !busy;
+  const showRegenerate = !isUser && isLast && !busy && !message.streaming;
   return (
     <div className={cn("flex gap-2", isUser ? "justify-end" : "justify-start")}>
       {!isUser && (

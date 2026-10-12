@@ -25,6 +25,9 @@ import { NextResponse } from "next/server"
 import { requireAzureTasksAccess } from "@/lib/auth"
 import { streamAttachment, AzureApiError } from "@/lib/azure-devops"
 
+/** Types that can't execute script, so they may preview inline. */
+const INLINE_SAFE_TYPES = new Set(["application/pdf", "text/plain"])
+
 interface RouteContext {
   params: { id: string; attachmentId: string }
 }
@@ -67,11 +70,24 @@ export async function GET(request: Request, { params }: RouteContext) {
     const upstreamType = stream.contentType
     if (upstreamType) headers.set("Content-Type", upstreamType)
 
-    const disposition = download ? "attachment" : "inline"
+    // Attachments are uploaded by anyone with Azure DevOps access and are
+    // served from OUR origin, so rendering an HTML / SVG / XML file inline
+    // would run its scripts with the viewer's session (stored XSS). Only
+    // known-passive types may render inline; everything else downloads.
+    const mime = (upstreamType ?? "").split(";")[0].trim().toLowerCase()
+    const inlineSafe =
+      INLINE_SAFE_TYPES.has(mime) ||
+      (mime.startsWith("image/") && mime !== "image/svg+xml")
+    const disposition = download || !inlineSafe ? "attachment" : "inline"
+    headers.set("X-Content-Type-Options", "nosniff")
+
+    // Strip quotes, backslashes and control chars (CR/LF would make
+    // Headers.set throw) from the ASCII fallback filename.
     const encodedName = encodeURIComponent(stream.filename)
+    const safeName = stream.filename.replace(/["\\\x00-\x1f\x7f]/g, "_")
     headers.set(
       "Content-Disposition",
-      `${disposition}; filename="${stream.filename.replace(/["\\]/g, "_")}"; filename*=UTF-8''${encodedName}`,
+      `${disposition}; filename="${safeName}"; filename*=UTF-8''${encodedName}`,
     )
 
     // Surface the upstream content-length so the browser can show a

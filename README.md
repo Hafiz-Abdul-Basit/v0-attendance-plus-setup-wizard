@@ -110,6 +110,9 @@ add the following. Apply each one to **Production**, **Preview**, and
 | `SUPABASE_SERVICE_ROLE_KEY` | yes (server-only) | Supabase dashboard → **Settings → API → service_role**. **Never** prefix this with `NEXT_PUBLIC_` — it bypasses RLS. |
 | `SUPABASE_PROJECT_REF` | only for `db:apply-schema` | The slug between `https://` and `.supabase.co` (e.g. `abcdefgh`). |
 | `SUPABASE_DB_PASSWORD` | only for `db:apply-schema` | The password you set when creating the Supabase project. |
+| `ALLOWED_EMAIL_DOMAINS` | recommended | Comma-separated email domains allowed to sign up (e.g. `aandktech.com`). Unset = anyone can register. |
+| `REGISTRATION_DISABLED` | optional | `true` blocks all new sign-ups (the very first user of an empty deployment can still register as admin). |
+| `AZURE_DEVOPS_MAX_ITEMS` | optional | Max work items one Azure Tasks query loads, newest first (default `2000`). |
 
 After saving, hit **Deployments → ⋯ → Redeploy** so the new env vars
 take effect (Vercel does not re-inject them into already-built
@@ -158,8 +161,8 @@ the Next.js framework preset). Output goes to `.next`.
 Visit **https://attendance-plus-setup-guide.vercel.app/** and confirm:
 
 - [ ] Redirect to `/login` works.
-- [ ] Signing in with `a.basit.freelancer@gmail.com` redirects to
-      `/admin` (this user is hard-coded as admin in `schema.sql`).
+- [ ] Signing in with an admin account redirects to `/admin` (the first
+      registered user becomes admin; promote others from the Admin Panel).
 - [ ] The Component Configuration editor shows the **Smart Search &
       Replace** bar and the new **full-height JSON preview** with a
       working search.

@@ -32,7 +32,6 @@ import {
   Wrench,
   ListChecks,
   Pencil,
-  Menu,
   Sparkles,
 } from "lucide-react"
 
@@ -185,7 +184,6 @@ export function AdminPanel() {
       | "can_see_setup_clients"
       | "can_see_setups"
       | "can_edit_all_snippets"
-      | "can_see_app_menu"
       | "can_see_azure_tasks",
     value: boolean,
   ) => {
@@ -205,8 +203,6 @@ export function AdminPanel() {
           ? "Setups"
           : key === "can_edit_all_snippets"
           ? "Edit All Snippets"
-          : key === "can_see_app_menu"
-          ? "Main App Menu"
           : "Azure Tasks"
       toast.success(`${u.email}: ${label} ${value ? "enabled" : "disabled"}`)
       // Optimistic local patch so the UI feels instant even before the reload.
@@ -450,16 +446,6 @@ export function AdminPanel() {
                                   description="Allow this user to edit and delete any snippet — not just their own. Useful for team leads who curate the shared library."
                                   onChange={(v) =>
                                     toggleCapability(u, "can_edit_all_snippets", v)
-                                  }
-                                />
-                                <CapabilityToggle
-                                  label="Main App Menu"
-                                  icon={<Menu className="w-3.5 h-3.5" />}
-                                  enabled={u.can_see_app_menu}
-                                  disabled={busy}
-                                  description="Show the Main App Menu tab. Non-admins can view the menu and copy/download the JSON; admins can also edit it."
-                                  onChange={(v) =>
-                                    toggleCapability(u, "can_see_app_menu", v)
                                   }
                                 />
                                 <CapabilityToggle

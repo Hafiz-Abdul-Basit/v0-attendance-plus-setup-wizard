@@ -4,7 +4,7 @@
  * useAzureTasks — SWR wrapper for `/api/azure-tasks`.
  *
  * Mirrors the project's hook conventions (see `use-snippets`,
- * `use-app-menu`, `use-admin-users`):
+ * `use-admin-users`):
  *   - "use client" directive
  *   - Module-scoped fetcher that throws on non-OK and unwraps the
  *     envelope on success
@@ -32,7 +32,7 @@ import type {
 } from "@/lib/azure-devops/client-safe"
 
 // Re-export the domain types so consumers can import everything from
-// this hook, mirroring the `use-app-menu` pattern.
+// this hook.
 export type {
   AzureWorkItem,
   AzureWorkItemComment,

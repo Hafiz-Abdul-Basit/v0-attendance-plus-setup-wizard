@@ -10,7 +10,6 @@ import {
   FileText,
   Download,
   ShieldCheck,
-  FileJson,
   Sparkles,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -24,7 +23,6 @@ import { CHATBOT_ACTION_EVENT, type ChatbotAction } from "@/lib/chatbot-events";
 import logo from "../public/Develop by Abdul Basit.png";
 import Image from "next/image";
 import { SetupsTabs } from "@/components/client-setup/SetupsTabs";
-import { MainAppMenu } from "@/components/app-menu/MainAppMenu";
 import Link from "next/link";
 import { ProfileMenu } from "@/components/auth/ProfileMenu";
 
@@ -320,7 +318,6 @@ export function InstallationWizard() {
   const [showGuides, setShowGuides] = useState(false); // New state for Guides
   const [showSetupAgent, setShowSetupAgent] = useState(false); // New state for Setup Agent
   const [showSetups, setShowSetups] = useState(false); // New state for Setups
-  const [showAppMenu, setShowAppMenu] = useState(false); // New state for Main App Menu
 
   // Snip chatbot → wizard bridge. The chat widget (mounted in
   // app/ClientLayout.tsx) dispatches CustomEvent("snip:action", action)
@@ -336,7 +333,6 @@ export function InstallationWizard() {
       setShowSnippets(tab === "snippets")
       setShowSetupAgent(tab === "setup-agent")
       setShowSetups(tab === "setups")
-      setShowAppMenu(tab === "app-menu")
     }
     window.addEventListener(CHATBOT_ACTION_EVENT, handler as EventListener)
     return () =>
@@ -813,12 +809,11 @@ export function InstallationWizard() {
 
   return (
     <div className="flex h-screen bg-white overflow-hidden">
-      {/* Fixed Sidebar - Only shown when not viewing Snippets, Guides, Setup Agent, Setups, or Main App Menu */}
+      {/* Fixed Sidebar - Only shown when not viewing Snippets, Guides, Setup Agent, or Setups */}
       {!showSnippets &&
         !showGuides &&
         !showSetupAgent &&
-        !showSetups &&
-        !showAppMenu && (
+        !showSetups && (
           <aside className="w-80 bg-white border-r border-gray-200 shadow-lg flex flex-col fixed left-0 top-0 h-full z-10">
             {/* Sidebar Header */}
             <div className="p-6 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50">
@@ -978,7 +973,7 @@ export function InstallationWizard() {
 
       {/* Main Content Area */}
       <main
-        className={`flex-1 ${!showSnippets && !showGuides && !showSetupAgent && !showSetups && !showAppMenu ? "ml-80" : "ml-0"} flex flex-col h-screen overflow-hidden`}
+        className={`flex-1 ${!showSnippets && !showGuides && !showSetupAgent && !showSetups ? "ml-80" : "ml-0"} flex flex-col h-screen overflow-hidden`}
       >
         {/* Fixed Header */}
         <header className="bg-white border-b border-gray-200 shadow-sm z-20">
@@ -1017,7 +1012,6 @@ export function InstallationWizard() {
                     setShowSnippets(false);
                     setShowGuides(false);
                     setShowSetupAgent(false);
-                    setShowAppMenu(false);
                   }}
                   variant={showSetups ? "default" : "outline"}
                   size="sm"
@@ -1039,7 +1033,6 @@ export function InstallationWizard() {
                     setShowSnippets(false);
                     setShowGuides(false);
                     setShowSetups(false);
-                    setShowAppMenu(false);
                   }}
                   variant={showSetupAgent ? "default" : "outline"}
                   size="sm"
@@ -1060,7 +1053,6 @@ export function InstallationWizard() {
                   setShowSnippets(!showSnippets);
                   setShowGuides(false); // Close guides when opening snippets
                   setShowSetupAgent(false); // Close setup agent when opening snippets
-                  setShowAppMenu(false); // Close app menu when opening snippets
                   if (!showSnippets) {
                     setFilteredSnippetId(null);
                     setSnippetFilter("");
@@ -1077,29 +1069,6 @@ export function InstallationWizard() {
                 <FileText className="w-4 h-4" />
                 {showSnippets ? "View Installation Steps" : "View Snippets"}
               </Button>
-
-              {/* Main App Menu Button — visible to admins or users granted the canSeeAppMenu capability */}
-              {(isAdmin || session?.user?.canSeeAppMenu) && (
-                <Button
-                  onClick={() => {
-                    setShowAppMenu(!showAppMenu);
-                    setShowSnippets(false);
-                    setShowGuides(false);
-                    setShowSetupAgent(false);
-                    setShowSetups(false);
-                  }}
-                  variant={showAppMenu ? "default" : "outline"}
-                  size="sm"
-                  className={`gap-2 ${
-                    showAppMenu
-                      ? "bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white shadow-lg"
-                      : "border-indigo-200 text-indigo-700 hover:bg-indigo-50"
-                  }`}
-                >
-                  <FileJson className="w-4 h-4" />
-                  {showAppMenu ? "View Installation Steps" : "Main App Menu"}
-                </Button>
-              )}
 
               {/* Azure Tasks — visible to admins or users granted the
                   canSeeAzureTasks capability via the Admin Panel. Links
@@ -1127,31 +1096,6 @@ export function InstallationWizard() {
 
         {/* Scrollable Content */}
         <div className="flex-1 overflow-y-auto bg-gradient-to-br from-gray-50 to-white">
-          {showAppMenu ? (
-            isAdmin || session?.user?.canSeeAppMenu ? (
-              // Full-width branch: bypass the max-w-[95rem] mx-auto wrapper
-              // so the menu tree can use the entire viewport width.
-              <MainAppMenu />
-            ) : (
-              // Defense in depth: if the user toggled the tab but their
-              // capability was revoked mid-session, show a friendly gate
-              // instead of the menu.
-              <div className="flex items-center justify-center min-h-[60vh] p-6">
-                <div className="max-w-md w-full bg-white border border-gray-200 rounded-2xl shadow-sm p-8 text-center">
-                  <div className="mx-auto w-14 h-14 rounded-2xl bg-amber-100 text-amber-700 flex items-center justify-center mb-4">
-                    <FileJson className="w-7 h-7" />
-                  </div>
-                  <h2 className="text-lg font-bold text-gray-900 mb-1">
-                    Main App Menu is restricted
-                  </h2>
-                  <p className="text-sm text-gray-600">
-                    Your admin has not granted access to the Main App Menu. Ask
-                    them to enable it from the Admin Panel &rarr; Users tab.
-                  </p>
-                </div>
-              </div>
-            )
-          ) : (
             <div className="p-4">
               <div className="max-w-[95rem] mx-auto">
                 {/* Progress Header */}
@@ -1230,7 +1174,6 @@ export function InstallationWizard() {
                 )}
               </div>
             </div>
-          )}
         </div>
       </main>
 

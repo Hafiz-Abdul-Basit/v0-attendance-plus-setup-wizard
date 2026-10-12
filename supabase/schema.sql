@@ -125,8 +125,9 @@ create trigger snippets_set_updated_at
 -- to admin by a one-shot backfill so an empty deployment gets a
 -- usable admin right after the first /api/auth/register call.
 --
--- Designated admin email (always promoted to admin on schema apply):
---   a.basit.freelancer@gmail.com
+-- No account is promoted by email address: emails aren't verified, so a
+-- hard-coded "admin email" could be claimed by whoever registers it first.
+-- Promote further admins from the Admin Panel instead.
 -- ============================================================
 alter table public.users
   add column if not exists role text not null default 'user';
@@ -145,14 +146,8 @@ end$$;
 
 create index if not exists users_role_idx on public.users (role);
 
--- Always promote the designated admin email (idempotent).
-update public.users
-   set role = 'admin',
-       updated_at = now()
- where email = 'a.basit.freelancer@gmail.com';
-
--- Bootstrap: if there are still zero admins (e.g. fresh deploy and the
--- designated admin hasn't registered yet), promote the earliest user.
+-- Bootstrap: if there are zero admins (e.g. fresh deploy), promote the
+-- earliest user.
 update public.users
    set role = 'admin',
        updated_at = now()

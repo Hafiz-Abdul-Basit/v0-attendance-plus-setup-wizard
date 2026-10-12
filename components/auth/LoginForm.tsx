@@ -55,7 +55,11 @@ export function LoginForm() {
       })
 
       if (!res || res.error) {
-        setError("Invalid email or password. Please try again.")
+        setError(
+          res?.error?.startsWith("Too many")
+            ? res.error
+            : "Invalid email or password. Please try again.",
+        )
         toast.error("Login failed")
         return
       }

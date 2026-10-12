@@ -38,6 +38,26 @@ import { AzureApiError, STALE_DAYS } from "./types"
 
 const CACHE_TTL_MS = 60_000
 const MAX_BATCH_SIZE = 200
+/** Parallel batch requests when hydrating a WIQL result. */
+const BATCH_CONCURRENCY = 4
+/**
+ * Upper bound on how many work items one query hydrates. WIQL returns ids
+ * newest-first, so this keeps the most recently changed items. Without a
+ * cap, an unfiltered view of a big project costs one upstream call per 200
+ * items (up to 100 calls for WIQL's 20k limit). Override with
+ * AZURE_DEVOPS_MAX_ITEMS.
+ */
+const MAX_WORK_ITEMS = (() => {
+  const n = Number(process.env.AZURE_DEVOPS_MAX_ITEMS)
+  return Number.isInteger(n) && n > 0 ? n : 2000
+})()
+/** Single work items (with relations) are cached briefly for row re-opens and attachment downloads. */
+const ITEM_CACHE_TTL_MS = 60_000
+/**
+ * When every `$expand=relations` variant fails (PAT scope gap), skip the
+ * doomed attempts for this long instead of paying 3 extra calls per item.
+ */
+const RELATIONS_UNAVAILABLE_TTL_MS = 5 * 60_000
 
 // Note: `STALE_DAYS` lives in `./types` (pure) so it can be re-exported
 // from the client-safe `./client` surface without dragging `server-only`
@@ -75,6 +95,41 @@ function cacheDelete(key: string): void {
   cache.delete(key)
 }
 
+/**
+ * In-flight upstream fetches keyed like the cache, so concurrent identical
+ * requests (several tabs, chatbot + panel) share one upstream call instead
+ * of each missing the cache at the same time.
+ */
+const inflight = new Map<string, Promise<unknown>>()
+
+function dedupe<T>(key: string, load: () => Promise<T>): Promise<T> {
+  const existing = inflight.get(key) as Promise<T> | undefined
+  if (existing) return existing
+  const p = load().finally(() => inflight.delete(key))
+  inflight.set(key, p)
+  return p
+}
+
+/** Run `fn` over `items` with at most `limit` calls in flight; keeps input order. */
+async function mapWithConcurrency<T, R>(
+  items: T[],
+  limit: number,
+  fn: (item: T) => Promise<R>,
+): Promise<R[]> {
+  const out = new Array<R>(items.length)
+  let next = 0
+  const worker = async () => {
+    while (next < items.length) {
+      const i = next++
+      out[i] = await fn(items[i])
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, worker))
+  return out
+}
+
+let relationsUnavailableUntil = 0
+
 // --- Service --------------------------------------------------------------
 
 let cachedClient: AzureDevOpsClient | null = null
@@ -103,19 +158,32 @@ export function isAzureConfigured(): boolean {
   }
 }
 
-/** Stable, deterministic key for the cache, regardless of object key order. */
+/**
+ * Stable, deterministic key for the cache, regardless of object key order.
+ *
+ * Only fields that change the WIQL belong here:
+ *   - `q` is applied in-memory, so every search term reuses the same
+ *     upstream result instead of refetching it.
+ *   - `from` / `to` are reduced to the UTC day, because WIQL only compares
+ *     ChangedDate at day precision (see `isoForWiql`). Quick ranges like
+ *     "last 7 days" are computed from `Date.now()` on every request, so
+ *     keying on the full timestamp meant the cache never hit.
+ */
 function queryKey(prefix: string, q: AzureWorkItemQuery): string {
   const ordered: Record<string, unknown> = {}
   const keys: Array<keyof AzureWorkItemQuery> = [
     "from",
     "to",
-    "q",
     "assignee",
     "state",
     "type",
   ]
   for (const k of keys) {
-    const v = q[k]
+    let v = q[k]
+    if ((k === "from" || k === "to") && typeof v === "string") {
+      const d = new Date(v)
+      if (!Number.isNaN(d.getTime())) v = d.toISOString().slice(0, 10)
+    }
     if (v != null && v !== "") ordered[k as string] = v
   }
   return `${prefix}:${JSON.stringify(ordered)}`
@@ -255,33 +323,12 @@ export async function getWorkItems(
   if (upstream) {
     items = upstream.items
   } else {
-    const client = getClient()
-    const wiql = buildWorkItemQuery(config.project, normalized)
-    let wiqlRes
-    try {
-      wiqlRes = await client.queryWorkItemsByWiql(wiql)
-    } catch (err) {
-      if (err instanceof AzureApiError) {
-        cacheDelete(upstreamKey)
-        throw err
-      }
-      throw err
-    }
-
-    const ids: number[] = []
-    if (wiqlRes.workItems && wiqlRes.workItems.length > 0) {
-      for (const w of wiqlRes.workItems) ids.push(w.id)
-    } else if (wiqlRes.workItemRelations && wiqlRes.workItemRelations.length > 0) {
-      for (const w of wiqlRes.workItemRelations) ids.push(w.target.id)
-    }
-
-    const fields = getRequestedFields()
-    const fetched: AzureWorkItem[] = []
-    for (let i = 0; i < ids.length; i += MAX_BATCH_SIZE) {
-      const batch = ids.slice(i, i + MAX_BATCH_SIZE)
-      let res
+    items = await dedupe(upstreamKey, async () => {
+      const client = getClient()
+      const wiql = buildWorkItemQuery(config.project, normalized)
+      let wiqlRes
       try {
-        res = await client.getWorkItems(batch, fields)
+        wiqlRes = await client.queryWorkItemsByWiql(wiql)
       } catch (err) {
         if (err instanceof AzureApiError) {
           cacheDelete(upstreamKey)
@@ -289,34 +336,63 @@ export async function getWorkItems(
         }
         throw err
       }
-      for (const raw of res.value) {
-        fetched.push(mapWorkItem(raw, config.organization, config.project))
+
+      const ids: number[] = []
+      if (wiqlRes.workItems && wiqlRes.workItems.length > 0) {
+        for (const w of wiqlRes.workItems) ids.push(w.id)
+      } else if (wiqlRes.workItemRelations && wiqlRes.workItemRelations.length > 0) {
+        for (const w of wiqlRes.workItemRelations) ids.push(w.target.id)
       }
-    }
+      // WIQL is ORDER BY ChangedDate DESC, so this keeps the newest items.
+      if (ids.length > MAX_WORK_ITEMS) {
+        console.warn(
+          `[azure-tasks] query matched ${ids.length} items; hydrating the newest ${MAX_WORK_ITEMS} (AZURE_DEVOPS_MAX_ITEMS)`,
+        )
+        ids.length = MAX_WORK_ITEMS
+      }
 
-    // IMPORTANT: Azure's batch endpoint (`GET /wit/workitems?ids=…`) does
-    // NOT preserve the order of the ids we pass in — it returns each
-    // batch of ≤200 items sorted by id. The WIQL `ORDER BY ChangedDate
-    // DESC` is therefore lost, and page 1 ended up holding the lowest
-    // ids of the first batch instead of the most recently changed items
-    // (the newest tasks only showed up after scrolling / searching).
-    // Re-apply the ordering here, before caching and paging: newest
-    // ChangedDate first, higher id first on ties.
-    fetched.sort((x, y) => {
-      const tx = x.changedDate ? Date.parse(x.changedDate) : 0
-      const ty = y.changedDate ? Date.parse(y.changedDate) : 0
-      if (ty !== tx) return ty - tx
-      return y.id - x.id
+      const fields = getRequestedFields()
+      const batches: number[][] = []
+      for (let i = 0; i < ids.length; i += MAX_BATCH_SIZE) {
+        batches.push(ids.slice(i, i + MAX_BATCH_SIZE))
+      }
+      let responses
+      try {
+        responses = await mapWithConcurrency(batches, BATCH_CONCURRENCY, (batch) =>
+          client.getWorkItems(batch, fields),
+        )
+      } catch (err) {
+        if (err instanceof AzureApiError) {
+          cacheDelete(upstreamKey)
+          throw err
+        }
+        throw err
+      }
+      const fetched: AzureWorkItem[] = []
+      for (const res of responses) {
+        for (const raw of res.value) {
+          fetched.push(mapWorkItem(raw, config.organization, config.project))
+        }
+      }
+
+      // IMPORTANT: Azure's batch endpoint (`GET /wit/workitems?ids=…`) does
+      // NOT preserve the order of the ids we pass in — it returns each
+      // batch of ≤200 items sorted by id. The WIQL `ORDER BY ChangedDate
+      // DESC` is therefore lost, and page 1 ended up holding the lowest
+      // ids of the first batch instead of the most recently changed items
+      // (the newest tasks only showed up after scrolling / searching).
+      // Re-apply the ordering here, before caching and paging: newest
+      // ChangedDate first, higher id first on ties.
+      fetched.sort((x, y) => {
+        const tx = x.changedDate ? Date.parse(x.changedDate) : 0
+        const ty = y.changedDate ? Date.parse(y.changedDate) : 0
+        if (ty !== tx) return ty - tx
+        return y.id - x.id
+      })
+
+      cacheSet(upstreamKey, { items: fetched, fetchedAt: Date.now() })
+      return fetched
     })
-
-    // Temporary diagnostic (safe to delete): proves THIS version of the
-    // file is the one running. Look for it in the `npm run dev` terminal.
-    console.log(
-      `[azure-tasks] sorted ${fetched.length} items by ChangedDate DESC — newest: #${fetched[0]?.id} (${fetched[0]?.changedDate})`,
-    )
-
-    items = fetched
-    cacheSet(upstreamKey, { items, fetchedAt: Date.now() })
   }
 
   // In-memory free-text search (title / description / tags / assignee
@@ -389,6 +465,20 @@ export async function getWorkItems(
  * the exact PAT scope required to fix it.
  */
 export async function getWorkItemById(id: number): Promise<AzureWorkItem | null> {
+  const key = `item:${id}`
+  const cached = cacheGet<AzureWorkItem>(key)
+  if (cached) return cached
+  return dedupe(key, async () => {
+    const item = await fetchWorkItemById(id)
+    // Only cache items that carry relations. Caching the relation-less
+    // fallback is what previously locked the UI into "Attachments
+    // unavailable" for a full minute (see note in fetchWorkItemById).
+    if (item && !item.relationsUnavailable) cacheSet(key, item, ITEM_CACHE_TTL_MS)
+    return item
+  })
+}
+
+async function fetchWorkItemById(id: number): Promise<AzureWorkItem | null> {
   let config
   try {
     config = getAzureConfig()
@@ -448,107 +538,115 @@ export async function getWorkItemById(id: number): Promise<AzureWorkItem | null>
     return item
   }
 
-  // Attempt 1: canonical `$expand=relations`.
-  //
-  // We intentionally pass `undefined` for the `fields` argument here
-  // (and on every other attempt below) instead of the full
-  // `AZURE_WORK_ITEM_FIELDS` list. Empirically, on this Azure DevOps
-  // Server instance, passing `fields=System.Id,System.Title,…` together
-  // with `$expand=relations` causes the upstream to silently omit the
-  // `relations[]` array from the response. The two are server-side
-  // orthogonal on documented Azure DevOps Service, but this Server
-  // build treats them as a "subset select" that excludes relations.
-  //
-  // Without `fields`, the upstream returns the full default body
-  // (which already includes every System.* / Microsoft.VSTS.* field
-  // we need) AND the relations array when the PAT has `vso.work_full`.
-  // Probe endpoint confirms: 156 relations, all System.* fields
-  // present.
-  try {
-    const raw = await client.getWorkItem(id, undefined, {
-      expand: "relations",
-      expandParam: "$expand",
-    })
-    if (!raw || typeof raw !== "object") return null
-    return mapWithRelationsGuard(raw)
-  } catch (err) {
-    if (err instanceof AzureApiError && err.status === 404) return null
-    if (err instanceof AzureApiError && (err.status === 0 || err.code === "network")) {
-      throw err
-    }
-    attempts.push({
-      label: "$expand=relations",
-      status: err instanceof AzureApiError ? err.status : 0,
-      code: err instanceof AzureApiError ? err.code : "?",
-      message: err instanceof Error ? err.message : String(err),
-    })
-  }
-
-  // Attempt 2: legacy `expand=relations` (no `$`) for older Azure DevOps
-  // Server installations. The REST API on TFS / older server releases
-  // accepts the un-prefixed parameter name. Same `undefined` fields
-  // trick — we want the upstream to give us the relations, not a
-  // field-subset response that strips them.
-  try {
-    const raw = await client.getWorkItem(id, undefined, {
-      expand: "relations",
-      expandParam: "expand",
-    })
-    if (!raw || typeof raw !== "object") return null
-    return mapWithRelationsGuard(raw)
-  } catch (err) {
-    if (err instanceof AzureApiError && err.status === 404) return null
-    if (err instanceof AzureApiError && (err.status === 0 || err.code === "network")) {
-      throw err
-    }
-    attempts.push({
-      label: "expand=relations",
-      status: err instanceof AzureApiError ? err.status : 0,
-      code: err instanceof AzureApiError ? err.code : "?",
-      message: err instanceof Error ? err.message : String(err),
-    })
-  }
-
-  // Attempt 3: minimal-field expand to grab the relations alone, then
-  // merge onto a plain field fetch of the body. The minimal call uses
-  // `fields=System.Id` ONLY as a sanity probe — if it still returns no
-  // relations, this whole chain is doomed (real PAT scope gap or
-  // server-side configuration that rejects expand entirely).
-  try {
-    const minimalRaw = (await client.getWorkItem(
-      id,
-      ["System.Id"],
-      { expand: "relations", expandParam: "$expand" },
-    )) as { relations?: unknown } | null
-    if (minimalRaw && typeof minimalRaw === "object") {
-      // If the minimal fetch came back without relations, this whole
-      // chain is doomed — fall through to the next attempt rather than
-      // returning a relations-less item.
-      if (Array.isArray((minimalRaw as { relations?: unknown }).relations)) {
-        const richRaw = await client.getWorkItem(id, undefined)
-        if (richRaw && typeof richRaw === "object") {
-          ;(richRaw as { relations?: unknown }).relations =
-            (minimalRaw as { relations?: unknown }).relations
-          return mapWithRelationsGuard(richRaw)
-        }
-        return mapWithRelationsGuard(minimalRaw)
+  // A recent lookup already proved every expand variant fails (PAT scope
+  // gap) — skip straight to the plain fetch instead of paying 3 doomed
+  // upstream calls per item.
+  if (Date.now() >= relationsUnavailableUntil) {
+    // Attempt 1: canonical `$expand=relations`.
+    //
+    // We intentionally pass `undefined` for the `fields` argument here
+    // (and on every other attempt below) instead of the full
+    // `AZURE_WORK_ITEM_FIELDS` list. Empirically, on this Azure DevOps
+    // Server instance, passing `fields=System.Id,System.Title,…` together
+    // with `$expand=relations` causes the upstream to silently omit the
+    // `relations[]` array from the response. The two are server-side
+    // orthogonal on documented Azure DevOps Service, but this Server
+    // build treats them as a "subset select" that excludes relations.
+    //
+    // Without `fields`, the upstream returns the full default body
+    // (which already includes every System.* / Microsoft.VSTS.* field
+    // we need) AND the relations array when the PAT has `vso.work_full`.
+    // Probe endpoint confirms: 156 relations, all System.* fields
+    // present.
+    try {
+      const raw = await client.getWorkItem(id, undefined, {
+        expand: "relations",
+        expandParam: "$expand",
+      })
+      if (!raw || typeof raw !== "object") return null
+      return mapWithRelationsGuard(raw)
+    } catch (err) {
+      if (err instanceof AzureApiError && err.status === 404) return null
+      if (err instanceof AzureApiError && (err.status === 0 || err.code === "network")) {
+        throw err
       }
+      attempts.push({
+        label: "$expand=relations",
+        status: err instanceof AzureApiError ? err.status : 0,
+        code: err instanceof AzureApiError ? err.code : "?",
+        message: err instanceof Error ? err.message : String(err),
+      })
     }
-  } catch (err) {
-    if (err instanceof AzureApiError && err.status === 404) return null
-    if (err instanceof AzureApiError && (err.status === 0 || err.code === "network")) {
-      throw err
+
+    // Attempt 2: legacy `expand=relations` (no `$`) for older Azure DevOps
+    // Server installations. The REST API on TFS / older server releases
+    // accepts the un-prefixed parameter name. Same `undefined` fields
+    // trick — we want the upstream to give us the relations, not a
+    // field-subset response that strips them.
+    try {
+      const raw = await client.getWorkItem(id, undefined, {
+        expand: "relations",
+        expandParam: "expand",
+      })
+      if (!raw || typeof raw !== "object") return null
+      return mapWithRelationsGuard(raw)
+    } catch (err) {
+      if (err instanceof AzureApiError && err.status === 404) return null
+      if (err instanceof AzureApiError && (err.status === 0 || err.code === "network")) {
+        throw err
+      }
+      attempts.push({
+        label: "expand=relations",
+        status: err instanceof AzureApiError ? err.status : 0,
+        code: err instanceof AzureApiError ? err.code : "?",
+        message: err instanceof Error ? err.message : String(err),
+      })
     }
-    attempts.push({
-      label: "minimal-field $expand=relations",
-      status: err instanceof AzureApiError ? err.status : 0,
-      code: err instanceof AzureApiError ? err.code : "?",
-      message: err instanceof Error ? err.message : String(err),
-    })
+
+    // Attempt 3: minimal-field expand to grab the relations alone, then
+    // merge onto a plain field fetch of the body. The minimal call uses
+    // `fields=System.Id` ONLY as a sanity probe — if it still returns no
+    // relations, this whole chain is doomed (real PAT scope gap or
+    // server-side configuration that rejects expand entirely).
+    try {
+      const minimalRaw = (await client.getWorkItem(
+        id,
+        ["System.Id"],
+        { expand: "relations", expandParam: "$expand" },
+      )) as { relations?: unknown } | null
+      if (minimalRaw && typeof minimalRaw === "object") {
+        // If the minimal fetch came back without relations, this whole
+        // chain is doomed — fall through to the next attempt rather than
+        // returning a relations-less item.
+        if (Array.isArray((minimalRaw as { relations?: unknown }).relations)) {
+          const richRaw = await client.getWorkItem(id, undefined)
+          if (richRaw && typeof richRaw === "object") {
+            ;(richRaw as { relations?: unknown }).relations =
+              (minimalRaw as { relations?: unknown }).relations
+            return mapWithRelationsGuard(richRaw)
+          }
+          return mapWithRelationsGuard(minimalRaw)
+        }
+      }
+    } catch (err) {
+      if (err instanceof AzureApiError && err.status === 404) return null
+      if (err instanceof AzureApiError && (err.status === 0 || err.code === "network")) {
+        throw err
+      }
+      attempts.push({
+        label: "minimal-field $expand=relations",
+        status: err instanceof AzureApiError ? err.status : 0,
+        code: err instanceof AzureApiError ? err.code : "?",
+        message: err instanceof Error ? err.message : String(err),
+      })
+    }
   }
 
   // All expand attempts failed. Log the chain so the admin can see
   // exactly what the upstream rejected.
+  if (attempts.length > 0) {
+    relationsUnavailableUntil = Date.now() + RELATIONS_UNAVAILABLE_TTL_MS
+  }
   for (const a of attempts) {
     console.warn(
       `[azure-tasks] getWorkItemById(${id}): ${a.label} failed (status=${a.status}, code=${a.code}): ${a.message}`,

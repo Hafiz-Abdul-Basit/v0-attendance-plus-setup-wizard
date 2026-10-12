@@ -22,6 +22,14 @@ import bcrypt from "bcryptjs"
 import { NextResponse } from "next/server"
 
 import { getSupabaseAdmin } from "@/lib/supabase"
+import { getClientIp, rateLimit, resetRateLimit } from "@/lib/rate-limit"
+
+const LOGIN_WINDOW_MS = 15 * 60_000
+/** Attempts per email+IP, and per IP across all emails, per window. */
+const LOGIN_MAX_PER_ACCOUNT = 10
+const LOGIN_MAX_PER_IP = 50
+/** Message the login form recognises and shows verbatim. */
+export const LOGIN_RATE_LIMIT_ERROR = "Too many login attempts. Please wait 15 minutes and try again."
 
 export type Role = "user" | "admin"
 
@@ -37,10 +45,21 @@ export const authOptions: NextAuthOptions = {
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
       },
-      async authorize(credentials) {
+      async authorize(credentials, req) {
         if (!credentials?.email || !credentials?.password) return null
 
         const email = credentials.email.toLowerCase().trim()
+
+        // Slow down password guessing. Thrown errors reach the client as
+        // `signIn(...).error`, so the form can explain the lockout.
+        const ip = getClientIp(req?.headers)
+        const accountKey = `login:${email}:${ip}`
+        if (
+          !rateLimit(accountKey, LOGIN_MAX_PER_ACCOUNT, LOGIN_WINDOW_MS).ok ||
+          !rateLimit(`login-ip:${ip}`, LOGIN_MAX_PER_IP, LOGIN_WINDOW_MS).ok
+        ) {
+          throw new Error(LOGIN_RATE_LIMIT_ERROR)
+        }
         const supabase = getSupabaseAdmin()
 
         // IMPORTANT: only select columns that have existed since the
@@ -66,6 +85,7 @@ export const authOptions: NextAuthOptions = {
         const valid = await bcrypt.compare(credentials.password, user.password_hash)
         if (!valid) return null
 
+        resetRateLimit(accountKey)
         return {
           id: user.id,
           email: user.email,
@@ -98,13 +118,11 @@ export const authOptions: NextAuthOptions = {
           session.user.canSeeSetupClients = flags.canSeeSetupClients
           session.user.canSeeSetups = flags.canSeeSetups
           session.user.canEditAllSnippets = flags.canEditAllSnippets
-          session.user.canSeeAppMenu = flags.canSeeAppMenu
           session.user.canSeeAzureTasks = flags.canSeeAzureTasks
         } else {
           session.user.canSeeSetupClients = false
           session.user.canSeeSetups = false
           session.user.canEditAllSnippets = false
-          session.user.canSeeAppMenu = false
           session.user.canSeeAzureTasks = false
         }
       }
@@ -125,7 +143,6 @@ const flagsCache = new Map<
     canSeeSetupClients: boolean
     canSeeSetups: boolean
     canEditAllSnippets: boolean
-    canSeeAppMenu: boolean
     canSeeAzureTasks: boolean
     cachedAt: number
   }
@@ -136,7 +153,6 @@ export async function loadTabVisibilityFlags(userId: string): Promise<{
   canSeeSetupClients: boolean
   canSeeSetups: boolean
   canEditAllSnippets: boolean
-  canSeeAppMenu: boolean
   canSeeAzureTasks: boolean
 }> {
   const cached = flagsCache.get(userId)
@@ -145,7 +161,6 @@ export async function loadTabVisibilityFlags(userId: string): Promise<{
       canSeeSetupClients: cached.canSeeSetupClients,
       canSeeSetups: cached.canSeeSetups,
       canEditAllSnippets: cached.canEditAllSnippets,
-      canSeeAppMenu: cached.canSeeAppMenu,
       canSeeAzureTasks: cached.canSeeAzureTasks,
     }
   }
@@ -153,7 +168,7 @@ export async function loadTabVisibilityFlags(userId: string): Promise<{
     const supabase = getSupabaseAdmin()
     const { data, error } = await supabase
       .from("users")
-      .select("can_see_setup_clients, can_see_setups, can_edit_all_snippets, can_see_app_menu, can_see_azure_tasks")
+      .select("can_see_setup_clients, can_see_setups, can_edit_all_snippets, can_see_azure_tasks")
       .eq("id", userId)
       .maybeSingle()
     if (error || !data) {
@@ -169,7 +184,6 @@ export async function loadTabVisibilityFlags(userId: string): Promise<{
         canSeeSetupClients: false,
         canSeeSetups: false,
         canEditAllSnippets: false,
-        canSeeAppMenu: false,
         canSeeAzureTasks: false,
       }
     }
@@ -177,7 +191,6 @@ export async function loadTabVisibilityFlags(userId: string): Promise<{
       canSeeSetupClients: Boolean(data.can_see_setup_clients),
       canSeeSetups: Boolean(data.can_see_setups),
       canEditAllSnippets: Boolean(data.can_edit_all_snippets),
-      canSeeAppMenu: Boolean(data.can_see_app_menu),
       canSeeAzureTasks: Boolean(data.can_see_azure_tasks),
     }
     flagsCache.set(userId, { ...result, cachedAt: Date.now() })
@@ -189,7 +202,6 @@ export async function loadTabVisibilityFlags(userId: string): Promise<{
       canSeeSetupClients: false,
       canSeeSetups: false,
       canEditAllSnippets: false,
-      canSeeAppMenu: false,
       canSeeAzureTasks: false,
     }
   }

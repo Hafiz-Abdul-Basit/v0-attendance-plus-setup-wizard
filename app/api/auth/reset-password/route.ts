@@ -17,6 +17,7 @@ import bcrypt from "bcryptjs"
 import { z } from "zod"
 
 import { getSupabaseAdmin } from "@/lib/supabase"
+import { getClientIp, rateLimit, tooManyRequests } from "@/lib/rate-limit"
 
 const Body = z.object({
   token: z.string().min(10).max(128),
@@ -24,6 +25,10 @@ const Body = z.object({
 })
 
 export async function POST(request: Request) {
+  // Reset tokens are random UUIDs, but cap guessing anyway.
+  const limit = rateLimit(`reset:${getClientIp(request.headers)}`, 10, 15 * 60_000)
+  if (!limit.ok) return tooManyRequests(limit.retryAfter)
+
   let payload: unknown
   try {
     payload = await request.json()

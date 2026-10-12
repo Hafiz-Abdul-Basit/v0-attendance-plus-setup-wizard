@@ -52,7 +52,7 @@ export type ChatbotAction =
       type: "switch-tab"
       label: string
       payload: {
-        tab: "snippets" | "setup-agent" | "setups" | "app-menu"
+        tab: "snippets" | "setup-agent" | "setups"
       }
     }
   | {

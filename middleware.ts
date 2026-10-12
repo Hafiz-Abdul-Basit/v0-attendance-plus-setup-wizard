@@ -3,7 +3,8 @@
  *
  * Behaviour:
  * - If the user has no valid NextAuth JWT, redirect them to /login.
- * - /login, /register, /api/auth/*, and Next.js internals/_next/static/* are
+ * - /login, /register, /forgot-password, /reset-password, /api/auth/*, and
+ *   Next.js internals/_next/static/* are
  *   excluded so the login flow itself can render and so static assets work.
  * - All other paths (including /api/snippets) require auth, but POST /api/auth/*
  *   is also excluded so the register endpoint is reachable while logged out.
@@ -34,7 +35,7 @@ export async function middleware(request: NextRequest) {
   }
 
   // Not signed in — only allow the public auth paths.
-  const publicPaths = ["/login", "/register"]
+  const publicPaths = ["/login", "/register", "/forgot-password", "/reset-password"]
   const isAuthApi = pathname.startsWith("/api/auth/")
   if (publicPaths.includes(pathname) || isAuthApi) {
     return NextResponse.next()
