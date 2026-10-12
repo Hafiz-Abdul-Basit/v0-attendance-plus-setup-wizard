@@ -16,7 +16,16 @@
 import { buildCacheKey } from "@/hooks/use-azure-tasks"
 import type { AzureWorkItemQuery } from "@/lib/azure-devops/client-safe"
 import { buildExportPack, downloadBlob, type PackProgress, type PackResult } from "./export-pack"
-import { clearActiveRun, readActiveRun, requestNotifyPermission, saveActiveRun, setLastExport } from "./pack-state"
+import {
+  clearActiveRun,
+  readActiveRun,
+  removeLegacySharedKeys,
+  requestNotifyPermission,
+  saveActiveRun,
+  setLastExport,
+  setStorageUser,
+  userKey,
+} from "./pack-state"
 import type { AzureWorkItem } from "./types"
 
 export type PackStatus = "idle" | "running" | "done" | "error"
@@ -58,7 +67,7 @@ export interface StoreState {
 }
 
 const OPTIONS_KEY = "azure-pack-options"
-/** localStorage key for the client last picked for Export Packs. */
+/** localStorage key (per user, via userKey) for the client last picked for Export Packs. */
 const CLIENT_KEY = "azure-pack-client"
 
 const INITIAL: StoreState = {
@@ -134,8 +143,6 @@ if (typeof window !== "undefined") {
       const o = JSON.parse(raw) as { a?: boolean }
       if (typeof o.a === "boolean") state = { ...state, includeAttachments: o.a }
     }
-    const savedClient = window.localStorage.getItem(CLIENT_KEY)
-    if (savedClient) state = { ...state, client: savedClient }
   } catch {
     /* ignore */
   }
@@ -226,12 +233,38 @@ export function setIncludeAttachments(v: boolean) {
   }
 }
 
+let currentUser: string | null = null
+
+/**
+ * Tell the store who is signed in. Per-user state (selected client, last
+ * export) is namespaced by user id, so switching accounts in the same
+ * browser never carries one person's client or dates over to another.
+ */
+export function setUser(userId: string | null) {
+  if (userId === currentUser) return
+  currentUser = userId
+  setStorageUser(userId)
+  removeLegacySharedKeys()
+  let client: string | undefined
+  const key = userKey(CLIENT_KEY)
+  if (key) {
+    try {
+      client = window.localStorage.getItem(key) ?? undefined
+    } catch {
+      /* ignore */
+    }
+  }
+  set({ client })
+}
+
 /** The user picked (or cleared) the client for the next pack. */
 export function selectClient(name: string | undefined) {
   set({ client: name, clientPickSeq: state.clientPickSeq + 1 })
+  const key = userKey(CLIENT_KEY)
+  if (!key) return
   try {
-    if (name) window.localStorage.setItem(CLIENT_KEY, name)
-    else window.localStorage.removeItem(CLIENT_KEY)
+    if (name) window.localStorage.setItem(key, name)
+    else window.localStorage.removeItem(key)
   } catch {
     /* ignore */
   }

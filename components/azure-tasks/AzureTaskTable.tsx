@@ -84,6 +84,8 @@ interface AzureTaskTableProps {
    * `hasMore === false` and we have at least one row).
    */
   caughtUp?: React.ReactNode
+  /** Drop the outer card chrome (border, radius, shadow) when the table sits inside another card. */
+  bare?: boolean
 }
 
 const columnHeaderClass =
@@ -229,6 +231,7 @@ export function AzureTaskTable({
   onRetry,
   scrollSentinel,
   caughtUp,
+  bare,
 }: AzureTaskTableProps) {
   const sorted = React.useMemo(
     () => sortItems(tasks, sort.key, sort.dir),
@@ -237,7 +240,7 @@ export function AzureTaskTable({
 
   if (isError) {
     return (
-      <div className="bg-white border border-red-200 rounded-2xl shadow-sm p-6 text-sm text-red-700">
+      <div className={cn("bg-white p-6 text-sm text-red-700", !bare && "border border-red-200 rounded-2xl shadow-sm")}>
         <div className="font-medium mb-1">Could not load work items</div>
         <div className="text-red-600 mb-3">
           {errorMessage || "An unexpected error occurred while talking to Azure DevOps."}
@@ -256,7 +259,7 @@ export function AzureTaskTable({
   }
 
   return (
-    <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
+    <div className={cn("bg-white overflow-hidden", !bare && "border border-gray-200 rounded-2xl shadow-sm")}>
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>

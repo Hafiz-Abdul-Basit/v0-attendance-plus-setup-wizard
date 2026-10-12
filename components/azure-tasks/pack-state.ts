@@ -1,10 +1,28 @@
-/** Tiny localStorage helpers for the Export pack automation. */
+/** Tiny localStorage helpers for the Export pack automation. Per-user keys go through `userKey()`. */
 
 const LAST_EXPORT_KEY = "azure-pack-last-export"
 
+/**
+ * Per-user namespace for keys that belong to one person (last export).
+ * Set from the signed-in session; until it is known nothing is read or
+ * written, so two people sharing a browser never see each other's data.
+ */
+let userScope: string | null = null
+
+export function setStorageUser(userId: string | null): void {
+  userScope = userId
+}
+
+/** `key:userId`, or null while no user is known. */
+export function userKey(key: string): string | null {
+  return userScope ? `${key}:${userScope}` : null
+}
+
 export function getLastExport(): string | null {
+  const key = userKey(LAST_EXPORT_KEY)
+  if (!key) return null
   try {
-    const v = window.localStorage.getItem(LAST_EXPORT_KEY)
+    const v = window.localStorage.getItem(key)
     return v && !Number.isNaN(new Date(v).getTime()) ? v : null
   } catch {
     return null
@@ -12,10 +30,22 @@ export function getLastExport(): string | null {
 }
 
 export function setLastExport(iso: string): void {
+  const key = userKey(LAST_EXPORT_KEY)
+  if (!key) return
   try {
-    window.localStorage.setItem(LAST_EXPORT_KEY, iso)
+    window.localStorage.setItem(key, iso)
   } catch {
     /* best effort */
+  }
+}
+
+/** Drop pre-namespacing keys that were shared by every user of the browser. */
+export function removeLegacySharedKeys(): void {
+  try {
+    window.localStorage.removeItem(LAST_EXPORT_KEY)
+    window.localStorage.removeItem("azure-pack-client")
+  } catch {
+    /* ignore */
   }
 }
 

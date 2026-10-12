@@ -47,3 +47,34 @@ export function useAzureClients(enabled = true) {
     refresh: () => swr.mutate(),
   }
 }
+
+export interface ClientDelivery {
+  name: string
+  /** When the latest Export Pack for this client went out (by anyone). */
+  lastAt: string
+}
+
+/**
+ * Team-wide "last delivery per client" list (read-only, names + dates only)
+ * from GET /api/azure-tasks/clients/latest. Fetched only when `enabled`
+ * (i.e. when the dialog is open).
+ */
+export function useClientDeliveries(enabled: boolean) {
+  const swr = useSWR<{ clients: ClientDelivery[] }>(
+    enabled ? "/api/azure-tasks/clients/latest" : null,
+    async (url: string) => {
+      const res = await fetch(url, { credentials: "include" })
+      if (!res.ok) {
+        const body = (await res.json().catch(() => ({}))) as { error?: string }
+        throw new Error(body.error ?? `Failed to load history (${res.status})`)
+      }
+      return (await res.json()) as { clients: ClientDelivery[] }
+    },
+    { revalidateOnFocus: false, dedupingInterval: 30_000 },
+  )
+  return {
+    deliveries: swr.data?.clients ?? [],
+    error: swr.error instanceof Error ? swr.error.message : null,
+    isLoading: swr.isLoading,
+  }
+}

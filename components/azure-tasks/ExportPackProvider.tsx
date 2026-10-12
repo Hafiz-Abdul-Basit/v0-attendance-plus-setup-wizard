@@ -82,6 +82,7 @@ const ACTIONS = {
   openOrToggle,
   closePromptIfIdle: store.closePromptIfIdle,
   selectClient: store.selectClient,
+  setUser: store.setUser,
 }
 
 /**

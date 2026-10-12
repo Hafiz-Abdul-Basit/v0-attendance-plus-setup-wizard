@@ -35,7 +35,7 @@
 
 import * as React from "react"
 import { useSession } from "next-auth/react"
-import { Check, Loader2, PackageOpen, RefreshCw, Sparkles } from "lucide-react"
+import { BarChart3, Check, History, ListChecks, Loader2, PackageOpen, RefreshCw, Sparkles } from "lucide-react"
 import { toast } from "sonner"
 import Link from "next/link"
 
@@ -47,6 +47,9 @@ import { STALE_DAYS } from "@/lib/azure-devops/client-safe"
 import { cn } from "@/lib/utils"
 
 import { AzureTaskClientPicker } from "./AzureTaskClientPicker"
+import { AzureTaskDeliveriesDialog } from "./AzureTaskDeliveriesDialog"
+import { AzureTaskExportHistory } from "./AzureTaskExportHistory"
+import { AzureTaskInsights } from "./AzureTaskInsights"
 import { AzureTaskDrawer } from "./AzureTaskDrawer"
 import { useExportPackActions } from "./ExportPackProvider"
 import { AzureTaskKpiStrip } from "./AzureTaskKpiStrip"
@@ -216,6 +219,8 @@ function AzureTasksPanelInner() {
   })
   const [debouncedQuery, setDebouncedQuery] =
     React.useState<AzureWorkItemQuery>(EMPTY_QUERY)
+  // Which tab of the results card is showing.
+  const [view, setView] = React.useState<"tasks" | "history" | "insights">("tasks")
   // Which row is expanded (inline, replaces the old modal dialog).
   const [expandedTaskId, setExpandedTaskId] = React.useState<number | null>(null)
   // Cache of relation-expanded work items, keyed by id. Persisted across
@@ -392,7 +397,12 @@ function AzureTasksPanelInner() {
   // Subscribe to single slices only: a running export updates its progress
   // many times a second, and re-rendering this whole table on each tick is
   // what made the island's loader stutter.
-  const { syncPending, openOrToggle, closePromptIfIdle, selectClient } = useExportPackActions()
+  const { syncPending, openOrToggle, closePromptIfIdle, selectClient, setUser } = useExportPackActions()
+  // Per-user export state (selected client, last export) is keyed by user id.
+  const sessionUserId = session?.user?.id ?? null
+  React.useEffect(() => {
+    setUser(sessionUserId)
+  }, [sessionUserId, setUser])
   const packStatus = useExportStoreSelector((s) => s.status)
   const recordError = useExportStoreSelector((s) => s.recordError)
   const selectedClient = useExportStoreSelector((s) => s.client)
@@ -403,6 +413,10 @@ function AzureTasksPanelInner() {
   // export store so the island's picker and the header picker stay in sync.
   const azureClients = useAzureClients(status === "authenticated")
   const selectedClientInfo = azureClients.clients.find((c) => c.name === selectedClient)
+  const clientsWarning =
+    azureClients.error ??
+    azureClients.agentsError ??
+    (azureClients.historyUnavailable ? "Export history isn't set up yet (database migration pending)." : null)
 
   // When the user picks a client (here or in the island), jump the range to
   // "since this user's last export for it". Keyed on the pick counter so a
@@ -467,7 +481,7 @@ function AzureTasksPanelInner() {
   // user, from the server); otherwise the browser's last export of any pack.
   React.useEffect(() => {
     setLastExportAt(getLastExport())
-  }, [packStatus])
+  }, [packStatus, sessionUserId])
   const sinceLastExportAt = selectedClient
     ? (selectedClientInfo?.lastExport?.at ?? null)
     : lastExportAt
@@ -597,65 +611,52 @@ function AzureTasksPanelInner() {
         expandedTaskId != null && "lg:pr-[560px]",
       )}
     >
-      {/* Slim top header: title on the left, KPI strip + Refresh on
-          the right. The four KPI tiles (Total / Active / Completed /
-          Overdue) used to live as their own "Work item overview"
-          block; they've been promoted into a compact strip that
-          runs alongside the title. The standalone Work item overview
-          card has been removed to free up vertical space for the
-          filters below. */}
-      <div className="bg-white border-b border-gray-200 px-4 lg:px-6 py-3 flex items-center justify-between flex-wrap gap-4">
-        <div className="flex items-center gap-3 min-w-0">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg shrink-0">
+      {/* One-line header: title, KPI tiles, client, Export pack, refresh. */}
+      <div className="bg-white border-b border-gray-200 px-4 lg:px-6 py-2.5 flex items-center gap-3 flex-wrap xl:flex-nowrap">
+        <div className="flex items-center gap-2.5 shrink-0">
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-md">
             <Sparkles className="w-5 h-5 text-white" />
           </div>
-          <div className="min-w-0">
-            <h1 className="text-xl font-bold text-gray-900 truncate">Azure Tasks</h1>
-            <p className="text-xs text-gray-500 truncate">
-              Work items from your Azure DevOps project. Click any row to see attachments and details inline.
-            </p>
-          </div>
+          <h1 className="text-lg font-bold text-gray-900 whitespace-nowrap">Azure Tasks</h1>
         </div>
-        <div className="flex items-center gap-3 flex-wrap">
-          <AzureTaskKpiStrip
-            summary={swr.summary}
-            isLoading={swr.isLoading}
-          />
-          <AzureTaskClientPicker
-            clients={azureClients.clients}
-            value={selectedClient}
-            onChange={selectClient}
-            isLoading={azureClients.isLoading}
-            warning={azureClients.error ?? azureClients.agentsError ?? (azureClients.historyUnavailable ? "Export history isn't set up yet (database migration pending)." : null)}
-          />
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleExportClick}
-            disabled={packStatus === "idle" && (swr.isLoading || exportTotal === 0)}
-            className="gap-1 border-blue-600 bg-blue-600 text-white hover:bg-blue-700 hover:text-white disabled:bg-blue-300 disabled:border-blue-300 disabled:text-white"
-            title="One click: attachments + key changes + SQL + checklist for the current filters, as one zip. Runs in the background."
-          >
-            {packStatus === "running" ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : packStatus === "done" ? (
-              <Check className="w-4 h-4" />
-            ) : (
-              <PackageOpen className="w-4 h-4" />
-            )}
-            {packStatus === "running" ? "Exporting…" : packStatus === "done" ? "Pack ready" : "Export pack"}
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleRefresh}
-            disabled={swr.isLoading}
-            className="gap-1"
-          >
-            <RefreshCw className={cn("w-4 h-4", swr.isLoading && "animate-spin")} />
-            Refresh
-          </Button>
-        </div>
+        <AzureTaskKpiStrip summary={swr.summary} isLoading={swr.isLoading} className="flex-nowrap" />
+        <div className="flex-1" />
+        <AzureTaskClientPicker
+          clients={azureClients.clients}
+          value={selectedClient}
+          onChange={selectClient}
+          isLoading={azureClients.isLoading}
+          warning={clientsWarning}
+        />
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleExportClick}
+          disabled={packStatus === "idle" && (swr.isLoading || exportTotal === 0)}
+          className="gap-1 shrink-0 border-blue-600 bg-blue-600 text-white hover:bg-blue-700 hover:text-white disabled:bg-blue-300 disabled:border-blue-300 disabled:text-white"
+          title="One click: attachments + key changes + SQL + checklist for the current filters, as one zip. Runs in the background."
+        >
+          {packStatus === "running" ? (
+            <Loader2 className="w-4 h-4 animate-spin" />
+          ) : packStatus === "done" ? (
+            <Check className="w-4 h-4" />
+          ) : (
+            <PackageOpen className="w-4 h-4" />
+          )}
+          {packStatus === "running" ? "Exporting…" : packStatus === "done" ? "Pack ready" : "Export pack"}
+        </Button>
+        <AzureTaskDeliveriesDialog />
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={handleRefresh}
+          disabled={swr.isLoading}
+          aria-label="Refresh"
+          title="Refresh"
+          className="h-9 w-9 shrink-0"
+        >
+          <RefreshCw className={cn("w-4 h-4", swr.isLoading && "animate-spin")} />
+        </Button>
       </div>
 
       {/* Horizontal control bar.
@@ -698,67 +699,92 @@ function AzureTasksPanelInner() {
         </div>
       </div>
 
-      {/* List section — covers the rest of the screen vertically. The
-          search bar + result-summary chips live on a single row at the
-          top of the list section (search left, chips right). The table
-          owns the *only* vertical scroll surface on this screen — the
-          <html> scroll is suppressed (see `az-tasks-no-page-scroll` in
-          globals.css) so the controls stay anchored and the
-          IntersectionObserver driving lazy-loading can see the sentinel
-          without any page-level scroll interfering. */}
-      <div className="flex-1 min-h-0 flex flex-col p-4 lg:p-5 pt-3 lg:pt-3 gap-4">
-        {/* Table container — the *only* scrollable element on this
-            screen. The slim `az-task-scroller` style in globals.css
-            gives a modern WebKit/Firefox scrollbar that fades in on
-            hover instead of always-on chrome. min-h-0 is required so
-            the inner overflow-y container can claim the flex parent's
-            height. `scrollRootRef` is the IntersectionObserver root
-            so the observer watches this container's internal scroll,
-            not the page viewport. */}
-        <div
-          ref={scrollRootRef}
-          className="az-task-scroller flex-1 min-h-0 rounded-2xl"
-        >
-          <AzureTaskTable
-            tasks={visibleTasks}
-            isLoading={swr.isLoading}
-            isError={swr.isError}
-            errorMessage={errorMessage}
-            sort={sort}
-            onSortChange={setSort}
-            expansion={expansionState}
-            onRowToggle={handleRowToggle}
-            onRetry={handleRefresh}
-            // The sentinel sits *inside* the scroll container so the
-            // IntersectionObserver's `root` (scrollRootRef) sees it
-            // when the user scrolls near the bottom.
-            scrollSentinel={
-              <div ref={sentinelRef} aria-hidden>
-                {swr.hasMore ? (
-                  <div className="flex items-center justify-center gap-2 px-4 py-4 text-xs text-gray-500">
-                    {swr.isLoadingMore ? (
-                      <>
-                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                        Loading more work items…
-                      </>
-                    ) : (
-                      "Scroll for more"
-                    )}
+      {/* Results card: the tabs sit on top of the grid. Only the active
+          tab's body scrolls; the Tasks scroller is also the
+          IntersectionObserver root for lazy-loading (scrollRootRef). */}
+      <div className="flex-1 min-h-0 flex flex-col p-4 lg:p-5 pt-3 lg:pt-3">
+        <div className="flex-1 min-h-0 flex flex-col rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+          <div role="tablist" aria-label="Azure Tasks views" className="shrink-0 flex items-center gap-1 border-b border-gray-200 px-2">
+            <ResultsTab active={view === "tasks"} onClick={() => setView("tasks")} icon={ListChecks} label="Tasks" count={shownCount} />
+            <ResultsTab active={view === "history"} onClick={() => setView("history")} icon={History} label="My export history" />
+            <ResultsTab active={view === "insights"} onClick={() => setView("insights")} icon={BarChart3} label="Insights" />
+          </div>
+          <div className="flex-1 min-h-0">
+            {/* Tasks stays mounted (hidden) so scroll position and loaded pages survive tab switches. */}
+            <div
+              ref={scrollRootRef}
+              className={cn("az-task-scroller h-full overflow-auto", view !== "tasks" && "hidden")}
+            >
+              <AzureTaskTable
+                bare
+                tasks={visibleTasks}
+                isLoading={swr.isLoading}
+                isError={swr.isError}
+                errorMessage={errorMessage}
+                sort={sort}
+                onSortChange={setSort}
+                expansion={expansionState}
+                onRowToggle={handleRowToggle}
+                onRetry={handleRefresh}
+                // The sentinel sits *inside* the scroll container so the
+                // IntersectionObserver's `root` (scrollRootRef) sees it
+                // when the user scrolls near the bottom.
+                scrollSentinel={
+                  <div ref={sentinelRef} aria-hidden>
+                    {swr.hasMore ? (
+                      <div className="flex items-center justify-center gap-2 px-4 py-4 text-xs text-gray-500">
+                        {swr.isLoadingMore ? (
+                          <>
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            Loading more work items…
+                          </>
+                        ) : (
+                          "Scroll for more"
+                        )}
+                      </div>
+                    ) : null}
                   </div>
-                ) : null}
-              </div>
-            }
-            caughtUp={
-              showCaughtUp ? (
-                <div className="flex items-center justify-center gap-2 px-4 py-4 text-xs text-gray-500 bg-white border-t border-gray-100">
-                  <Check className="w-3.5 h-3.5 text-emerald-500" />
-                  You're all caught up · {shownCount.toLocaleString()} work item
-                  {shownCount === 1 ? "" : "s"}
-                  {clientFilterActive ? " match your filters" : " loaded"}
-                </div>
-              ) : null
-            }
-          />
+                }
+                caughtUp={
+                  showCaughtUp ? (
+                    <div className="flex items-center justify-center gap-2 px-4 py-4 text-xs text-gray-500 bg-white border-t border-gray-100">
+                      <Check className="w-3.5 h-3.5 text-emerald-500" />
+                      You're all caught up · {shownCount.toLocaleString()} work item
+                      {shownCount === 1 ? "" : "s"}
+                      {clientFilterActive ? " match your filters" : " loaded"}
+                    </div>
+                  ) : null
+                }
+              />
+            </div>
+            {view === "history" && (
+              <AzureTaskExportHistory
+                clients={azureClients.clients}
+                isLoading={azureClients.isLoading}
+                warning={clientsWarning}
+                selectedClient={selectedClient}
+                onExportNew={(name) => {
+                  selectClient(name)
+                  setView("tasks")
+                  handleExportClick()
+                }}
+              />
+            )}
+            {view === "insights" && (
+              <AzureTaskInsights
+                summary={swr.summary}
+                isLoading={swr.isLoading}
+                onFilterState={(state) => {
+                  setQuery((q) => ({ ...q, state }))
+                  setView("tasks")
+                }}
+                onFilterAssignee={(assignee) => {
+                  setQuery((q) => ({ ...q, assignee }))
+                  setView("tasks")
+                }}
+              />
+            )}
+          </div>
         </div>
       </div>
       <AzureTaskDrawer
@@ -770,6 +796,49 @@ function AzureTasksPanelInner() {
         onClose={() => setExpandedTaskId(null)}
       />
     </div>
+  )
+}
+
+/** One tab in the results card's tab strip. */
+function ResultsTab({
+  active,
+  onClick,
+  icon: Icon,
+  label,
+  count,
+}: {
+  active: boolean
+  onClick: () => void
+  icon: React.ComponentType<{ className?: string }>
+  label: string
+  count?: number
+}) {
+  return (
+    <button
+      type="button"
+      role="tab"
+      aria-selected={active}
+      onClick={onClick}
+      className={cn(
+        "inline-flex items-center gap-1.5 px-3 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors",
+        active
+          ? "border-blue-600 text-blue-700"
+          : "border-transparent text-gray-500 hover:text-gray-800",
+      )}
+    >
+      <Icon className="w-4 h-4" />
+      {label}
+      {count != null && (
+        <span
+          className={cn(
+            "ml-0.5 rounded-full px-1.5 py-0.5 text-[11px] tabular-nums",
+            active ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-500",
+          )}
+        >
+          {count.toLocaleString()}
+        </span>
+      )}
+    </button>
   )
 }
 

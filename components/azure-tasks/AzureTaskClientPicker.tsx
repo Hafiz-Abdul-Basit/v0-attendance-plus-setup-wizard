@@ -4,14 +4,14 @@
  * AzureTaskClientPicker — choose which client the Export Pack is for.
  *
  * Clients are the agents in the Azure DevOps agent pools (one agent per
- * client server). Next to the dropdown it shows when THIS user last
- * exported for the selected client, so it's obvious where the next pack
- * should start. Selecting a client is handled by the panel (it moves the
- * date range to "since last export").
+ * client server). Each option shows when THIS user last exported for it;
+ * the full list lives in the Export history tab. Selecting a client is
+ * handled by the export store (the page moves the date range to "since
+ * last export").
  */
 
 import * as React from "react"
-import { AlertTriangle, History, Server } from "lucide-react"
+import { AlertTriangle } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 import type { AzureClientOption } from "@/hooks/use-azure-clients"
@@ -32,7 +32,6 @@ interface Props {
 }
 
 export function AzureTaskClientPicker({ clients, value, onChange, isLoading, warning, className }: Props) {
-  const selected = clients.find((c) => c.name === value)
   const options = React.useMemo(
     () =>
       clients.map((c) => ({
@@ -44,7 +43,7 @@ export function AzureTaskClientPicker({ clients, value, onChange, isLoading, war
   )
 
   return (
-    <div className={cn("flex items-center gap-2 flex-wrap", className)}>
+    <div className={cn("flex items-center gap-1.5", className)}>
       <FilterPopoverSelect
         label="Client"
         value={value}
@@ -55,33 +54,9 @@ export function AzureTaskClientPicker({ clients, value, onChange, isLoading, war
         searchable
         onChange={onChange}
       />
-      {selected ? (
-        <span
-          className="inline-flex items-center gap-1 text-xs text-gray-600"
-          title="Your last Export Pack for this client"
-        >
-          <History className="w-3.5 h-3.5 text-emerald-600" />
-          {selected.lastExport
-            ? `Last export ${shortDate(selected.lastExport.at)} · ${selected.lastExport.taskCount} tasks`
-            : "Never exported — pick a date range"}
-          {selected.pool ? (
-            <span
-              className={cn(
-                "ml-1 inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-medium",
-                selected.online ? "bg-emerald-50 text-emerald-700" : "bg-gray-100 text-gray-500",
-              )}
-              title={`Agent pool: ${selected.pool}`}
-            >
-              <Server className="w-3 h-3" />
-              {selected.online ? "online" : "offline"}
-            </span>
-          ) : null}
-        </span>
-      ) : null}
       {warning ? (
-        <span className="inline-flex items-center gap-1 text-xs text-amber-700" title={warning}>
-          <AlertTriangle className="w-3.5 h-3.5" />
-          {warning}
+        <span className="inline-flex items-center text-amber-600" title={warning} aria-label={warning}>
+          <AlertTriangle className="w-4 h-4" />
         </span>
       ) : null}
     </div>

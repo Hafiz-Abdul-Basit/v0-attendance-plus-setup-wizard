@@ -14,7 +14,7 @@
  */
 
 import * as React from "react"
-import { AlertCircle, CheckCircle2, Clock, ListChecks } from "lucide-react"
+import { CheckCircle2, Clock, ListChecks } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 import type { AzureWorkItemSummary } from "./types"
@@ -95,7 +95,6 @@ export function AzureTaskKpiStrip({
           <KpiSkeleton />
           <KpiSkeleton />
           <KpiSkeleton />
-          <KpiSkeleton />
         </>
       ) : (
         <>
@@ -116,12 +115,6 @@ export function AzureTaskKpiStrip({
             value={summary?.completed ?? 0}
             icon={<CheckCircle2 className="w-3.5 h-3.5" />}
             iconClassName="text-emerald-600"
-          />
-          <KpiTile
-            label="Overdue"
-            value={summary?.overdue ?? 0}
-            icon={<AlertCircle className="w-3.5 h-3.5" />}
-            iconClassName="text-red-600"
           />
         </>
       )}
