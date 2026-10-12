@@ -31,6 +31,7 @@ import {
 import { toast } from "sonner"
 
 import { cn } from "@/lib/utils"
+import type { AzureClientOption } from "@/hooks/use-azure-clients"
 import { downloadBlob, type PackProgress } from "./export-pack"
 import type { ExportPackController } from "./use-export-pack"
 
@@ -97,6 +98,10 @@ interface Props {
   rangeLabel: string
   /** Client selected for this pack; the export is recorded against it. */
   client?: string
+  /** Clients to choose from (Azure DevOps agents) with this user's last export. */
+  clients: AzureClientOption[]
+  clientsLoading: boolean
+  onClientChange: (client: string | undefined) => void
 }
 
 export function AzureTaskExportIsland({
@@ -110,6 +115,9 @@ export function AzureTaskExportIsland({
   totalCount,
   rangeLabel,
   client,
+  clients,
+  clientsLoading,
+  onClientChange,
 }: Props) {
   const { status, progress, result, error } = pack
   const pct = overallPct(progress, status)
@@ -236,15 +244,12 @@ export function AzureTaskExportIsland({
                     {hasDateRange ? <> ({rangeLabel.replace("_to_", " → ")})</> : " (all dates)"}: attachments, keys, SQL and a
                     deployment checklist in one zip. It runs in the background — keep using the app.
                   </p>
-                  {client ? (
-                    <p className="text-[12px] text-white/70">
-                      Client: <b className="text-white">{client}</b> — this export will be saved as your latest for this client.
-                    </p>
-                  ) : (
-                    <p className="text-[12px] text-white/55">
-                      No client selected — pick one next to “Export pack” to track when you last exported for it.
-                    </p>
-                  )}
+                  <ClientField
+                    client={client}
+                    clients={clients}
+                    loading={clientsLoading}
+                    onChange={onClientChange}
+                  />
                   {!hasDateRange ? (
                     <div className="rounded-xl bg-amber-400/15 px-3 py-2 text-amber-100">
                       No date range is selected, so ALL {totalCount.toLocaleString()} tasks will be exported. Pick a range first
@@ -442,3 +447,53 @@ export function AzureTaskExportIsland({
     </>
   )
 }
+
+/**
+ * Client picker inside the export prompt. Picking a client here also moves
+ * the page's date range to "since your last export for it" (the page
+ * listens to the same store), so the task count above updates.
+ */
+function ClientField({
+  client,
+  clients,
+  loading,
+  onChange,
+}: {
+  client: string | undefined
+  clients: AzureClientOption[]
+  loading: boolean
+  onChange: (client: string | undefined) => void
+}) {
+  const selected = clients.find((c) => c.name === client)
+  const fmt = (iso: string) =>
+    new Date(iso).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })
+  return (
+    <div className="rounded-xl bg-white/5 px-3 py-2.5">
+      <label className="flex items-center gap-2 text-[13px]">
+        <span className="shrink-0 font-semibold text-white">Client</span>
+        <select
+          value={client ?? ""}
+          onChange={(e) => onChange(e.target.value || undefined)}
+          disabled={loading && clients.length === 0}
+          className="min-w-0 flex-1 rounded-lg border border-white/15 bg-white/10 px-2 py-1.5 text-[13px] text-white focus:outline-none focus:ring-2 focus:ring-blue-400 [&>option]:text-gray-900"
+        >
+          <option value="">{loading && clients.length === 0 ? "Loading clients…" : "No client (don't track)"}</option>
+          {clients.map((c) => (
+            <option key={c.name} value={c.name}>
+              {c.name}
+              {c.lastExport ? ` · last ${fmt(c.lastExport.at)}` : " · never exported"}
+            </option>
+          ))}
+        </select>
+      </label>
+      <p className="mt-1.5 text-[11px] leading-snug text-white/55">
+        {selected
+          ? selected.lastExport
+            ? `Your last export for ${selected.name}: ${fmt(selected.lastExport.at)} (${selected.lastExport.taskCount} tasks). The range starts from that day.`
+            : `First export for ${selected.name} — pick the date range on the page.`
+          : "Pick a client to remember when you last exported for it."}
+      </p>
+    </div>
+  )
+}
+

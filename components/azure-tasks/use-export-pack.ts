@@ -34,6 +34,20 @@ export function useExportStoreState(): store.StoreState {
   return React.useSyncExternalStore(store.subscribe, store.getSnapshot, store.getServerSnapshot)
 }
 
+/**
+ * Subscribe to ONE slice of the store. The component only re-renders when
+ * that slice changes — use this in heavy components (the Azure Tasks page)
+ * so progress ticks during an export don't re-render the whole table.
+ * The selector must return a primitive or a stable reference.
+ */
+export function useExportStoreSelector<T>(select: (s: store.StoreState) => T): T {
+  return React.useSyncExternalStore(
+    store.subscribe,
+    () => select(store.getSnapshot()),
+    () => select(store.getServerSnapshot()),
+  )
+}
+
 export function useExportPack(): ExportPackController {
   const s = useExportStoreState()
   return React.useMemo<ExportPackController>(

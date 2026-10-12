@@ -45,6 +45,8 @@ const ATTACHMENT_URL = (taskId: number, attId: string | number) =>
 const KEY_CHANGES_URL = "/api/azure-tasks/key-changes"
 
 const CONCURRENCY = 4
+/** Attachment types that are already compressed — stored in the zip without re-compressing. */
+const ALREADY_COMPRESSED = /\.(zip|7z|rar|gz|tgz|bz2|xz|png|jpe?g|gif|webp|heic|mp4|mov|avi|mkv|mp3|m4a|pdf|docx|xlsx|pptx|odt|ods|jar|nupkg|apk)$/i
 /** Max characters of task text sent to Gemini per request (≈5k tokens in, so SQL copied back verbatim fits the output limit). */
 const AI_BATCH_CHARS = 30_000
 const AI_BATCH_MAX_TASKS = 12
@@ -291,7 +293,9 @@ export async function buildExportPack(
           const n = used.get(path) ?? 0
           used.set(path, n + 1)
           if (n > 0) path = path.replace(/(\.[^./]+)?$/, ` (${n + 1})$1`)
-          zip.file(path, buf)
+          // Already-compressed formats gain nothing from DEFLATE but cost a
+          // lot of main-thread time while zipping — store them as-is.
+          zip.file(path, buf, ALREADY_COMPRESSED.test(job.name) ? { compression: "STORE" } : undefined)
           attachmentsDownloaded += 1
           if (/\.sql$/i.test(job.name)) {
             if (buf.byteLength > 3_000_000) {
@@ -499,7 +503,17 @@ export async function buildExportPack(
   )
   if (errors.length) zip.file("_errors.txt", errors.join("\n"))
 
-  const blob = await zip.generateAsync({ type: "blob", compression: "DEFLATE" })
+  // Report zip progress (it used to sit at "Building zip…" with no movement).
+  let lastPct = -1
+  const blob = await zip.generateAsync(
+    { type: "blob", compression: "DEFLATE", compressionOptions: { level: 6 } },
+    (meta) => {
+      const pct = Math.floor(meta.percent)
+      if (pct === lastPct) return
+      lastPct = pct
+      onProgress({ phase: "zip", done: pct, total: 100, message: "Building zip…" })
+    },
+  )
   const clientPart = opts.client ? `${opts.client}_` : ""
   const fileName = `azure-tasks-pack_${`${clientPart}${opts.rangeLabel}`.replace(/[^\w.-]+/g, "_")}.zip`
   onProgress({ phase: "done", done: 1, total: 1, message: "Done" })

@@ -15,6 +15,7 @@
 import * as React from "react"
 import { createRoot, type Root } from "react-dom/client"
 
+import { useAzureClients } from "@/hooks/use-azure-clients"
 import { AzureTaskExportIsland } from "./AzureTaskExportIsland"
 import * as store from "./export-store"
 import { useExportPack, useExportStoreState } from "./use-export-pack"
@@ -22,6 +23,8 @@ import { useExportPack, useExportStoreState } from "./use-export-pack"
 function IslandHost() {
   const pack = useExportPack()
   const s = useExportStoreState()
+  // Only fetch clients once the island is actually open.
+  const azureClients = useAzureClients(s.visible)
   return (
     <AzureTaskExportIsland
       pack={pack}
@@ -33,7 +36,10 @@ function IslandHost() {
       hasDateRange={s.pending?.meta.hasDateRange ?? false}
       totalCount={s.pending?.meta.totalCount ?? 0}
       rangeLabel={s.pending?.job.rangeLabel ?? "all-dates"}
-      client={s.pending?.job.client}
+      client={s.client}
+      clients={azureClients.clients}
+      clientsLoading={azureClients.isLoading}
+      onClientChange={store.selectClient}
     />
   )
 }
@@ -69,6 +75,22 @@ export interface ExportPackContextValue {
   syncPending: typeof store.syncPending
   openOrToggle: () => void
   closePromptIfIdle: () => void
+}
+
+const ACTIONS = {
+  syncPending: store.syncPending,
+  openOrToggle,
+  closePromptIfIdle: store.closePromptIfIdle,
+  selectClient: store.selectClient,
+}
+
+/**
+ * Export actions WITHOUT subscribing to the store. Heavy components (the
+ * Azure Tasks page) use this plus `useExportStoreSelector` so progress
+ * ticks during an export don't re-render them.
+ */
+export function useExportPackActions(): typeof ACTIONS {
+  return ACTIONS
 }
 
 /** Same shape the panel always used; now backed by the store. Function identities are stable. */

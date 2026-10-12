@@ -51,9 +51,15 @@ export interface StoreState {
   pending: PendingExport | null
   /** Set when the pack downloaded but saving the client's export record failed. */
   recordError: string | null
+  /** Client (Azure DevOps agent) the next pack is for — shared by the page and the island. */
+  client: string | undefined
+  /** Bumped each time the USER picks a client, so the page can move the date range. */
+  clientPickSeq: number
 }
 
 const OPTIONS_KEY = "azure-pack-options"
+/** localStorage key for the client last picked for Export Packs. */
+const CLIENT_KEY = "azure-pack-client"
 
 const INITIAL: StoreState = {
   status: "idle",
@@ -68,6 +74,8 @@ const INITIAL: StoreState = {
   expanded: false,
   pending: null,
   recordError: null,
+  client: undefined,
+  clientPickSeq: 0,
 }
 
 let state: StoreState = INITIAL
@@ -75,6 +83,28 @@ const listeners = new Set<() => void>()
 let abortCtrl: AbortController | null = null
 const skipAiRef = { current: false }
 let lastJob: ExportJob | null = null
+
+/**
+ * Progress events can fire hundreds of times a second (one per attachment
+ * chunk / task). Coalesce them to at most one store update per animation
+ * frame so the island's ring stays smooth instead of re-rendering on every
+ * event.
+ */
+let queuedProgress: PackProgress | null = null
+let progressFrame: number | null = null
+function queueProgress(p: PackProgress) {
+  queuedProgress = p
+  if (progressFrame != null) return
+  const flush = () => {
+    progressFrame = null
+    if (queuedProgress && state.status === "running") set({ progress: queuedProgress })
+    queuedProgress = null
+  }
+  progressFrame =
+    typeof requestAnimationFrame === "function" && !document.hidden
+      ? requestAnimationFrame(flush)
+      : (setTimeout(flush, 100) as unknown as number)
+}
 
 function set(patch: Partial<StoreState>) {
   state = { ...state, ...patch }
@@ -104,6 +134,8 @@ if (typeof window !== "undefined") {
       const o = JSON.parse(raw) as { a?: boolean }
       if (typeof o.a === "boolean") state = { ...state, includeAttachments: o.a }
     }
+    const savedClient = window.localStorage.getItem(CLIENT_KEY)
+    if (savedClient) state = { ...state, client: savedClient }
   } catch {
     /* ignore */
   }
@@ -194,6 +226,17 @@ export function setIncludeAttachments(v: boolean) {
   }
 }
 
+/** The user picked (or cleared) the client for the next pack. */
+export function selectClient(name: string | undefined) {
+  set({ client: name, clientPickSeq: state.clientPickSeq + 1 })
+  try {
+    if (name) window.localStorage.setItem(CLIENT_KEY, name)
+    else window.localStorage.removeItem(CLIENT_KEY)
+  } catch {
+    /* ignore */
+  }
+}
+
 /** Keep the prompt in sync with the filters currently on screen. */
 export function syncPending(p: PendingExport) {
   const cur = state.pending
@@ -257,7 +300,7 @@ export async function start(job: ExportJob) {
   })
   try {
     const tasks = await fetchAllTasks(job, ctrl.signal, (n, total) =>
-      set({ progress: { phase: "details", done: n, total, message: "Loading the task list…" } }),
+      queueProgress({ phase: "details", done: n, total, message: "Loading the task list…" }),
     )
     if (tasks.length === 0) throw new Error("No tasks match the current filters.")
     const r = await buildExportPack(tasks, {
@@ -267,7 +310,7 @@ export async function start(job: ExportJob) {
       client: job.client,
       signal: ctrl.signal,
       skipAi: skipAiRef,
-      onProgress: (p) => set({ progress: p }),
+      onProgress: queueProgress,
     })
     downloadBlob(r.blob, r.fileName)
     setLastExport(new Date().toISOString())
@@ -292,7 +335,7 @@ export function startPending(useGemini: boolean) {
   if (!p) return
   requestNotifyPermission()
   set({ expanded: false })
-  void start({ ...p.job, useGemini })
+  void start({ ...p.job, client: state.client, useGemini })
 }
 
 /** Run the last job again with Gemini ("Retry Gemini" / "Run Gemini" / "Try again"). */
