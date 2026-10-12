@@ -19,14 +19,23 @@
 import * as React from "react"
 import {
   AlertTriangle,
+  CalendarRange,
   Check,
   ChevronDown,
   Copy,
   Download,
+  FileCode2,
+  KeyRound,
+  ListChecks,
+  Loader2,
   PackageOpen,
+  Paperclip,
   RotateCcw,
+  Search,
+  Server,
   Sparkles,
   X,
+  Zap,
 } from "lucide-react"
 import { toast } from "sonner"
 
@@ -203,7 +212,7 @@ export function AzureTaskExportIsland({
         role="status"
         aria-live="polite"
         style={{
-          width: expanded ? 440 : 320,
+          width: expanded ? 500 : 320,
           maxWidth: "calc(100vw - 24px)",
           borderRadius: expanded ? 28 : 24,
           animation: status === "done" && !expanded ? "azIslandPop 600ms ease-out" : "azIslandIn 350ms cubic-bezier(.2,.9,.3,1.2)",
@@ -211,7 +220,11 @@ export function AzureTaskExportIsland({
         }}
         className={cn(
           "fixed left-1/2 top-[76px] z-[70] -translate-x-1/2 overflow-hidden text-white shadow-2xl ring-1 ring-white/10",
-          status === "done" ? "bg-emerald-700" : status === "error" ? "bg-red-700" : "bg-gray-950",
+          status === "done"
+            ? "bg-emerald-700"
+            : status === "error"
+              ? "bg-red-700"
+              : "bg-gradient-to-b from-slate-900 via-slate-950 to-black",
         )}
       >
         {/* Header = the collapsed pill */}
@@ -235,72 +248,33 @@ export function AzureTaskExportIsland({
         {/* Body — slides open */}
         <div style={{ display: "grid", gridTemplateRows: expanded ? "1fr" : "0fr", transition: "grid-template-rows 320ms cubic-bezier(.2,.8,.2,1)" }}>
           <div className="overflow-hidden">
-            <div className="space-y-3 px-4 pb-4 pt-1 text-[13px] text-white/90">
+            <div className="max-h-[calc(100vh-150px)] overflow-y-auto space-y-3 px-4 pb-4 pt-1 text-[13px] text-white/90 [scrollbar-width:thin]">
               {/* ---------------- idle: ask, then start ---------------- */}
               {status === "idle" ? (
-                <>
-                  <p className="text-white/80">
-                    Export <b className="text-white">{totalCount.toLocaleString()}</b> task{totalCount === 1 ? "" : "s"}
-                    {hasDateRange ? <> ({rangeLabel.replace("_to_", " → ")})</> : " (all dates)"}: attachments, keys, SQL and a
-                    deployment checklist in one zip. It runs in the background — keep using the app.
-                  </p>
-                  <ClientField
-                    client={client}
-                    clients={clients}
-                    loading={clientsLoading}
-                    onChange={onClientChange}
-                  />
-                  {!hasDateRange ? (
-                    <div className="rounded-xl bg-amber-400/15 px-3 py-2 text-amber-100">
-                      No date range is selected, so ALL {totalCount.toLocaleString()} tasks will be exported. Pick a range first
-                      (From / To or a quick chip) if you only need recent ones.
-                    </div>
-                  ) : null}
-                  <label className="flex items-center gap-2">
-                    <input type="checkbox" className="accent-blue-500" checked={pack.includeAttachments} onChange={(e) => pack.setIncludeAttachments(e.target.checked)} />
-                    Download all attachments (one folder per task)
-                  </label>
-                  <div className="rounded-2xl bg-white/10 p-3">
-                    <div className="flex items-center gap-1.5 font-semibold text-white">
-                      <Sparkles className="h-4 w-4 text-indigo-300" /> Use Gemini to find keys &amp; SQL?
-                    </div>
-                    <p className="mt-1 text-[12px] leading-snug text-white/65">
-                      <b className="text-white/90">Yes</b> — understands any wording, but uses your Gemini quota and takes longer.
-                      <br />
-                      <b className="text-white/90">No</b> — instant; finds the standard patterns only (results Gemini gave earlier are still reused).
-                    </p>
-                    <div className="mt-3 flex flex-wrap justify-end gap-2">
-                      <button
-                        type="button"
-                        onClick={() => onStart(false)}
-                        disabled={totalCount === 0}
-                        className="rounded-full bg-white/15 px-4 py-1.5 font-semibold text-white hover:bg-white/25 disabled:opacity-50"
-                      >
-                        No Gemini
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => onStart(true)}
-                        disabled={totalCount === 0}
-                        className="inline-flex items-center gap-1.5 rounded-full bg-blue-500 px-4 py-1.5 font-semibold text-white hover:bg-blue-400 disabled:opacity-50"
-                      >
-                        <Sparkles className="h-4 w-4" /> Use Gemini
-                      </button>
-                    </div>
-                  </div>
-                  <div className="flex justify-end">
-                    <button type="button" onClick={onDismiss} className="rounded-full px-3 py-1 text-[12px] text-white/60 hover:bg-white/10">
-                      Cancel
-                    </button>
-                  </div>
-                </>
+                <IdlePrompt
+                  totalCount={totalCount}
+                  hasDateRange={hasDateRange}
+                  rangeLabel={rangeLabel}
+                  includeAttachments={pack.includeAttachments}
+                  onIncludeAttachments={pack.setIncludeAttachments}
+                  client={client}
+                  clients={clients}
+                  clientsLoading={clientsLoading}
+                  onClientChange={onClientChange}
+                  onStart={onStart}
+                  onCancel={onDismiss}
+                />
               ) : null}
 
               {/* ---------------- running ---------------- */}
               {status === "running" ? (
                 <>
-                  <div className="h-1.5 overflow-hidden rounded-full bg-white/15">
-                    <div className="h-full rounded-full bg-blue-400" style={{ width: `${pct ?? 4}%`, transition: "width 400ms ease" }} />
+                  <PhaseSteps phase={progress?.phase ?? "details"} />
+                  <div className="h-2 overflow-hidden rounded-full bg-white/10">
+                    <div
+                      className="h-full rounded-full bg-gradient-to-r from-blue-400 via-indigo-400 to-violet-400"
+                      style={{ width: `${pct ?? 4}%`, transition: "width 400ms ease" }}
+                    />
                   </div>
                   <p className="text-white/70">
                     {progress?.message}
@@ -448,12 +422,217 @@ export function AzureTaskExportIsland({
   )
 }
 
+function fmtDate(iso: string): string {
+  return new Date(iso).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })
+}
+
 /**
- * Client picker inside the export prompt. Picking a client here also moves
- * the page's date range to "since your last export for it" (the page
- * listens to the same store), so the task count above updates.
+ * The "ready to export" body: what's in the pack, which client it's for,
+ * options, Gemini vs quick mode, and one prominent Export button.
  */
-function ClientField({
+function IdlePrompt({
+  totalCount,
+  hasDateRange,
+  rangeLabel,
+  includeAttachments,
+  onIncludeAttachments,
+  client,
+  clients,
+  clientsLoading,
+  onClientChange,
+  onStart,
+  onCancel,
+}: {
+  totalCount: number
+  hasDateRange: boolean
+  rangeLabel: string
+  includeAttachments: boolean
+  onIncludeAttachments: (v: boolean) => void
+  client: string | undefined
+  clients: AzureClientOption[]
+  clientsLoading: boolean
+  onClientChange: (client: string | undefined) => void
+  onStart: (useGemini: boolean) => void
+  onCancel: () => void
+}) {
+  const [useGemini, setUseGemini] = React.useState(true)
+  const range = hasDateRange ? rangeLabel.replace("_to_", " → ") : "All dates"
+
+  return (
+    <div className="space-y-4">
+      {/* Summary */}
+      <div className="rounded-2xl bg-white/[0.06] p-4 ring-1 ring-white/10">
+        <div className="flex items-end justify-between gap-3">
+          <div>
+            <div className="text-[11px] font-medium uppercase tracking-wider text-white/50">Ready to export</div>
+            <div className="mt-0.5 flex items-baseline gap-1.5">
+              <span className="text-3xl font-bold tabular-nums text-white">{totalCount.toLocaleString()}</span>
+              <span className="text-white/70">task{totalCount === 1 ? "" : "s"}</span>
+            </div>
+          </div>
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-500/15 px-2.5 py-1 text-[12px] font-medium text-blue-200 ring-1 ring-blue-400/30">
+            <CalendarRange className="h-3.5 w-3.5" />
+            {range}
+          </span>
+        </div>
+        <div className="mt-3 flex flex-wrap gap-1.5">
+          {[
+            { icon: Paperclip, label: "Attachments" },
+            { icon: KeyRound, label: "Key changes" },
+            { icon: FileCode2, label: "SQL scripts" },
+            { icon: ListChecks, label: "Checklist" },
+          ].map(({ icon: Icon, label }) => (
+            <span key={label} className="inline-flex items-center gap-1 rounded-full bg-white/[0.07] px-2 py-0.5 text-[11px] text-white/70">
+              <Icon className="h-3 w-3" />
+              {label}
+            </span>
+          ))}
+        </div>
+        {!hasDateRange ? (
+          <div className="mt-3 flex items-start gap-2 rounded-xl bg-amber-400/15 px-3 py-2 text-[12px] text-amber-100">
+            <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+            No date range is selected, so all {totalCount.toLocaleString()} tasks will be exported. Pick a range or a client first if you only need recent ones.
+          </div>
+        ) : null}
+      </div>
+
+      {/* Client */}
+      <div>
+        <SectionLabel>Client</SectionLabel>
+        <ClientCombobox client={client} clients={clients} loading={clientsLoading} onChange={onClientChange} />
+      </div>
+
+      {/* Options */}
+      <div>
+        <SectionLabel>Mode</SectionLabel>
+        <div className="grid grid-cols-2 gap-2">
+          <ModeCard
+            active={useGemini}
+            onClick={() => setUseGemini(true)}
+            icon={Sparkles}
+            title="Smart"
+            text="Gemini reads any wording. Slower, uses quota."
+          />
+          <ModeCard
+            active={!useGemini}
+            onClick={() => setUseGemini(false)}
+            icon={Zap}
+            title="Quick"
+            text="Standard patterns only. Instant; earlier Gemini results reused."
+          />
+        </div>
+        <label className="mt-2 flex cursor-pointer items-center justify-between gap-3 rounded-xl bg-white/[0.05] px-3 py-2.5 ring-1 ring-white/10 hover:bg-white/[0.08]">
+          <span className="flex items-center gap-2">
+            <Paperclip className="h-4 w-4 text-white/60" />
+            Download all attachments
+            <span className="text-[11px] text-white/45">one folder per task</span>
+          </span>
+          <DarkSwitch checked={includeAttachments} onChange={onIncludeAttachments} label="Download all attachments" />
+        </label>
+      </div>
+
+      {/* Action */}
+      <div className="space-y-2">
+        <button
+          type="button"
+          onClick={() => onStart(useGemini)}
+          disabled={totalCount === 0}
+          className="group flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-blue-500 via-indigo-500 to-violet-500 text-[15px] font-semibold text-white shadow-lg shadow-indigo-900/40 transition-all hover:brightness-110 active:scale-[0.99] disabled:opacity-50 disabled:hover:brightness-100"
+        >
+          <PackageOpen className="h-5 w-5 transition-transform group-hover:-translate-y-0.5" />
+          Export {totalCount.toLocaleString()} task{totalCount === 1 ? "" : "s"}
+          {client ? <span className="font-normal text-white/80">for {client}</span> : null}
+        </button>
+        <div className="flex items-center justify-between text-[11px] text-white/45">
+          <span>Runs in the background — keep using the app.</span>
+          <button type="button" onClick={onCancel} className="rounded-full px-2 py-0.5 text-white/60 hover:bg-white/10 hover:text-white">
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function SectionLabel({ children }: { children: React.ReactNode }) {
+  return <div className="mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-white/50">{children}</div>
+}
+
+function ModeCard({
+  active,
+  onClick,
+  icon: Icon,
+  title,
+  text,
+}: {
+  active: boolean
+  onClick: () => void
+  icon: React.ComponentType<{ className?: string }>
+  title: string
+  text: string
+}) {
+  return (
+    <button
+      type="button"
+      role="radio"
+      aria-checked={active}
+      onClick={onClick}
+      className={cn(
+        "rounded-xl p-3 text-left ring-1 transition-colors",
+        active ? "bg-indigo-500/20 ring-indigo-400/70" : "bg-white/[0.04] ring-white/10 hover:bg-white/[0.08]",
+      )}
+    >
+      <span className="flex items-center justify-between">
+        <span className="flex items-center gap-1.5 font-semibold text-white">
+          <Icon className={cn("h-4 w-4", active ? "text-indigo-300" : "text-white/60")} />
+          {title}
+        </span>
+        <span
+          className={cn(
+            "flex h-4 w-4 items-center justify-center rounded-full ring-1",
+            active ? "bg-indigo-400 ring-indigo-300" : "ring-white/30",
+          )}
+        >
+          {active ? <Check className="h-3 w-3 text-white" /> : null}
+        </span>
+      </span>
+      <span className="mt-1 block text-[11px] leading-snug text-white/60">{text}</span>
+    </button>
+  )
+}
+
+function DarkSwitch({ checked, onChange, label }: { checked: boolean; onChange: (v: boolean) => void; label: string }) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      aria-label={label}
+      onClick={(e) => {
+        e.preventDefault()
+        onChange(!checked)
+      }}
+      className={cn(
+        "relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors",
+        checked ? "bg-indigo-500" : "bg-white/20",
+      )}
+    >
+      <span
+        className={cn(
+          "inline-block h-3.5 w-3.5 rounded-full bg-white shadow transition-transform",
+          checked ? "translate-x-[18px]" : "translate-x-[3px]",
+        )}
+      />
+    </button>
+  )
+}
+
+/**
+ * Searchable client picker for the dark island. It opens inline (not as a
+ * floating popover) because the island clips overflow. Keyboard: type to
+ * filter, ↑/↓ to move, Enter to pick, Esc to close.
+ */
+function ClientCombobox({
   client,
   clients,
   loading,
@@ -464,36 +643,186 @@ function ClientField({
   loading: boolean
   onChange: (client: string | undefined) => void
 }) {
+  const [open, setOpen] = React.useState(false)
+  const [query, setQuery] = React.useState("")
+  const [active, setActive] = React.useState(0)
+  const listRef = React.useRef<HTMLUListElement>(null)
   const selected = clients.find((c) => c.name === client)
-  const fmt = (iso: string) =>
-    new Date(iso).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })
+
+  // "No client" first, then matches — exported ones (newest) before never-exported.
+  const options = React.useMemo(() => {
+    const q = query.trim().toLowerCase()
+    const matches = clients
+      .filter((c) => !q || c.name.toLowerCase().includes(q))
+      .sort((a, b) => {
+        if (a.lastExport && b.lastExport) return b.lastExport.at.localeCompare(a.lastExport.at)
+        if (a.lastExport) return -1
+        if (b.lastExport) return 1
+        return a.name.localeCompare(b.name, undefined, { sensitivity: "base" })
+      })
+    return q ? matches : [null, ...matches]
+  }, [clients, query])
+
+  React.useEffect(() => {
+    setActive(0)
+  }, [query, open])
+  React.useEffect(() => {
+    listRef.current?.querySelector<HTMLElement>(`[data-idx="${active}"]`)?.scrollIntoView({ block: "nearest" })
+  }, [active])
+
+  const pick = (c: AzureClientOption | null) => {
+    onChange(c?.name)
+    setOpen(false)
+    setQuery("")
+  }
+
+  const onKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "ArrowDown") {
+      e.preventDefault()
+      setActive((i) => Math.min(options.length - 1, i + 1))
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault()
+      setActive((i) => Math.max(0, i - 1))
+    } else if (e.key === "Enter") {
+      e.preventDefault()
+      if (options[active] !== undefined) pick(options[active])
+    } else if (e.key === "Escape") {
+      e.preventDefault()
+      setOpen(false)
+    }
+  }
+
   return (
-    <div className="rounded-xl bg-white/5 px-3 py-2.5">
-      <label className="flex items-center gap-2 text-[13px]">
-        <span className="shrink-0 font-semibold text-white">Client</span>
-        <select
-          value={client ?? ""}
-          onChange={(e) => onChange(e.target.value || undefined)}
-          disabled={loading && clients.length === 0}
-          className="min-w-0 flex-1 rounded-lg border border-white/15 bg-white/10 px-2 py-1.5 text-[13px] text-white focus:outline-none focus:ring-2 focus:ring-blue-400 [&>option]:text-gray-900"
+    <div className={cn("rounded-xl ring-1 transition-colors", open ? "bg-white/[0.07] ring-blue-400/60" : "bg-white/[0.05] ring-white/10")}>
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        aria-expanded={open}
+        className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left hover:bg-white/[0.04]"
+      >
+        <span
+          className={cn(
+            "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg",
+            selected ? "bg-blue-500/20 text-blue-200" : "bg-white/10 text-white/50",
+          )}
         >
-          <option value="">{loading && clients.length === 0 ? "Loading clients…" : "No client (don't track)"}</option>
-          {clients.map((c) => (
-            <option key={c.name} value={c.name}>
-              {c.name}
-              {c.lastExport ? ` · last ${fmt(c.lastExport.at)}` : " · never exported"}
-            </option>
-          ))}
-        </select>
-      </label>
-      <p className="mt-1.5 text-[11px] leading-snug text-white/55">
-        {selected
-          ? selected.lastExport
-            ? `Your last export for ${selected.name}: ${fmt(selected.lastExport.at)} (${selected.lastExport.taskCount} tasks). The range starts from that day.`
-            : `First export for ${selected.name} — pick the date range on the page.`
-          : "Pick a client to remember when you last exported for it."}
-      </p>
+          <Server className="h-4 w-4" />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block truncate font-semibold text-white">
+            {selected ? selected.name : loading && clients.length === 0 ? "Loading clients…" : "Select a client"}
+          </span>
+          <span className="block truncate text-[11px] text-white/55">
+            {selected
+              ? selected.lastExport
+                ? `Your last export ${fmtDate(selected.lastExport.at)} · ${selected.lastExport.taskCount} tasks · range starts there`
+                : "First export for this client — pick a date range"
+              : "Optional — remembers when you last exported for it"}
+          </span>
+        </span>
+        <ChevronDown className={cn("h-4 w-4 shrink-0 text-white/60 transition-transform", open && "rotate-180")} />
+      </button>
+
+      {open ? (
+        <div className="border-t border-white/10 p-2">
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-white/40" />
+            <input
+              autoFocus
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              onKeyDown={onKeyDown}
+              placeholder="Search clients…"
+              aria-label="Search clients"
+              className="h-9 w-full rounded-lg bg-black/30 pl-8 pr-3 text-[13px] text-white placeholder:text-white/40 ring-1 ring-white/10 focus:outline-none focus:ring-blue-400/60"
+            />
+          </div>
+          <ul ref={listRef} role="listbox" className="mt-2 max-h-56 overflow-y-auto pr-0.5 [scrollbar-width:thin]">
+            {loading && clients.length === 0 ? (
+              <li className="flex items-center justify-center gap-2 py-4 text-[12px] text-white/55">
+                <Loader2 className="h-3.5 w-3.5 animate-spin" /> Loading clients…
+              </li>
+            ) : options.length === 0 ? (
+              <li className="py-4 text-center text-[12px] text-white/55">No clients match “{query}”.</li>
+            ) : (
+              options.map((c, i) => {
+                const isSel = (c?.name ?? undefined) === client
+                return (
+                  <li key={c?.name ?? "__none"}>
+                    <button
+                      type="button"
+                      role="option"
+                      aria-selected={isSel}
+                      data-idx={i}
+                      onMouseEnter={() => setActive(i)}
+                      onClick={() => pick(c)}
+                      className={cn(
+                        "flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-[13px]",
+                        i === active ? "bg-white/10" : "hover:bg-white/[0.06]",
+                      )}
+                    >
+                      {c ? (
+                        <span
+                          className={cn("h-2 w-2 shrink-0 rounded-full", c.online ? "bg-emerald-400" : "bg-white/25")}
+                          title={c.pool ? (c.online ? "Agent online" : "Agent offline") : "Agent removed"}
+                        />
+                      ) : (
+                        <X className="h-3 w-3 shrink-0 text-white/40" />
+                      )}
+                      <span className={cn("min-w-0 flex-1 truncate", c ? "text-white" : "text-white/60")}>
+                        {c ? c.name : "No client (don't track)"}
+                        {c && !c.pool ? <span className="text-white/40"> · removed</span> : null}
+                      </span>
+                      {c ? (
+                        <span className={cn("shrink-0 text-[11px]", c.lastExport ? "text-white/55" : "text-white/35")}>
+                          {c.lastExport ? fmtDate(c.lastExport.at) : "never"}
+                        </span>
+                      ) : null}
+                      {isSel ? <Check className="h-3.5 w-3.5 shrink-0 text-blue-300" /> : null}
+                    </button>
+                  </li>
+                )
+              })
+            )}
+          </ul>
+        </div>
+      ) : null}
     </div>
   )
 }
 
+const PHASES: Array<{ id: PackProgress["phase"]; label: string }> = [
+  { id: "details", label: "Tasks" },
+  { id: "attachments", label: "Files" },
+  { id: "ai", label: "Keys & SQL" },
+  { id: "zip", label: "Zip" },
+]
+
+/** Four-step indicator for a running export. */
+function PhaseSteps({ phase }: { phase: PackProgress["phase"] }) {
+  const current = phase === "done" ? PHASES.length : PHASES.findIndex((p) => p.id === phase)
+  return (
+    <ol className="flex items-center gap-1.5">
+      {PHASES.map((p, i) => {
+        const done = i < current
+        const now = i === current
+        return (
+          <li key={p.id} className="flex flex-1 items-center gap-1.5">
+            <span
+              className={cn(
+                "flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold",
+                done ? "bg-emerald-400 text-emerald-950" : now ? "bg-blue-400 text-blue-950" : "bg-white/10 text-white/40",
+              )}
+            >
+              {done ? <Check className="h-3 w-3" /> : i + 1}
+            </span>
+            <span className={cn("truncate text-[11px]", now ? "font-semibold text-white" : done ? "text-white/70" : "text-white/40")}>
+              {p.label}
+            </span>
+            {i < PHASES.length - 1 ? <span className={cn("h-px flex-1", done ? "bg-emerald-400/60" : "bg-white/15")} /> : null}
+          </li>
+        )
+      })}
+    </ol>
+  )
+}
