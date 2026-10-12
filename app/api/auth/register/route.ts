@@ -2,33 +2,37 @@
  * POST /api/auth/register
  *
  * Body: { email: string, password: string, name?: string }
- * - Validates with zod
- * - Hashes password with bcrypt (12 rounds)
- * - Inserts into public.users
- * - Returns 409 if email already exists
- *
- * Registration policy (env, optional):
- *   - REGISTRATION_DISABLED=true    — no new sign-ups (except the very first
- *                                     user of an empty deployment).
- *   - ALLOWED_EMAIL_DOMAINS=a.com,b.com — only these email domains may sign up.
- * Rate limited per IP to stop mass account creation.
+ * - Validates with zod; only allowed email domains may sign up
+ *   (default @raaweek12.com, override with ALLOWED_EMAIL_DOMAINS)
+ * - When email is configured (RESEND_API_KEY + EMAIL_FROM): stores the
+ *   sign-up in pending_registrations, emails a 6-digit code and returns
+ *   202 { otpRequired: true } — finish with POST /api/auth/register/verify.
+ *   Calling this again re-sends a fresh code.
+ * - Otherwise (or before the pending_registrations migration is applied):
+ *   creates the user immediately and returns 201.
+ * - Returns 409 if the email already has an account.
+ * Rate limited per IP. See lib/registration.ts for the shared rules.
  */
 import { NextResponse } from "next/server"
 import bcrypt from "bcryptjs"
 import { z } from "zod"
 
-import { getSupabaseAdmin } from "@/lib/supabase"
+import { isEmailConfigured, sendEmail } from "@/lib/email"
 import { getClientIp, rateLimit, tooManyRequests } from "@/lib/rate-limit"
+import {
+  OTP_TTL_MS,
+  createUser,
+  domainError,
+  generateOtp,
+  hashOtp,
+} from "@/lib/registration"
+import { getSupabaseAdmin } from "@/lib/supabase"
 
-const REGISTER_MAX_PER_IP = 5
+/** Each code (re)send counts, so this also caps OTP email spam. */
+const REGISTER_MAX_PER_IP = 10
 const REGISTER_WINDOW_MS = 60 * 60_000
-
-function allowedDomains(): string[] {
-  return (process.env.ALLOWED_EMAIL_DOMAINS ?? "")
-    .split(",")
-    .map((d) => d.trim().toLowerCase().replace(/^@/, ""))
-    .filter(Boolean)
-}
+/** Table not created yet (migration pending): PostgREST reports PGRST205, Postgres 42P01. */
+const MISSING_TABLE_CODES = new Set(["PGRST205", "42P01"])
 
 const Body = z.object({
   email: z.string().email().max(255).transform((s) => s.toLowerCase().trim()),
@@ -62,24 +66,17 @@ export async function POST(request: Request) {
   }
 
   const { email, password, name } = parsed.data
-  const supabase = getSupabaseAdmin()
-
-  const domains = allowedDomains()
-  if (domains.length > 0 && !domains.includes(email.split("@")[1] ?? "")) {
-    return NextResponse.json(
-      { error: "Sign-up is limited to approved email domains. Ask an admin for access." },
-      { status: 403 },
-    )
+  const notAllowed = domainError(email)
+  if (notAllowed) {
+    return NextResponse.json({ error: notAllowed }, { status: 403 })
   }
 
-  // Check for existing user explicitly so we can return a clean 409
-  // (the unique constraint would also catch it, but the error message is opaque).
+  const supabase = getSupabaseAdmin()
   const { data: existing } = await supabase
     .from("users")
     .select("id")
     .eq("email", email)
     .maybeSingle()
-
   if (existing) {
     return NextResponse.json(
       { error: "An account with this email already exists." },
@@ -87,47 +84,50 @@ export async function POST(request: Request) {
     )
   }
 
-  // Bootstrap: if no admins exist yet (fresh deploy / freshly emptied DB),
-  // the very first registered user becomes admin automatically. Nobody is
-  // promoted by email address — emails aren't verified, so anyone could
-  // register a "designated" address that hasn't signed up yet.
-  const { count: adminCount, error: countError } = await supabase
-    .from("users")
-    .select("id", { count: "exact", head: true })
-    .eq("role", "admin")
-  if (countError) {
-    return NextResponse.json({ error: "Failed to create account." }, { status: 500 })
-  }
-  const isBootstrap = (adminCount ?? 0) === 0
-
-  if (process.env.REGISTRATION_DISABLED === "true" && !isBootstrap) {
-    return NextResponse.json(
-      { error: "Sign-up is disabled. Ask an admin to create your account." },
-      { status: 403 },
-    )
-  }
-  const role: "user" | "admin" = isBootstrap ? "admin" : "user"
-
   const password_hash = await bcrypt.hash(password, 12)
 
-  const { data, error } = await supabase
-    .from("users")
-    .insert({ email, password_hash, name: name ?? null, role })
-    .select("id, email, name, role")
-    .single()
+  // ── Email verification (OTP) when email can be sent ──────────────────
+  if (isEmailConfigured()) {
+    const otp = generateOtp()
+    const { error: pendingError } = await supabase.from("pending_registrations").upsert({
+      email,
+      name: name ?? null,
+      password_hash,
+      otp_hash: hashOtp(email, otp),
+      expires_at: new Date(Date.now() + OTP_TTL_MS).toISOString(),
+      attempts: 0,
+      created_at: new Date().toISOString(),
+    })
 
-  if (error || !data) {
-    // Log the DB error server-side; don't leak schema details to the client.
-    // eslint-disable-next-line no-console
-    console.error("[register] insert failed:", error?.message)
-    return NextResponse.json(
-      { error: "Failed to create account." },
-      { status: 500 },
-    )
+    if (!pendingError) {
+      const minutes = Math.round(OTP_TTL_MS / 60_000)
+      const sent = await sendEmail({
+        to: email,
+        subject: `${otp} is your AttendancePlus sign-up code`,
+        text: `Your sign-up code is ${otp}. It expires in ${minutes} minutes.\n\nIf you didn't try to create an account, ignore this email.`,
+        html: `<p>Your sign-up code is:</p><p style="font-size:28px;font-weight:bold;letter-spacing:6px">${otp}</p><p>It expires in ${minutes} minutes.</p><p>If you didn't try to create an account, ignore this email.</p>`,
+      })
+      if (!sent) {
+        return NextResponse.json(
+          { error: "Couldn't send the verification code. Please try again in a moment." },
+          { status: 502 },
+        )
+      }
+      return NextResponse.json({ otpRequired: true, email }, { status: 202 })
+    }
+
+    if (!MISSING_TABLE_CODES.has(pendingError.code)) {
+      console.error("[register] pending insert failed:", pendingError.message)
+      return NextResponse.json({ error: "Failed to create account." }, { status: 500 })
+    }
+    // Migration not applied yet — fall through to direct sign-up.
+    console.warn("[register] pending_registrations table missing; skipping email verification.")
   }
 
-  return NextResponse.json(
-    { id: data.id, email: data.email, name: data.name, role: data.role },
-    { status: 201 },
-  )
+  // ── No email verification: create the account now ────────────────────
+  const result = await createUser(supabase, { email, name: name ?? null, password_hash })
+  if (!result.ok) {
+    return NextResponse.json({ error: result.error }, { status: result.status })
+  }
+  return NextResponse.json(result.user, { status: 201 })
 }

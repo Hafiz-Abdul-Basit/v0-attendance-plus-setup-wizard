@@ -110,8 +110,10 @@ add the following. Apply each one to **Production**, **Preview**, and
 | `SUPABASE_SERVICE_ROLE_KEY` | yes (server-only) | Supabase dashboard → **Settings → API → service_role**. **Never** prefix this with `NEXT_PUBLIC_` — it bypasses RLS. |
 | `SUPABASE_PROJECT_REF` | only for `db:apply-schema` | The slug between `https://` and `.supabase.co` (e.g. `abcdefgh`). |
 | `SUPABASE_DB_PASSWORD` | only for `db:apply-schema` | The password you set when creating the Supabase project. |
-| `ALLOWED_EMAIL_DOMAINS` | recommended | Comma-separated email domains allowed to sign up (e.g. `aandktech.com`). Unset = anyone can register. |
+| `ALLOWED_EMAIL_DOMAINS` | optional | Comma-separated email domains allowed to sign up. Default `raaweek12.com`; `*` allows any domain. Login is never restricted. |
 | `REGISTRATION_DISABLED` | optional | `true` blocks all new sign-ups (the very first user of an empty deployment can still register as admin). |
+| `RESEND_API_KEY` | recommended | [Resend](https://resend.com) API key. With `EMAIL_FROM`, sign-up asks for a 6-digit emailed code and password-reset emails are actually sent. Without them, sign-up logs straight in. |
+| `EMAIL_FROM` | with `RESEND_API_KEY` | Verified sender, e.g. `AttendancePlus <no-reply@raaweek12.com>`. |
 | `AZURE_DEVOPS_MAX_ITEMS` | optional | Max work items one Azure Tasks query loads, newest first (default `2000`). |
 
 After saving, hit **Deployments → ⋯ → Redeploy** so the new env vars
