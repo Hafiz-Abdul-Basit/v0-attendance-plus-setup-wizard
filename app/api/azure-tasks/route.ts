@@ -103,7 +103,6 @@ export async function GET(request: Request) {
       return NextResponse.json(
         {
           error: "Failed to fetch work items from Azure DevOps",
-          detail: err.message,
           upstreamStatus: err.status,
         },
         { status: 502 },

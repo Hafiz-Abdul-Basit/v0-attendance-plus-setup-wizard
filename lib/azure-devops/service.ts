@@ -529,10 +529,10 @@ async function fetchWorkItemById(id: number): Promise<AzureWorkItem | null> {
       item.relationsUnavailable = true
       console.warn(
         `[azure-tasks] getWorkItemById(${id}): upstream returned 200 OK but no 'relations' array. ` +
-          `This is almost always a PAT-scope gap — the configured PAT does not have 'vso.work_full', ` +
+          `This is almost always a PAT-scope gap — the configured PAT's Work Items scope is missing or too narrow, ` +
           `so Azure DevOps silently omits the relations field instead of returning a 401/403. ` +
-          `Verify at https://dev.azure.com/_usersSettings/tokens that the token in AZURE_DEVOPS_PAT ` +
-          `has "Full Access" selected.`,
+          `Check the token in AZURE_DEVOPS_PAT at https://dev.azure.com/_usersSettings/tokens: ` +
+          `enable Work Items (Read, or Read & write if relations are still missing) — avoid Full Access.`,
       )
     }
     return item

@@ -79,7 +79,6 @@ export async function GET(request: Request, { params }: RouteContext) {
       return NextResponse.json(
         {
           error: "Failed to fetch comments from Azure DevOps",
-          detail: err.message,
           upstreamStatus: err.status,
         },
         { status: 502 },

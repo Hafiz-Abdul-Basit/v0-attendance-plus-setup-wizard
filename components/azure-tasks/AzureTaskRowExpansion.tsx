@@ -335,13 +335,9 @@ export function AzureTaskRowExpansion({ task, variant = "inline" }: AzureTaskRow
                 </div>
 
                 <p>
-                  The Azure DevOps PAT used by this app is missing the{" "}
-                  <code className="px-1 py-0.5 rounded bg-amber-100 border border-amber-200 font-mono text-[11px]">
-                    vso.work_full
-                  </code>{" "}
-                  scope, which is required to read work-item relations
-                  (including attachments). The rest of this work item loaded
-                  fine — only attachments are affected.
+                  The Azure DevOps PAT used by this app can&apos;t read this
+                  work item&apos;s relations (including attachments). The rest
+                  of the work item loaded fine — only attachments are affected.
                 </p>
 
                 <p className="text-amber-800">
@@ -354,8 +350,9 @@ export function AzureTaskRowExpansion({ task, variant = "inline" }: AzureTaskRow
                   >
                     dev.azure.com/_usersSettings/tokens
                   </a>{" "}
-                  with <strong>Full Access</strong> selected, then refresh this
-                  page.
+                  so its <strong>Work Items</strong> scope is enabled (Read; use
+                  Read &amp; write only if attachments still don&apos;t show).
+                  Don&apos;t use Full Access. Then refresh this page.
                 </p>
 
                 <p className="text-amber-800">

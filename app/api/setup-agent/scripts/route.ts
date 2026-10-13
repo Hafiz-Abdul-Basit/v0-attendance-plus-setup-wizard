@@ -22,13 +22,13 @@ import {
   validateConfig,
 } from "@/lib/setup-agent"
 import type { ServerSetupConfig } from "@/lib/setup-agent"
-import { requireAuth } from "@/lib/auth"
+import { requireSetupAgentAccess } from "@/lib/auth"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 
 export async function POST(req: NextRequest) {
-  const auth = await requireAuth(req)
+  const auth = await requireSetupAgentAccess(req)
   if (auth instanceof NextResponse) return auth
 
   const url = new URL(req.url)

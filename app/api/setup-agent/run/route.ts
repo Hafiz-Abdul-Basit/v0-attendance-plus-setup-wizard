@@ -22,12 +22,14 @@ import {
   validateConfig,
 } from "@/lib/setup-agent"
 import type { ServerSetupConfig } from "@/lib/setup-agent"
-import { requireAuth } from "@/lib/auth"
+import { requireSetupAgentAccess } from "@/lib/auth"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const auth = await requireSetupAgentAccess(req)
+  if (auth instanceof NextResponse) return auth
   // Bootstrap data for the UI form. The PAT is always redacted here.
   const privilege = checkPrivilege()
   const redactedDefault = redactConfig(DEFAULT_SERVER_SETUP_CONFIG)
@@ -42,7 +44,7 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
-  const auth = await requireAuth(req)
+  const auth = await requireSetupAgentAccess(req)
   if (auth instanceof NextResponse) return auth
 
   let body: unknown

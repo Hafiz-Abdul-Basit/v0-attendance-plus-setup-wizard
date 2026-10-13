@@ -1,10 +1,11 @@
 /**
  * Azure DevOps artifacts — server-side download service.
  *
- * Uses the existing `AzureDevOpsClient` from `lib/azure-devops/client.ts`
- * to talk to the Azure DevOps REST API on behalf of the Setup Agent. The
- * client already wires up auth (PAT via Basic header), timeouts, retries,
- * and 429 honouring — we reuse it rather than duplicating HTTP plumbing.
+ * Calls the Azure DevOps Builds REST API directly on behalf of the Setup
+ * Agent, authenticating with the PAT the user supplied for the run
+ * (`OverridePatProvider`). The server's own AZURE_DEVOPS_PAT is never used
+ * here: the request body picks the organization / project, so falling back
+ * to the server credential would let any caller borrow it.
  *
  * Three responsibilities:
  *   1. List the latest *successful* build for a pipeline
@@ -18,10 +19,7 @@
 
 import "server-only"
 
-import { AzureDevOpsClient } from "@/lib/azure-devops/client"
 import { AzureApiError } from "@/lib/azure-devops/types"
-import { getDefaultCredentialProvider } from "@/lib/azure-devops/auth"
-import { getAzureConfig } from "@/lib/azure-devops/config"
 
 import type { AzureDevOpsConfig } from "./types"
 
@@ -77,47 +75,6 @@ export interface ArtifactDownload {
   /** Underlying upstream Response. The caller is responsible for reading & closing. */
   response: Response
   filename: string
-}
-
-/**
- * Resolve a configured AzureDevOpsClient scoped to a per-run PAT, falling
- * back to the environment-configured PAT if the run-supplied PAT is empty.
- *
- * Why per-run PAT support: the existing `AzureDevOpsClient` is constructed
- * once from env vars and cached for the lifetime of the process. The Setup
- * Agent's UI lets the user paste a different PAT per client, so we cannot
- * reuse the cached client when the user-supplied PAT differs from the
- * env-configured one. We construct a fresh client per call in that case.
- */
-function createClient(azure: AzureDevOpsConfig): AzureDevOpsClient {
-  const envConfig = getAzureConfig()
-  // If the run-supplied PAT matches the env-configured PAT AND the org /
-  // project match, we can reuse the cached client (and its auth provider).
-  if (
-    !azure.personalAccessToken ||
-    (azure.organization === envConfig.organization &&
-      azure.project === envConfig.project)
-  ) {
-    return new AzureDevOpsClient(envConfig, getDefaultCredentialProvider())
-  }
-
-  // Otherwise build a per-call client with the user-supplied PAT.
-  // We import `PatCredentialProvider` lazily so this branch isn't bundled
-  // into the browser.
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  const { PatCredentialProvider } = require("@/lib/azure-devops/auth") as typeof import("@/lib/azure-devops/auth")
-  const baseUrl = `https://dev.azure.com/${encodeURIComponent(azure.organization)}`
-  return new AzureDevOpsClient(
-    {
-      organization: azure.organization,
-      project: azure.project,
-      hasPat: true,
-      hasOAuth: false,
-      apiVersion: envConfig.apiVersion,
-      baseUrl,
-    },
-    new PatCredentialProvider(),
-  )
 }
 
 /** Inject the user-supplied PAT into a fresh credential provider. */

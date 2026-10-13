@@ -305,6 +305,24 @@ export async function requireAzureTasksAccess(request: Request) {
   return { userId, email: token.email as string, role }
 }
 
+/**
+ * Gate for the Setup Agent API (/api/setup-agent/*): admins, or users the
+ * admin granted `can_see_setup_clients`. Mirrors requireAzureTasksAccess.
+ */
+export async function requireSetupAgentAccess(request: Request) {
+  const auth = await requireAuth(request)
+  if (auth instanceof NextResponse) return auth
+  if (auth.role === "admin") return auth
+  const flags = await loadTabVisibilityFlags(auth.userId)
+  if (!flags.canSeeSetupClients) {
+    return NextResponse.json(
+      { error: "Forbidden — Setup Agent access not granted by admin." },
+      { status: 403 },
+    )
+  }
+  return auth
+}
+
 // Helper kept around so callers that already pass a NextRequest still type-check.
 // (Currently unused by route handlers, but referenced by the type-only import.)
 export type AnyRequest = NextRequest | Request

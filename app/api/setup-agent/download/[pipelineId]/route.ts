@@ -14,7 +14,7 @@ import { NextResponse, type NextRequest } from "next/server"
 
 import { downloadLatestArtifact, getLatestSuccessfulBuild } from "@/lib/setup-agent"
 import type { AzureDevOpsConfig } from "@/lib/setup-agent"
-import { requireAuth } from "@/lib/auth"
+import { requireSetupAgentAccess } from "@/lib/auth"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -23,7 +23,7 @@ export async function POST(
   req: NextRequest,
   { params }: { params: { pipelineId: string } },
 ) {
-  const auth = await requireAuth(req)
+  const auth = await requireSetupAgentAccess(req)
   if (auth instanceof NextResponse) return auth
 
   const pipelineId = Number(params.pipelineId)

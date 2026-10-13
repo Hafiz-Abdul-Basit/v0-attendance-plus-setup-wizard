@@ -8,7 +8,7 @@
 import { NextResponse } from "next/server"
 
 import { snapshotRun } from "@/lib/setup-agent"
-import { requireAuth } from "@/lib/auth"
+import { requireSetupAgentAccess } from "@/lib/auth"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -17,7 +17,7 @@ export async function GET(
   req: Request,
   { params }: { params: { runId: string } },
 ) {
-  const auth = await requireAuth(req)
+  const auth = await requireSetupAgentAccess(req)
   if (auth instanceof NextResponse) return auth
   const run = snapshotRun(params.runId)
   if (!run) {
