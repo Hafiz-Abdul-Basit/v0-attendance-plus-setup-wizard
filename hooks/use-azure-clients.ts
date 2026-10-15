@@ -81,3 +81,44 @@ export function useClientDeliveries(enabled: boolean) {
     isLoading: swr.isLoading,
   }
 }
+
+/** One recorded Export Pack, from anyone on the team. */
+export interface TeamExport {
+  id: string
+  client: string
+  exportedAt: string
+  /** Null if that account was deleted. */
+  byEmail: string | null
+  byName: string | null
+  /** Exported by the signed-in user. */
+  isMine: boolean
+  taskCount: number
+  rangeFrom: string | null
+  rangeTo: string | null
+}
+
+export const TEAM_EXPORTS_KEY = "/api/azure-tasks/clients/history"
+
+/**
+ * Team-wide Export Pack log (newest first) for the Export history tab.
+ * Revalidate after an export with `mutate(TEAM_EXPORTS_KEY)` from swr.
+ */
+export function useTeamExports(enabled: boolean) {
+  const swr = useSWR<{ exports: TeamExport[] }>(
+    enabled ? TEAM_EXPORTS_KEY : null,
+    async (url: string) => {
+      const res = await fetch(url, { credentials: "include" })
+      if (!res.ok) {
+        const body = (await res.json().catch(() => ({}))) as { error?: string }
+        throw new Error(body.error ?? `Failed to load export history (${res.status})`)
+      }
+      return (await res.json()) as { exports: TeamExport[] }
+    },
+    { revalidateOnFocus: false, dedupingInterval: 30_000 },
+  )
+  return {
+    exports: swr.data?.exports ?? [],
+    error: swr.error instanceof Error ? swr.error.message : null,
+    isLoading: swr.isLoading,
+  }
+}

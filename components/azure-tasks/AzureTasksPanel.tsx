@@ -40,7 +40,8 @@ import { toast } from "sonner"
 import Link from "next/link"
 
 import { Button } from "@/components/ui/button"
-import { useAzureClients } from "@/hooks/use-azure-clients"
+import { mutate as mutateSWR } from "swr"
+import { TEAM_EXPORTS_KEY, useAzureClients } from "@/hooks/use-azure-clients"
 import { useAzureTask, useAzureTasksPage } from "@/hooks/use-azure-tasks"
 import { useQueryState } from "@/hooks/use-query-state"
 import { STALE_DAYS } from "@/lib/azure-devops/client-safe"
@@ -492,6 +493,8 @@ function AzureTasksPanelInner() {
   React.useEffect(() => {
     if (packStatus !== "done") return
     void refreshClients()
+    void mutateSWR(TEAM_EXPORTS_KEY)
+    void mutateSWR("/api/azure-tasks/clients/latest")
     if (recordError) {
       toast.error("Export not recorded for the client", { description: recordError })
     }
@@ -706,7 +709,7 @@ function AzureTasksPanelInner() {
         <div className="flex-1 min-h-0 flex flex-col rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
           <div role="tablist" aria-label="Azure Tasks views" className="shrink-0 flex items-center gap-1 border-b border-gray-200 px-2">
             <ResultsTab active={view === "tasks"} onClick={() => setView("tasks")} icon={ListChecks} label="Tasks" count={shownCount} />
-            <ResultsTab active={view === "history"} onClick={() => setView("history")} icon={History} label="My export history" />
+            <ResultsTab active={view === "history"} onClick={() => setView("history")} icon={History} label="Export history" />
             <ResultsTab active={view === "insights"} onClick={() => setView("insights")} icon={BarChart3} label="Insights" />
           </div>
           <div className="flex-1 min-h-0">
@@ -760,7 +763,6 @@ function AzureTasksPanelInner() {
             {view === "history" && (
               <AzureTaskExportHistory
                 clients={azureClients.clients}
-                isLoading={azureClients.isLoading}
                 warning={clientsWarning}
                 selectedClient={selectedClient}
                 onExportNew={(name) => {
