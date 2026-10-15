@@ -4,7 +4,7 @@
  * GET  — the clients the Export Pack can be made for (agents in the Azure
  *        DevOps organization's self-hosted agent pools), each with the
  *        signed-in user's most recent export for that client:
- *          { clients: [{ name, pool, online, lastExport: { at, taskCount } | null }],
+ *          { clients: [{ name, pool, online, lastExport: { at, taskCount, byEmail } | null }],
  *            agentsError?: string, historyUnavailable?: boolean }
  *        Clients the user exported before but that no longer exist as
  *        agents are still listed (pool = null) so their history isn't lost.
@@ -31,7 +31,7 @@ interface ClientRow {
   name: string
   pool: string | null
   online: boolean
-  lastExport: { at: string; taskCount: number } | null
+  lastExport: { at: string; taskCount: number; byEmail: string } | null
 }
 
 function agentsErrorMessage(err: unknown): string {
@@ -86,13 +86,18 @@ export async function GET(request: Request) {
       name: a.name,
       pool: a.pool,
       online: a.online,
-      lastExport: hit ? { at: hit.at, taskCount: hit.taskCount } : null,
+      lastExport: hit ? { at: hit.at, taskCount: hit.taskCount, byEmail: auth.email } : null,
     }
   })
   const known = new Set(agents.map((a) => a.name.toLowerCase()))
   for (const [key, hit] of latest) {
     if (!known.has(key)) {
-      clients.push({ name: hit.name, pool: null, online: false, lastExport: { at: hit.at, taskCount: hit.taskCount } })
+      clients.push({
+        name: hit.name,
+        pool: null,
+        online: false,
+        lastExport: { at: hit.at, taskCount: hit.taskCount, byEmail: auth.email },
+      })
     }
   }
 

@@ -15,7 +15,8 @@ export interface AzureClientOption {
   /** Agent pool the client's agent lives in; null when the agent no longer exists. */
   pool: string | null
   online: boolean
-  lastExport: { at: string; taskCount: number } | null
+  /** This user's latest export for the client (`byEmail` is always the signed-in user). */
+  lastExport: { at: string; taskCount: number; byEmail: string } | null
 }
 
 interface ClientsResponse {
@@ -52,10 +53,12 @@ export interface ClientDelivery {
   name: string
   /** When the latest Export Pack for this client went out (by anyone). */
   lastAt: string
+  /** Who exported it; null if that account was deleted. */
+  byEmail: string | null
 }
 
 /**
- * Team-wide "last delivery per client" list (read-only, names + dates only)
+ * Team-wide "last delivery per client" list (read-only: name, date, exporter email)
  * from GET /api/azure-tasks/clients/latest. Fetched only when `enabled`
  * (i.e. when the dialog is open).
  */

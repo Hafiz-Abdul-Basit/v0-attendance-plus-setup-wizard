@@ -2,10 +2,9 @@
  * GET /api/azure-tasks/clients/latest
  *
  * Team-wide, read-only view: for every client, when the most recent Export
- * Pack went out (by anyone). Returns only the client name and date —
- * never who exported or how many tasks — so it can be shown to everyone
- * with Azure Tasks access:
- *   { clients: [{ name, lastAt }] }   newest first
+ * Pack went out and who exported it (email). Task counts stay private.
+ * Shown to everyone with Azure Tasks access:
+ *   { clients: [{ name, lastAt, byEmail }] }   newest first
  *
  * Each user's own history stays private in GET /api/azure-tasks/clients.
  */
@@ -23,7 +22,7 @@ export async function GET(request: Request) {
 
   const { data, error } = await getSupabaseAdmin()
     .from("client_exports")
-    .select("client_name, exported_at")
+    .select("client_name, exported_at, user:users(email)")
     .order("exported_at", { ascending: false })
     .limit(5000)
   if (error) {
@@ -33,10 +32,14 @@ export async function GET(request: Request) {
   }
 
   // Rows are newest-first, so the first row per client is its latest.
-  const latest = new Map<string, { name: string; lastAt: string }>()
+  const latest = new Map<string, { name: string; lastAt: string; byEmail: string | null }>()
   for (const row of data ?? []) {
     const key = String(row.client_name).toLowerCase()
-    if (!latest.has(key)) latest.set(key, { name: row.client_name, lastAt: row.exported_at })
+    if (latest.has(key)) continue
+    // `user` is the joined users row (null if that account was deleted).
+    const user = row.user as { email?: string } | { email?: string }[] | null
+    const byEmail = (Array.isArray(user) ? user[0]?.email : user?.email) ?? null
+    latest.set(key, { name: row.client_name, lastAt: row.exported_at, byEmail })
   }
   return NextResponse.json({ clients: Array.from(latest.values()) })
 }

@@ -2,13 +2,14 @@
 
 /**
  * AzureTaskDeliveriesDialog — team-wide, read-only "when did each client
- * last get a pack?" list. Opened from an icon in the Azure Tasks header;
- * shows only client name + date (no user, no task count) with a search.
+ * last get a pack, and who sent it?" list. Opened from an icon in the
+ * Azure Tasks header; shows client, date and exporter email, with a search
+ * over client and email.
  * Each user's own history stays in the Export history tab.
  */
 
 import * as React from "react"
-import { History, Loader2, Search } from "lucide-react"
+import { History, Loader2, Mail, Search } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -40,7 +41,11 @@ export function AzureTaskDeliveriesDialog() {
 
   const rows = React.useMemo(() => {
     const q = query.trim().toLowerCase()
-    return q ? deliveries.filter((d) => d.name.toLowerCase().includes(q)) : deliveries
+    return q
+      ? deliveries.filter(
+          (d) => d.name.toLowerCase().includes(q) || (d.byEmail?.toLowerCase().includes(q) ?? false),
+        )
+      : deliveries
   }, [deliveries, query])
 
   return (
@@ -69,7 +74,7 @@ export function AzureTaskDeliveriesDialog() {
               Last delivery per client
             </DialogTitle>
             <DialogDescription>
-              When each client last got an Export Pack, from anyone on the team. Read-only.
+              When each client last got an Export Pack and who sent it. Read-only.
             </DialogDescription>
           </DialogHeader>
           <div className="px-5 pb-3">
@@ -78,8 +83,8 @@ export function AzureTaskDeliveriesDialog() {
               <input
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search clients…"
-                aria-label="Search clients"
+                placeholder="Search client or email…"
+                aria-label="Search client or email"
                 autoFocus
                 className="h-9 w-full rounded-lg border border-gray-200 bg-white pl-8 pr-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
               />
@@ -100,7 +105,13 @@ export function AzureTaskDeliveriesDialog() {
               <ul className="divide-y divide-gray-100">
                 {rows.map((d) => (
                   <li key={d.name} className="flex items-center justify-between gap-3 px-5 py-2.5 text-sm">
-                    <span className="font-medium text-gray-900 truncate">{d.name}</span>
+                    <span className="min-w-0">
+                      <span className="block font-medium text-gray-900 truncate">{d.name}</span>
+                      <span className="flex items-center gap-1 text-[11px] text-gray-500 truncate" title={d.byEmail ?? undefined}>
+                        <Mail className="w-3 h-3 shrink-0" />
+                        {d.byEmail ?? "deleted user"}
+                      </span>
+                    </span>
                     <span className="text-right shrink-0">
                       <span className="block text-gray-800">{fmtDate(d.lastAt)}</span>
                       <span className="block text-[11px] text-gray-400">{ago(d.lastAt)}</span>

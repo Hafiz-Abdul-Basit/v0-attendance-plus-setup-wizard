@@ -92,6 +92,7 @@ export function AzureTaskExportHistory({ clients, isLoading, warning, selectedCl
                 <th className="px-4 py-2.5 text-left font-semibold">Client</th>
                 <th className="px-3 py-2.5 text-left font-semibold">Agent</th>
                 <th className="px-3 py-2.5 text-left font-semibold">Your last export</th>
+                <th className="px-3 py-2.5 text-left font-semibold">Exported by</th>
                 <th className="px-3 py-2.5 text-right font-semibold">Tasks</th>
                 <th className="px-4 py-2.5 text-right font-semibold">
                   <span className="sr-only">Actions</span>
@@ -136,6 +137,9 @@ export function AzureTaskExportHistory({ clients, isLoading, warning, selectedCl
                       ) : (
                         <span className="text-gray-400">Never</span>
                       )}
+                    </td>
+                    <td className="px-3 py-2.5 text-xs text-gray-600 max-w-[220px] truncate" title={c.lastExport?.byEmail}>
+                      {c.lastExport ? c.lastExport.byEmail : <span className="text-gray-400">—</span>}
                     </td>
                     <td className="px-3 py-2.5 text-right tabular-nums text-gray-700">
                       {c.lastExport ? c.lastExport.taskCount : "—"}
