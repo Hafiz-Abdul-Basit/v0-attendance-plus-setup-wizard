@@ -15,7 +15,13 @@
 
 import { buildCacheKey } from "@/hooks/use-azure-tasks"
 import type { AzureWorkItemQuery } from "@/lib/azure-devops/client-safe"
-import { buildExportPack, downloadBlob, type PackProgress, type PackResult } from "./export-pack"
+import {
+  buildExportPack,
+  downloadBlob,
+  type PackProgress,
+  type PackResult,
+  type QaFilterSummary,
+} from "./export-pack"
 import {
   clearActiveRun,
   readActiveRun,
@@ -222,6 +228,43 @@ async function recordClientExport(job: ExportJob, taskCount: number): Promise<st
   }
 }
 
+/**
+ * Keep only tasks QA has passed: their id must be in the latest uploaded QA
+ * sheet ("Att Plus" → "Azure Task No"). No sheet, or no match, stops the
+ * export — untested work must never reach a client by accident.
+ */
+async function applyQaFilter(
+  tasks: AzureWorkItem[],
+  signal: AbortSignal,
+): Promise<{ kept: AzureWorkItem[]; qa: QaFilterSummary }> {
+  const res = await fetch("/api/azure-tasks/qa-sheet", { credentials: "include", signal })
+  const body = (await res.json().catch(() => ({}))) as {
+    sheet?: { fileName: string; uploadedAt: string; byEmail: string | null; taskIds: number[] } | null
+    setupRequired?: boolean
+    error?: string
+  }
+  if (!res.ok) throw new Error(body.error ?? `Couldn't load the QA sheet (${res.status}). Export stopped.`)
+  if (body.setupRequired) throw new Error("QA sheet storage isn't set up yet (database migration pending). Export stopped.")
+  if (!body.sheet) throw new Error("Upload the QA sheet first — only QA-verified tasks can be exported.")
+
+  const passed = new Set(body.sheet.taskIds)
+  const kept = tasks.filter((t) => passed.has(t.id))
+  const excluded = tasks.filter((t) => !passed.has(t.id))
+  const qa: QaFilterSummary = {
+    fileName: body.sheet.fileName,
+    uploadedAt: body.sheet.uploadedAt,
+    byEmail: body.sheet.byEmail,
+    matched: kept.map((t) => ({ id: t.id, title: t.title })),
+    excluded: excluded.map((t) => ({ id: t.id, title: t.title })),
+  }
+  if (kept.length === 0) {
+    throw new Error(
+      `None of the ${tasks.length} task${tasks.length === 1 ? "" : "s"} in this range is in the QA sheet, so there is nothing to export. Update the QA sheet or pick another range.`,
+    )
+  }
+  return { kept, qa }
+}
+
 /* ------------------------------ actions ------------------------------ */
 
 export function setIncludeAttachments(v: boolean) {
@@ -336,11 +379,14 @@ export async function start(job: ExportJob) {
       queueProgress({ phase: "details", done: n, total, message: "Loading the task list…" }),
     )
     if (tasks.length === 0) throw new Error("No tasks match the current filters.")
-    const r = await buildExportPack(tasks, {
+    set({ progress: { phase: "details", done: 0, total: tasks.length, message: "Checking tasks against the QA sheet…" } })
+    const { kept, qa } = await applyQaFilter(tasks, ctrl.signal)
+    const r = await buildExportPack(kept, {
       includeAttachments: state.includeAttachments,
       includeKeyChanges: true,
       rangeLabel: job.rangeLabel,
       client: job.client,
+      qa,
       signal: ctrl.signal,
       skipAi: skipAiRef,
       onProgress: queueProgress,

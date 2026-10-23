@@ -107,12 +107,25 @@ export interface PackProgress {
   detail?: string
 }
 
+/** QA filter applied before the pack was built (see export-store.ts). */
+export interface QaFilterSummary {
+  fileName: string
+  uploadedAt: string
+  byEmail: string | null
+  /** Tasks in the range that are in the QA sheet — these are in the pack. */
+  matched: Array<{ id: number; title: string }>
+  /** Tasks in the range that are NOT in the QA sheet — left out of the pack. */
+  excluded: Array<{ id: number; title: string }>
+}
+
 export interface PackOptions {
   includeAttachments: boolean
   includeKeyChanges: boolean
   rangeLabel: string
   /** Client (Azure DevOps agent) the pack is for — shown in the checklist and file name. */
   client?: string
+  /** QA filter result, written into the checklist and returned on the result. */
+  qa?: QaFilterSummary
   signal: AbortSignal
   /** Set `.current = true` (the "Skip Gemini" button) to stop calling Gemini and read the rest locally. */
   skipAi?: { current: boolean }
@@ -139,6 +152,8 @@ export interface PackResult {
   /** Tasks that Gemini could not read (busy / quota) and that were read locally instead. */
   localTaskCount: number
   errors: string[]
+  /** QA filter applied to this pack, if any. */
+  qa?: QaFilterSummary
 }
 
 /* ------------------------------ helpers ------------------------------ */
@@ -495,6 +510,7 @@ export async function buildExportPack(
       attachments: attachmentJobs,
       rangeLabel: opts.rangeLabel,
       client: opts.client,
+      qa: opts.qa,
       includeAttachments: opts.includeAttachments,
       includeAi: opts.includeKeyChanges,
       conflicts,
@@ -532,6 +548,7 @@ export async function buildExportPack(
     supersededSql,
     localTaskCount: localTaskIds.size,
     errors,
+    qa: opts.qa,
   }
 }
 
@@ -667,6 +684,7 @@ function renderChecklist(a: {
   attachments: Array<{ taskId: number; folder: string; name: string }>
   rangeLabel: string
   client?: string
+  qa?: QaFilterSummary
   includeAttachments: boolean
   includeAi: boolean
   conflicts: KeyConflict[]
@@ -684,6 +702,19 @@ function renderChecklist(a: {
     "Order    : oldest task first — apply top to bottom.",
     "",
   ]
+  if (a.qa) {
+    const when = new Date(a.qa.uploadedAt).toISOString().replace("T", " ").slice(0, 16)
+    out.push(
+      "QA VERIFICATION",
+      `Source   : ${a.qa.fileName} ("Att Plus" sheet), uploaded ${when} UTC${a.qa.byEmail ? ` by ${a.qa.byEmail}` : ""}`,
+      `Included : ${a.qa.matched.length} QA-verified task(s) — only these are in this pack.`,
+      `Excluded : ${a.qa.excluded.length} task(s) in the range that are not in the QA sheet yet:`,
+      ...(a.qa.excluded.length
+        ? a.qa.excluded.map((t) => `           - #${t.id} ${t.title}`)
+        : ["           (none)"]),
+      "",
+    )
+  }
   if (a.localTaskIds.length) {
     out.push(
       `NOTE — ${a.localTaskIds.length} task(s) were read by local pattern matching instead of Gemini; their keys/SQL may be incomplete: ${a.localTaskIds.slice(0, 20).map((i) => `#${i}`).join(", ")}${a.localTaskIds.length > 20 ? ", …" : ""}`,

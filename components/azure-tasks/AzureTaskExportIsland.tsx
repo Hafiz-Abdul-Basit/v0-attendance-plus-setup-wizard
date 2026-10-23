@@ -25,6 +25,9 @@ import {
   Copy,
   Download,
   FileCode2,
+  FileSpreadsheet,
+  ShieldCheck,
+  Upload,
   KeyRound,
   ListChecks,
   Loader2,
@@ -41,7 +44,8 @@ import { toast } from "sonner"
 
 import { cn } from "@/lib/utils"
 import type { AzureClientOption } from "@/hooks/use-azure-clients"
-import { downloadBlob, type PackProgress } from "./export-pack"
+import { useQaSheet } from "@/hooks/use-qa-sheet"
+import { downloadBlob, type PackProgress, type PackResult } from "./export-pack"
 import type { ExportPackController } from "./use-export-pack"
 
 function overallPct(p: PackProgress | null, status: ExportPackController["status"]): number | null {
@@ -312,6 +316,7 @@ export function AzureTaskExportIsland({
                     {result.reusedFromCache > 0 ? ` · ${result.reusedFromCache} reused from the last Gemini run` : ""}. The zip
                     was downloaded ({mmss}).
                   </p>
+                  {result.qa ? <QaResult qa={result.qa} /> : null}
                   {result.localTaskCount > 0 ? (
                     <div className="flex items-start justify-between gap-3 rounded-xl bg-white/15 px-3 py-2">
                       <span>
@@ -457,6 +462,8 @@ function IdlePrompt({
 }) {
   const [useGemini, setUseGemini] = React.useState(true)
   const range = hasDateRange ? rangeLabel.replace("_to_", " → ") : "All dates"
+  const qa = useQaSheet(true)
+  const qaReady = Boolean(qa.sheet) && !qa.setupRequired
 
   return (
     <div className="space-y-4">
@@ -464,7 +471,7 @@ function IdlePrompt({
       <div className="rounded-2xl bg-white/[0.06] p-4 ring-1 ring-white/10">
         <div className="flex items-end justify-between gap-3">
           <div>
-            <div className="text-[11px] font-medium uppercase tracking-wider text-white/50">Ready to export</div>
+            <div className="text-[11px] font-medium uppercase tracking-wider text-white/50">Tasks in this range</div>
             <div className="mt-0.5 flex items-baseline gap-1.5">
               <span className="text-3xl font-bold tabular-nums text-white">{totalCount.toLocaleString()}</span>
               <span className="text-white/70">task{totalCount === 1 ? "" : "s"}</span>
@@ -494,6 +501,12 @@ function IdlePrompt({
             No date range is selected, so all {totalCount.toLocaleString()} tasks will be exported. Pick a range or a client first if you only need recent ones.
           </div>
         ) : null}
+      </div>
+
+      {/* QA sheet */}
+      <div>
+        <SectionLabel>QA sheet</SectionLabel>
+        <QaSheetCard qa={qa} />
       </div>
 
       {/* Client */}
@@ -536,12 +549,18 @@ function IdlePrompt({
         <button
           type="button"
           onClick={() => onStart(useGemini)}
-          disabled={totalCount === 0}
+          disabled={totalCount === 0 || !qaReady}
           className="group flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-blue-500 via-indigo-500 to-violet-500 text-[15px] font-semibold text-white shadow-lg shadow-indigo-900/40 transition-all hover:brightness-110 active:scale-[0.99] disabled:opacity-50 disabled:hover:brightness-100"
         >
           <PackageOpen className="h-5 w-5 transition-transform group-hover:-translate-y-0.5" />
-          Export {totalCount.toLocaleString()} task{totalCount === 1 ? "" : "s"}
-          {client ? <span className="font-normal text-white/80">for {client}</span> : null}
+          {qaReady ? (
+            <>
+              Export QA-verified tasks
+              {client ? <span className="font-normal text-white/80">for {client}</span> : null}
+            </>
+          ) : (
+            "Upload the QA sheet first"
+          )}
         </button>
         <div className="flex items-center justify-between text-[11px] text-white/45">
           <span>Runs in the background — keep using the app.</span>
@@ -824,5 +843,135 @@ function PhaseSteps({ phase }: { phase: PackProgress["phase"] }) {
         )
       })}
     </ol>
+  )
+}
+
+/** QA sheet status + upload, shown before exporting. */
+function QaSheetCard({ qa }: { qa: ReturnType<typeof useQaSheet> }) {
+  const inputRef = React.useRef<HTMLInputElement>(null)
+  const [message, setMessage] = React.useState<{ kind: "ok" | "error"; text: string } | null>(null)
+
+  const onFile = async (file: File | undefined) => {
+    if (!file) return
+    setMessage(null)
+    const err = await qa.upload(file)
+    setMessage(err ? { kind: "error", text: err } : { kind: "ok", text: "QA sheet updated." })
+    if (inputRef.current) inputRef.current.value = ""
+  }
+
+  const sheet = qa.sheet
+  return (
+    <div
+      className={cn(
+        "rounded-xl px-3 py-2.5 ring-1",
+        sheet && !qa.setupRequired ? "bg-emerald-500/10 ring-emerald-400/30" : "bg-amber-400/10 ring-amber-400/40",
+      )}
+    >
+      <div className="flex items-center gap-3">
+        <span
+          className={cn(
+            "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg",
+            sheet ? "bg-emerald-500/20 text-emerald-200" : "bg-amber-400/20 text-amber-200",
+          )}
+        >
+          {sheet ? <ShieldCheck className="h-4 w-4" /> : <FileSpreadsheet className="h-4 w-4" />}
+        </span>
+        <span className="min-w-0 flex-1">
+          {qa.isLoading ? (
+            <span className="flex items-center gap-1.5 text-white/60">
+              <Loader2 className="h-3.5 w-3.5 animate-spin" /> Loading QA sheet…
+            </span>
+          ) : qa.setupRequired ? (
+            <>
+              <span className="block font-semibold text-amber-100">QA sheet storage isn't set up</span>
+              <span className="block text-[11px] text-amber-100/70">Apply migration 20261023000000_qa_sheets.sql in Supabase.</span>
+            </>
+          ) : sheet ? (
+            <>
+              <span className="block truncate font-semibold text-white" title={sheet.fileName}>
+                {sheet.taskIds.length.toLocaleString()} QA-verified task IDs
+              </span>
+              <span className="block truncate text-[11px] text-white/55">
+                {sheet.fileName} · updated {fmtDate(sheet.uploadedAt)}
+                {sheet.byEmail ? ` by ${sheet.byEmail}` : ""}
+              </span>
+            </>
+          ) : (
+            <>
+              <span className="block font-semibold text-amber-100">No QA sheet yet</span>
+              <span className="block text-[11px] text-amber-100/70">Upload the workbook to export.</span>
+            </>
+          )}
+        </span>
+        <button
+          type="button"
+          onClick={() => inputRef.current?.click()}
+          disabled={qa.uploading || qa.setupRequired}
+          className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-white/10 px-2.5 py-1.5 text-[12px] font-medium text-white hover:bg-white/20 disabled:opacity-50"
+        >
+          {qa.uploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
+          {sheet ? "Update" : "Upload"}
+        </button>
+        <input
+          ref={inputRef}
+          type="file"
+          accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+          className="hidden"
+          onChange={(e) => void onFile(e.target.files?.[0])}
+        />
+      </div>
+      <p className="mt-2 text-[11px] leading-snug text-white/55">
+        Only tasks whose ID is in the <b className="text-white/75">Att Plus</b> sheet's{" "}
+        <b className="text-white/75">Azure Task No</b> column are exported. In OneDrive: File → Download a copy, then upload it here.
+      </p>
+      {message ? (
+        <p className={cn("mt-1.5 text-[11px]", message.kind === "ok" ? "text-emerald-300" : "text-red-300")}>{message.text}</p>
+      ) : null}
+    </div>
+  )
+}
+
+/** After an export: which tasks passed QA and went into the pack, and which were left out. */
+function QaResult({ qa }: { qa: NonNullable<PackResult["qa"]> }) {
+  const total = qa.matched.length + qa.excluded.length
+  return (
+    <div className="rounded-xl bg-emerald-500/15 px-3 py-2.5 ring-1 ring-emerald-400/30">
+      <div className="flex items-center gap-2 font-semibold text-emerald-100">
+        <ShieldCheck className="h-4 w-4" />
+        QA-verified: {qa.matched.length} of {total} task{total === 1 ? "" : "s"} matched the QA sheet
+      </div>
+      <p className="mt-0.5 text-[12px] text-emerald-50/80">
+        Only these are in the pack.
+        {qa.excluded.length > 0
+          ? ` ${qa.excluded.length} task${qa.excluded.length === 1 ? " is" : "s are"} not in the QA sheet yet (not fully tested) and ${qa.excluded.length === 1 ? "was" : "were"} left out.`
+          : " Every task in the range had passed QA."}
+      </p>
+      <details className="mt-2">
+        <summary className="cursor-pointer text-[12px] text-emerald-100">Included tasks ({qa.matched.length})</summary>
+        <ul className="mt-1 max-h-32 space-y-0.5 overflow-auto text-[11px] text-white/85">
+          {qa.matched.map((t) => (
+            <li key={t.id} className="truncate">
+              <span className="text-emerald-300">#{t.id}</span> {t.title}
+            </li>
+          ))}
+        </ul>
+      </details>
+      {qa.excluded.length > 0 ? (
+        <details className="mt-1">
+          <summary className="cursor-pointer text-[12px] text-amber-200">Left out — not QA-verified ({qa.excluded.length})</summary>
+          <ul className="mt-1 max-h-32 space-y-0.5 overflow-auto text-[11px] text-white/75">
+            {qa.excluded.map((t) => (
+              <li key={t.id} className="truncate">
+                <span className="text-amber-300">#{t.id}</span> {t.title}
+              </li>
+            ))}
+          </ul>
+        </details>
+      ) : null}
+      <p className="mt-1.5 text-[10px] text-white/45">
+        Source: {qa.fileName} · updated {fmtDate(qa.uploadedAt)}
+        {qa.byEmail ? ` by ${qa.byEmail}` : ""}. Also listed in deployment-checklist.txt.
+      </p>
+    </div>
   )
 }
