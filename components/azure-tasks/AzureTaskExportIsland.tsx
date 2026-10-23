@@ -24,11 +24,13 @@ import {
   ChevronDown,
   Copy,
   Download,
+  ExternalLink,
   FileCode2,
   FileSpreadsheet,
   ShieldCheck,
   Upload,
   KeyRound,
+  Link2,
   ListChecks,
   Loader2,
   PackageOpen,
@@ -216,35 +218,35 @@ export function AzureTaskExportIsland({
         role="status"
         aria-live="polite"
         style={{
-          width: expanded ? 500 : 320,
+          width: expanded ? 600 : 340,
           maxWidth: "calc(100vw - 24px)",
           borderRadius: expanded ? 28 : 24,
           animation: status === "done" && !expanded ? "azIslandPop 600ms ease-out" : "azIslandIn 350ms cubic-bezier(.2,.9,.3,1.2)",
           transition: "width 320ms cubic-bezier(.2,.8,.2,1), border-radius 320ms, background-color 300ms",
         }}
         className={cn(
-          "fixed left-1/2 top-[76px] z-[70] -translate-x-1/2 overflow-hidden text-white shadow-2xl ring-1 ring-white/10",
+          "fixed left-1/2 top-[76px] z-[70] -translate-x-1/2 overflow-hidden text-gray-900 shadow-2xl shadow-gray-900/15 ring-1 ring-gray-200",
           status === "done"
-            ? "bg-emerald-700"
+            ? "bg-emerald-50 ring-emerald-200"
             : status === "error"
-              ? "bg-red-700"
-              : "bg-gradient-to-b from-slate-900 via-slate-950 to-black",
+              ? "bg-red-50 ring-red-200"
+              : "bg-white",
         )}
       >
         {/* Header = the collapsed pill */}
         <button
           type="button"
           onClick={() => onExpandedChange(!expanded)}
-          className="flex h-12 w-full items-center gap-3 px-3 text-left hover:bg-white/5"
+          className="flex h-12 w-full items-center gap-3 px-3 text-left hover:bg-gray-50"
           aria-expanded={expanded}
         >
           <Ring pct={pct} tone={tone} />
           <span className="min-w-0 flex-1">
             <span className="block truncate text-[13px] font-semibold leading-tight">{headline}</span>
-            <span className="block truncate text-[11px] leading-tight text-white/65">{sub}</span>
+            <span className="block truncate text-[11px] leading-tight text-gray-500">{sub}</span>
           </span>
           <ChevronDown
-            className="h-4 w-4 shrink-0 text-white/70"
+            className="h-4 w-4 shrink-0 text-gray-600"
             style={{ transform: expanded ? "rotate(180deg)" : "none", transition: "transform 300ms" }}
           />
         </button>
@@ -252,7 +254,7 @@ export function AzureTaskExportIsland({
         {/* Body — slides open */}
         <div style={{ display: "grid", gridTemplateRows: expanded ? "1fr" : "0fr", transition: "grid-template-rows 320ms cubic-bezier(.2,.8,.2,1)" }}>
           <div className="overflow-hidden">
-            <div className="max-h-[calc(100vh-150px)] overflow-y-auto space-y-3 px-4 pb-4 pt-1 text-[13px] text-white/90 [scrollbar-width:thin]">
+            <div className="max-h-[calc(100vh-150px)] overflow-y-auto space-y-3 px-4 pb-4 pt-1 text-[13px] text-gray-700 [scrollbar-width:thin]">
               {/* ---------------- idle: ask, then start ---------------- */}
               {status === "idle" ? (
                 <IdlePrompt
@@ -274,32 +276,32 @@ export function AzureTaskExportIsland({
               {status === "running" ? (
                 <>
                   <PhaseSteps phase={progress?.phase ?? "details"} />
-                  <div className="h-2 overflow-hidden rounded-full bg-white/10">
+                  <div className="h-2 overflow-hidden rounded-full bg-gray-100">
                     <div
                       className="h-full rounded-full bg-gradient-to-r from-blue-400 via-indigo-400 to-violet-400"
                       style={{ width: `${pct ?? 4}%`, transition: "width 400ms ease" }}
                     />
                   </div>
-                  <p className="text-white/70">
+                  <p className="text-gray-600">
                     {progress?.message}
                     {progress && progress.total > 0 ? ` ${progress.done}/${progress.total}` : ""}
                   </p>
                   {progress?.detail ? (
-                    <pre className="max-h-28 overflow-auto whitespace-pre-wrap break-words rounded-xl bg-amber-400/15 p-2 text-[11px] text-amber-100">
+                    <pre className="max-h-28 overflow-auto whitespace-pre-wrap break-words rounded-xl bg-amber-50 p-2 text-[11px] text-amber-800">
                       {progress.detail}
                     </pre>
                   ) : null}
-                  <p className="text-[12px] text-white/55">You can minimise this and keep working — you will be notified when it is done.</p>
+                  <p className="text-[12px] text-gray-500">You can minimise this and keep working — you will be notified when it is done.</p>
                   <div className="flex flex-wrap items-center justify-end gap-2">
                     {progress?.phase === "ai" ? (
-                      <button type="button" onClick={pack.skipAi} className="rounded-full bg-white/10 px-3 py-1.5 hover:bg-white/20">
+                      <button type="button" onClick={pack.skipAi} className="rounded-full bg-gray-100 px-3 py-1.5 hover:bg-gray-200">
                         Skip Gemini
                       </button>
                     ) : null}
-                    <button type="button" onClick={pack.cancel} className="rounded-full bg-white/10 px-3 py-1.5 hover:bg-white/20">
+                    <button type="button" onClick={pack.cancel} className="rounded-full bg-gray-100 px-3 py-1.5 hover:bg-gray-200">
                       Cancel
                     </button>
-                    <button type="button" onClick={() => onExpandedChange(false)} className="rounded-full bg-white px-3 py-1.5 font-semibold text-gray-900 hover:bg-gray-100">
+                    <button type="button" onClick={() => onExpandedChange(false)} className="rounded-full bg-gray-900 px-3 py-1.5 font-semibold text-white hover:bg-gray-800">
                       Minimise
                     </button>
                   </div>
@@ -318,7 +320,7 @@ export function AzureTaskExportIsland({
                   </p>
                   {result.qa ? <QaResult qa={result.qa} /> : null}
                   {result.localTaskCount > 0 ? (
-                    <div className="flex items-start justify-between gap-3 rounded-xl bg-white/15 px-3 py-2">
+                    <div className="flex items-start justify-between gap-3 rounded-xl bg-gray-100 px-3 py-2">
                       <span>
                         {pack.usedGemini
                           ? `Gemini was busy for ${result.localTaskCount} task${result.localTaskCount === 1 ? "" : "s"}; they were only read with simple pattern matching.`
@@ -331,24 +333,24 @@ export function AzureTaskExportIsland({
                           onExpandedChange(false)
                           pack.retry()
                         }}
-                        className="inline-flex shrink-0 items-center gap-1 rounded-full bg-white px-3 py-1.5 font-semibold text-gray-900 hover:bg-gray-100"
+                        className="inline-flex shrink-0 items-center gap-1 rounded-full bg-gray-900 px-3 py-1.5 font-semibold text-white hover:bg-gray-800"
                       >
                         <RotateCcw className="h-3.5 w-3.5" /> {pack.usedGemini ? "Retry Gemini" : "Run Gemini"}
                       </button>
                     </div>
                   ) : null}
                   {result.conflictCount > 0 || result.supersededSql > 0 ? (
-                    <div className="rounded-xl bg-amber-400/20 px-3 py-2 text-amber-50">
+                    <div className="rounded-xl bg-amber-100 px-3 py-2 text-amber-900">
                       {result.conflictCount > 0 ? `${result.conflictCount} key${result.conflictCount === 1 ? " is" : "s are"} set to different values in different tasks — newest value used (see ATTENTION in deployment-checklist.txt). ` : ""}
                       {result.supersededSql > 0 ? `${result.supersededSql} older version${result.supersededSql === 1 ? "" : "s"} of the same stored procedure / function / view dropped.` : ""}
                     </div>
                   ) : null}
                   {result.errors.length > 0 ? (
-                    <details className="rounded-xl bg-white/10 px-3 py-2">
+                    <details className="rounded-xl bg-gray-100 px-3 py-2">
                       <summary className="cursor-pointer">
                         {result.errors.length} note{result.errors.length === 1 ? "" : "s"} (also in _errors.txt)
                       </summary>
-                      <ul className="mt-2 max-h-32 space-y-1 overflow-auto text-[11px] text-white/80 break-words">
+                      <ul className="mt-2 max-h-32 space-y-1 overflow-auto text-[11px] text-gray-600 break-words">
                         {result.errors.slice(0, 12).map((e, i) => (
                           <li key={i}>{e}</li>
                         ))}
@@ -358,7 +360,7 @@ export function AzureTaskExportIsland({
                   {result.keyChanges.length > 0 ? (
                     <div>
                       <div className="mb-1 flex items-center justify-between">
-                        <span className="text-[11px] font-semibold uppercase tracking-wider text-white/60">key-changes.txt</span>
+                        <span className="text-[11px] font-semibold uppercase tracking-wider text-gray-500">key-changes.txt</span>
                         <button
                           type="button"
                           onClick={() => {
@@ -367,25 +369,25 @@ export function AzureTaskExportIsland({
                               setTimeout(() => setCopied(false), 1500)
                             })
                           }}
-                          className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] text-white/80 hover:bg-white/10"
+                          className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] text-gray-600 hover:bg-gray-100"
                         >
                           {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
                           {copied ? "Copied" : "Copy"}
                         </button>
                       </div>
-                      <pre className="max-h-40 overflow-auto whitespace-pre-wrap break-all rounded-xl bg-black/25 p-2.5 text-[11px] text-white/90">
+                      <pre className="max-h-40 overflow-auto whitespace-pre-wrap break-all rounded-xl bg-gray-100 p-2.5 text-[11px] text-gray-700">
                         {result.keyChangesTxt}
                       </pre>
                     </div>
                   ) : null}
                   <div className="flex justify-end gap-2 pt-1">
-                    <button type="button" onClick={onDismiss} className="rounded-full px-3 py-1.5 text-white/80 hover:bg-white/10">
+                    <button type="button" onClick={onDismiss} className="rounded-full px-3 py-1.5 text-gray-600 hover:bg-gray-100">
                       Dismiss
                     </button>
                     <button
                       type="button"
                       onClick={() => downloadBlob(result.blob, result.fileName)}
-                      className="inline-flex items-center gap-1.5 rounded-full bg-white px-4 py-1.5 font-semibold text-gray-900 hover:bg-gray-100"
+                      className="inline-flex items-center gap-1.5 rounded-full bg-gray-900 px-4 py-1.5 font-semibold text-white hover:bg-gray-800"
                     >
                       <Download className="h-4 w-4" /> Download again
                     </button>
@@ -396,12 +398,12 @@ export function AzureTaskExportIsland({
               {/* ---------------- error ---------------- */}
               {status === "error" ? (
                 <>
-                  <p className="break-words rounded-xl bg-black/25 p-2.5 text-[12px]">{error}</p>
+                  <p className="break-words rounded-xl bg-gray-100 p-2.5 text-[12px]">{error}</p>
                   <div className="flex justify-end gap-2">
-                    <button type="button" onClick={onDismiss} className="rounded-full px-3 py-1.5 text-white/80 hover:bg-white/10">
+                    <button type="button" onClick={onDismiss} className="rounded-full px-3 py-1.5 text-gray-600 hover:bg-gray-100">
                       Dismiss
                     </button>
-                    <button type="button" onClick={pack.retry} className="inline-flex items-center gap-1.5 rounded-full bg-white px-4 py-1.5 font-semibold text-gray-900 hover:bg-gray-100">
+                    <button type="button" onClick={pack.retry} className="inline-flex items-center gap-1.5 rounded-full bg-gray-900 px-4 py-1.5 font-semibold text-white hover:bg-gray-800">
                       <RotateCcw className="h-4 w-4" /> Try again
                     </button>
                   </div>
@@ -417,7 +419,7 @@ export function AzureTaskExportIsland({
             type="button"
             aria-label="Dismiss"
             onClick={onDismiss}
-            className="absolute right-9 top-3.5 rounded-full p-1 text-white/70 hover:bg-white/15 hover:text-white"
+            className="absolute right-9 top-3.5 rounded-full p-1 text-gray-600 hover:bg-gray-100 hover:text-gray-900"
           >
             <X className="h-3.5 w-3.5" />
           </button>
@@ -468,16 +470,16 @@ function IdlePrompt({
   return (
     <div className="space-y-4">
       {/* Summary */}
-      <div className="rounded-2xl bg-white/[0.06] p-4 ring-1 ring-white/10">
+      <div className="rounded-2xl bg-gray-50 p-4 ring-1 ring-gray-200">
         <div className="flex items-end justify-between gap-3">
           <div>
-            <div className="text-[11px] font-medium uppercase tracking-wider text-white/50">Tasks in this range</div>
+            <div className="text-[11px] font-medium uppercase tracking-wider text-gray-500">Tasks in this range</div>
             <div className="mt-0.5 flex items-baseline gap-1.5">
-              <span className="text-3xl font-bold tabular-nums text-white">{totalCount.toLocaleString()}</span>
-              <span className="text-white/70">task{totalCount === 1 ? "" : "s"}</span>
+              <span className="text-3xl font-bold tabular-nums text-gray-900">{totalCount.toLocaleString()}</span>
+              <span className="text-gray-600">task{totalCount === 1 ? "" : "s"}</span>
             </div>
           </div>
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-500/15 px-2.5 py-1 text-[12px] font-medium text-blue-200 ring-1 ring-blue-400/30">
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-2.5 py-1 text-[12px] font-medium text-blue-700 ring-1 ring-blue-200">
             <CalendarRange className="h-3.5 w-3.5" />
             {range}
           </span>
@@ -489,14 +491,14 @@ function IdlePrompt({
             { icon: FileCode2, label: "SQL scripts" },
             { icon: ListChecks, label: "Checklist" },
           ].map(({ icon: Icon, label }) => (
-            <span key={label} className="inline-flex items-center gap-1 rounded-full bg-white/[0.07] px-2 py-0.5 text-[11px] text-white/70">
+            <span key={label} className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2 py-0.5 text-[11px] text-gray-600">
               <Icon className="h-3 w-3" />
               {label}
             </span>
           ))}
         </div>
         {!hasDateRange ? (
-          <div className="mt-3 flex items-start gap-2 rounded-xl bg-amber-400/15 px-3 py-2 text-[12px] text-amber-100">
+          <div className="mt-3 flex items-start gap-2 rounded-xl bg-amber-50 px-3 py-2 text-[12px] text-amber-800">
             <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
             No date range is selected, so all {totalCount.toLocaleString()} tasks will be exported. Pick a range or a client first if you only need recent ones.
           </div>
@@ -534,11 +536,11 @@ function IdlePrompt({
             text="Standard patterns only. Instant; earlier Gemini results reused."
           />
         </div>
-        <label className="mt-2 flex cursor-pointer items-center justify-between gap-3 rounded-xl bg-white/[0.05] px-3 py-2.5 ring-1 ring-white/10 hover:bg-white/[0.08]">
+        <label className="mt-2 flex cursor-pointer items-center justify-between gap-3 rounded-xl bg-gray-50 px-3 py-2.5 ring-1 ring-gray-200 hover:bg-gray-100">
           <span className="flex items-center gap-2">
-            <Paperclip className="h-4 w-4 text-white/60" />
+            <Paperclip className="h-4 w-4 text-gray-500" />
             Download all attachments
-            <span className="text-[11px] text-white/45">one folder per task</span>
+            <span className="text-[11px] text-gray-400">one folder per task</span>
           </span>
           <DarkSwitch checked={includeAttachments} onChange={onIncludeAttachments} label="Download all attachments" />
         </label>
@@ -556,15 +558,15 @@ function IdlePrompt({
           {qaReady ? (
             <>
               Export QA-verified tasks
-              {client ? <span className="font-normal text-white/80">for {client}</span> : null}
+              {client ? <span className="font-normal text-gray-600">for {client}</span> : null}
             </>
           ) : (
-            "Upload the QA sheet first"
+            "Add the QA sheet first"
           )}
         </button>
-        <div className="flex items-center justify-between text-[11px] text-white/45">
+        <div className="flex items-center justify-between text-[11px] text-gray-400">
           <span>Runs in the background — keep using the app.</span>
-          <button type="button" onClick={onCancel} className="rounded-full px-2 py-0.5 text-white/60 hover:bg-white/10 hover:text-white">
+          <button type="button" onClick={onCancel} className="rounded-full px-2 py-0.5 text-gray-500 hover:bg-gray-100 hover:text-gray-900">
             Cancel
           </button>
         </div>
@@ -574,7 +576,7 @@ function IdlePrompt({
 }
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
-  return <div className="mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-white/50">{children}</div>
+  return <div className="mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-gray-500">{children}</div>
 }
 
 function ModeCard({
@@ -598,24 +600,24 @@ function ModeCard({
       onClick={onClick}
       className={cn(
         "rounded-xl p-3 text-left ring-1 transition-colors",
-        active ? "bg-indigo-500/20 ring-indigo-400/70" : "bg-white/[0.04] ring-white/10 hover:bg-white/[0.08]",
+        active ? "bg-indigo-50 ring-indigo-400" : "bg-gray-50 ring-gray-200 hover:bg-gray-100",
       )}
     >
       <span className="flex items-center justify-between">
-        <span className="flex items-center gap-1.5 font-semibold text-white">
-          <Icon className={cn("h-4 w-4", active ? "text-indigo-300" : "text-white/60")} />
+        <span className="flex items-center gap-1.5 font-semibold text-gray-900">
+          <Icon className={cn("h-4 w-4", active ? "text-indigo-600" : "text-gray-500")} />
           {title}
         </span>
         <span
           className={cn(
             "flex h-4 w-4 items-center justify-center rounded-full ring-1",
-            active ? "bg-indigo-400 ring-indigo-300" : "ring-white/30",
+            active ? "bg-indigo-400 ring-indigo-300" : "ring-gray-300",
           )}
         >
           {active ? <Check className="h-3 w-3 text-white" /> : null}
         </span>
       </span>
-      <span className="mt-1 block text-[11px] leading-snug text-white/60">{text}</span>
+      <span className="mt-1 block text-[11px] leading-snug text-gray-500">{text}</span>
     </button>
   )
 }
@@ -633,7 +635,7 @@ function DarkSwitch({ checked, onChange, label }: { checked: boolean; onChange: 
       }}
       className={cn(
         "relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors",
-        checked ? "bg-indigo-500" : "bg-white/20",
+        checked ? "bg-indigo-500" : "bg-gray-200",
       )}
     >
       <span
@@ -712,26 +714,26 @@ function ClientCombobox({
   }
 
   return (
-    <div className={cn("rounded-xl ring-1 transition-colors", open ? "bg-white/[0.07] ring-blue-400/60" : "bg-white/[0.05] ring-white/10")}>
+    <div className={cn("rounded-xl ring-1 transition-colors", open ? "bg-gray-100 ring-blue-400" : "bg-gray-50 ring-gray-200")}>
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
         aria-expanded={open}
-        className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left hover:bg-white/[0.04]"
+        className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left hover:bg-gray-50"
       >
         <span
           className={cn(
             "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg",
-            selected ? "bg-blue-500/20 text-blue-200" : "bg-white/10 text-white/50",
+            selected ? "bg-blue-50 text-blue-700" : "bg-gray-100 text-gray-500",
           )}
         >
           <Server className="h-4 w-4" />
         </span>
         <span className="min-w-0 flex-1">
-          <span className="block truncate font-semibold text-white">
+          <span className="block truncate font-semibold text-gray-900">
             {selected ? selected.name : loading && clients.length === 0 ? "Loading clients…" : "Select a client"}
           </span>
-          <span className="block truncate text-[11px] text-white/55">
+          <span className="block truncate text-[11px] text-gray-500">
             {selected
               ? selected.lastExport
                 ? `Your last export ${fmtDate(selected.lastExport.at)} · ${selected.lastExport.taskCount} tasks · range starts there`
@@ -739,13 +741,13 @@ function ClientCombobox({
               : "Optional — remembers when you last exported for it"}
           </span>
         </span>
-        <ChevronDown className={cn("h-4 w-4 shrink-0 text-white/60 transition-transform", open && "rotate-180")} />
+        <ChevronDown className={cn("h-4 w-4 shrink-0 text-gray-500 transition-transform", open && "rotate-180")} />
       </button>
 
       {open ? (
-        <div className="border-t border-white/10 p-2">
+        <div className="border-t border-gray-200 p-2">
           <div className="relative">
-            <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-white/40" />
+            <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
             <input
               autoFocus
               value={query}
@@ -753,16 +755,16 @@ function ClientCombobox({
               onKeyDown={onKeyDown}
               placeholder="Search clients…"
               aria-label="Search clients"
-              className="h-9 w-full rounded-lg bg-black/30 pl-8 pr-3 text-[13px] text-white placeholder:text-white/40 ring-1 ring-white/10 focus:outline-none focus:ring-blue-400/60"
+              className="h-9 w-full rounded-lg bg-white pl-8 pr-3 text-[13px] text-gray-900 placeholder:text-gray-400 ring-1 ring-gray-300 focus:outline-none focus:ring-blue-400"
             />
           </div>
           <ul ref={listRef} role="listbox" className="mt-2 max-h-56 overflow-y-auto pr-0.5 [scrollbar-width:thin]">
             {loading && clients.length === 0 ? (
-              <li className="flex items-center justify-center gap-2 py-4 text-[12px] text-white/55">
+              <li className="flex items-center justify-center gap-2 py-4 text-[12px] text-gray-500">
                 <Loader2 className="h-3.5 w-3.5 animate-spin" /> Loading clients…
               </li>
             ) : options.length === 0 ? (
-              <li className="py-4 text-center text-[12px] text-white/55">No clients match “{query}”.</li>
+              <li className="py-4 text-center text-[12px] text-gray-500">No clients match “{query}”.</li>
             ) : (
               options.map((c, i) => {
                 const isSel = (c?.name ?? undefined) === client
@@ -777,27 +779,27 @@ function ClientCombobox({
                       onClick={() => pick(c)}
                       className={cn(
                         "flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-[13px]",
-                        i === active ? "bg-white/10" : "hover:bg-white/[0.06]",
+                        i === active ? "bg-gray-100" : "hover:bg-gray-50",
                       )}
                     >
                       {c ? (
                         <span
-                          className={cn("h-2 w-2 shrink-0 rounded-full", c.online ? "bg-emerald-400" : "bg-white/25")}
+                          className={cn("h-2 w-2 shrink-0 rounded-full", c.online ? "bg-emerald-400" : "bg-gray-200")}
                           title={c.pool ? (c.online ? "Agent online" : "Agent offline") : "Agent removed"}
                         />
                       ) : (
-                        <X className="h-3 w-3 shrink-0 text-white/40" />
+                        <X className="h-3 w-3 shrink-0 text-gray-400" />
                       )}
-                      <span className={cn("min-w-0 flex-1 truncate", c ? "text-white" : "text-white/60")}>
+                      <span className={cn("min-w-0 flex-1 truncate", c ? "text-gray-900" : "text-gray-500")}>
                         {c ? c.name : "No client (don't track)"}
-                        {c && !c.pool ? <span className="text-white/40"> · removed</span> : null}
+                        {c && !c.pool ? <span className="text-gray-400"> · removed</span> : null}
                       </span>
                       {c ? (
-                        <span className={cn("shrink-0 text-[11px]", c.lastExport ? "text-white/55" : "text-white/35")}>
+                        <span className={cn("shrink-0 text-[11px]", c.lastExport ? "text-gray-500" : "text-gray-400")}>
                           {c.lastExport ? fmtDate(c.lastExport.at) : "never"}
                         </span>
                       ) : null}
-                      {isSel ? <Check className="h-3.5 w-3.5 shrink-0 text-blue-300" /> : null}
+                      {isSel ? <Check className="h-3.5 w-3.5 shrink-0 text-blue-600" /> : null}
                     </button>
                   </li>
                 )
@@ -830,15 +832,15 @@ function PhaseSteps({ phase }: { phase: PackProgress["phase"] }) {
             <span
               className={cn(
                 "flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold",
-                done ? "bg-emerald-400 text-emerald-950" : now ? "bg-blue-400 text-blue-950" : "bg-white/10 text-white/40",
+                done ? "bg-emerald-400 text-emerald-950" : now ? "bg-blue-400 text-blue-950" : "bg-gray-100 text-gray-400",
               )}
             >
               {done ? <Check className="h-3 w-3" /> : i + 1}
             </span>
-            <span className={cn("truncate text-[11px]", now ? "font-semibold text-white" : done ? "text-white/70" : "text-white/40")}>
+            <span className={cn("truncate text-[11px]", now ? "font-semibold text-gray-900" : done ? "text-gray-600" : "text-gray-400")}>
               {p.label}
             </span>
-            {i < PHASES.length - 1 ? <span className={cn("h-px flex-1", done ? "bg-emerald-400/60" : "bg-white/15")} /> : null}
+            {i < PHASES.length - 1 ? <span className={cn("h-px flex-1", done ? "bg-emerald-400/60" : "bg-gray-100")} /> : null}
           </li>
         )
       })}
@@ -850,82 +852,189 @@ function PhaseSteps({ phase }: { phase: PackProgress["phase"] }) {
 function QaSheetCard({ qa }: { qa: ReturnType<typeof useQaSheet> }) {
   const inputRef = React.useRef<HTMLInputElement>(null)
   const [message, setMessage] = React.useState<{ kind: "ok" | "error"; text: string } | null>(null)
+  const [link, setLink] = React.useState("")
+  const [editingLink, setEditingLink] = React.useState(false)
 
   const onFile = async (file: File | undefined) => {
     if (!file) return
     setMessage(null)
     const err = await qa.upload(file)
-    setMessage(err ? { kind: "error", text: err } : { kind: "ok", text: "QA sheet updated." })
+    setMessage(err ? { kind: "error", text: err } : { kind: "ok", text: "QA sheet updated from the file." })
     if (inputRef.current) inputRef.current.value = ""
   }
 
+  const onSaveLink = async () => {
+    if (!link.trim()) {
+      setMessage({ kind: "error", text: "Paste the Google Sheets link first." })
+      return
+    }
+    setMessage(null)
+    const err = await qa.linkSheet(link.trim())
+    if (err) {
+      setMessage({ kind: "error", text: err })
+      return
+    }
+    setLink("")
+    setEditingLink(false)
+    setMessage({ kind: "ok", text: "Linked. The sheet is re-read before every export." })
+  }
+
   const sheet = qa.sheet
+  const live = Boolean(sheet?.sourceUrl)
+  const showLinkInput = !live || editingLink
+
   return (
     <div
       className={cn(
-        "rounded-xl px-3 py-2.5 ring-1",
-        sheet && !qa.setupRequired ? "bg-emerald-500/10 ring-emerald-400/30" : "bg-amber-400/10 ring-amber-400/40",
+        "rounded-xl px-3.5 py-3 ring-1",
+        sheet && !qa.setupRequired ? "bg-emerald-50 ring-emerald-200" : "bg-amber-50 ring-amber-200",
       )}
     >
+      {/* Status */}
       <div className="flex items-center gap-3">
         <span
           className={cn(
-            "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg",
-            sheet ? "bg-emerald-500/20 text-emerald-200" : "bg-amber-400/20 text-amber-200",
+            "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg",
+            sheet ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700",
           )}
         >
-          {sheet ? <ShieldCheck className="h-4 w-4" /> : <FileSpreadsheet className="h-4 w-4" />}
+          {sheet ? <ShieldCheck className="h-5 w-5" /> : <FileSpreadsheet className="h-5 w-5" />}
         </span>
         <span className="min-w-0 flex-1">
           {qa.isLoading ? (
-            <span className="flex items-center gap-1.5 text-white/60">
+            <span className="flex items-center gap-1.5 text-gray-500">
               <Loader2 className="h-3.5 w-3.5 animate-spin" /> Loading QA sheet…
             </span>
           ) : qa.setupRequired ? (
             <>
-              <span className="block font-semibold text-amber-100">QA sheet storage isn't set up</span>
-              <span className="block text-[11px] text-amber-100/70">Apply migration 20261023000000_qa_sheets.sql in Supabase.</span>
+              <span className="block font-semibold text-amber-800">QA sheet storage isn't set up</span>
+              <span className="block text-[11px] text-amber-700">Apply migration 20261023000000_qa_sheets.sql in Supabase.</span>
             </>
           ) : sheet ? (
             <>
-              <span className="block truncate font-semibold text-white" title={sheet.fileName}>
+              <span className="flex items-center gap-2 font-semibold text-gray-900">
                 {sheet.taskIds.length.toLocaleString()} QA-verified task IDs
+                {live ? (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-emerald-600 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white">
+                    <span className="h-1.5 w-1.5 rounded-full bg-white" /> Live
+                  </span>
+                ) : null}
               </span>
-              <span className="block truncate text-[11px] text-white/55">
-                {sheet.fileName} · updated {fmtDate(sheet.uploadedAt)}
-                {sheet.byEmail ? ` by ${sheet.byEmail}` : ""}
+              <span className="block truncate text-[11px] text-gray-500">
+                {live ? (
+                  <>
+                    Google Sheets · checked {fmtDate(sheet.fetchedAt)} · re-read before every export
+                  </>
+                ) : (
+                  <>
+                    {sheet.fileName} · uploaded {fmtDate(sheet.uploadedAt)}
+                    {sheet.byEmail ? ` by ${sheet.byEmail}` : ""}
+                  </>
+                )}
               </span>
             </>
           ) : (
             <>
-              <span className="block font-semibold text-amber-100">No QA sheet yet</span>
-              <span className="block text-[11px] text-amber-100/70">Upload the .xlsx or .csv to export.</span>
+              <span className="block font-semibold text-amber-800">No QA sheet yet</span>
+              <span className="block text-[11px] text-amber-700">Link the Google Sheet or upload a file to export.</span>
             </>
           )}
         </span>
-        <button
-          type="button"
-          onClick={() => inputRef.current?.click()}
-          disabled={qa.uploading || qa.setupRequired}
-          className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-white/10 px-2.5 py-1.5 text-[12px] font-medium text-white hover:bg-white/20 disabled:opacity-50"
-        >
-          {qa.uploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
-          {sheet ? "Update" : "Upload"}
-        </button>
-        <input
-          ref={inputRef}
-          type="file"
-          accept=".xlsx,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv"
-          className="hidden"
-          onChange={(e) => void onFile(e.target.files?.[0])}
-        />
+        {live && sheet?.sourceUrl ? (
+          <a
+            href={sheet.sourceUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex shrink-0 items-center gap-1 rounded-lg px-2 py-1.5 text-[12px] font-medium text-emerald-700 hover:bg-emerald-100"
+          >
+            <ExternalLink className="h-3.5 w-3.5" /> Open
+          </a>
+        ) : null}
       </div>
-      <p className="mt-2 text-[11px] leading-snug text-white/55">
-        Only tasks whose ID is in the <b className="text-white/75">Att Plus</b> sheet's{" "}
-        <b className="text-white/75">Azure Task No</b> column are exported. Upload the workbook (.xlsx) or the Att Plus sheet as .csv.
+
+      {/* Sources */}
+      {!qa.setupRequired ? (
+        <div className="mt-3 space-y-2 border-t border-black/5 pt-3">
+          {showLinkInput ? (
+            <div className="flex items-center gap-2">
+              <div className="relative min-w-0 flex-1">
+                <Link2 className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                <input
+                  value={link}
+                  onChange={(e) => {
+                    setLink(e.target.value)
+                    if (message?.kind === "error") setMessage(null)
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault()
+                      void onSaveLink()
+                    }
+                  }}
+                  placeholder="Paste Google Sheets link (Anyone with the link → Viewer)"
+                  aria-label="Google Sheets link"
+                  className="h-9 w-full rounded-lg bg-white pl-8 pr-3 text-[13px] text-gray-900 placeholder:text-gray-400 ring-1 ring-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                />
+              </div>
+              <button
+                type="button"
+                onClick={() => void onSaveLink()}
+                disabled={qa.uploading}
+                className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-gray-900 px-3 py-2 text-[12px] font-semibold text-white hover:bg-gray-800 disabled:opacity-50"
+              >
+                {qa.uploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Link2 className="h-3.5 w-3.5" />}
+                Save link
+              </button>
+              {live ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditingLink(false)
+                    setLink("")
+                  }}
+                  className="shrink-0 rounded-lg px-2 py-2 text-[12px] text-gray-500 hover:bg-gray-100"
+                >
+                  Cancel
+                </button>
+              ) : null}
+            </div>
+          ) : null}
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px]">
+            {live && !editingLink ? (
+              <button
+                type="button"
+                onClick={() => setEditingLink(true)}
+                className="inline-flex items-center gap-1 font-medium text-gray-700 hover:text-gray-900"
+              >
+                <Link2 className="h-3.5 w-3.5" /> Change link
+              </button>
+            ) : null}
+            <button
+              type="button"
+              onClick={() => inputRef.current?.click()}
+              disabled={qa.uploading}
+              className="inline-flex items-center gap-1 font-medium text-gray-700 hover:text-gray-900 disabled:opacity-50"
+            >
+              <Upload className="h-3.5 w-3.5" />
+              {live ? "Upload a file instead" : "or upload .xlsx / .csv"}
+            </button>
+            <input
+              ref={inputRef}
+              type="file"
+              accept=".xlsx,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv"
+              className="hidden"
+              onChange={(e) => void onFile(e.target.files?.[0])}
+            />
+          </div>
+        </div>
+      ) : null}
+
+      <p className="mt-2 text-[11px] leading-snug text-gray-500">
+        Only tasks whose ID is in the <b className="text-gray-700">Att Plus</b> tab's{" "}
+        <b className="text-gray-700">Azure Task No</b> column are exported.
       </p>
       {message ? (
-        <p className={cn("mt-1.5 text-[11px]", message.kind === "ok" ? "text-emerald-300" : "text-red-300")}>{message.text}</p>
+        <p className={cn("mt-1.5 text-[11px]", message.kind === "ok" ? "text-emerald-700" : "text-red-600")}>{message.text}</p>
       ) : null}
     </div>
   )
@@ -935,40 +1044,40 @@ function QaSheetCard({ qa }: { qa: ReturnType<typeof useQaSheet> }) {
 function QaResult({ qa }: { qa: NonNullable<PackResult["qa"]> }) {
   const total = qa.matched.length + qa.excluded.length
   return (
-    <div className="rounded-xl bg-emerald-500/15 px-3 py-2.5 ring-1 ring-emerald-400/30">
-      <div className="flex items-center gap-2 font-semibold text-emerald-100">
+    <div className="rounded-xl bg-emerald-50 px-3 py-2.5 ring-1 ring-emerald-200">
+      <div className="flex items-center gap-2 font-semibold text-emerald-800">
         <ShieldCheck className="h-4 w-4" />
         QA-verified: {qa.matched.length} of {total} task{total === 1 ? "" : "s"} matched the QA sheet
       </div>
-      <p className="mt-0.5 text-[12px] text-emerald-50/80">
+      <p className="mt-0.5 text-[12px] text-emerald-800/80">
         Only these are in the pack.
         {qa.excluded.length > 0
           ? ` ${qa.excluded.length} task${qa.excluded.length === 1 ? " is" : "s are"} not in the QA sheet yet (not fully tested) and ${qa.excluded.length === 1 ? "was" : "were"} left out.`
           : " Every task in the range had passed QA."}
       </p>
       <details className="mt-2">
-        <summary className="cursor-pointer text-[12px] text-emerald-100">Included tasks ({qa.matched.length})</summary>
-        <ul className="mt-1 max-h-32 space-y-0.5 overflow-auto text-[11px] text-white/85">
+        <summary className="cursor-pointer text-[12px] text-emerald-800">Included tasks ({qa.matched.length})</summary>
+        <ul className="mt-1 max-h-32 space-y-0.5 overflow-auto text-[11px] text-gray-700">
           {qa.matched.map((t) => (
             <li key={t.id} className="truncate">
-              <span className="text-emerald-300">#{t.id}</span> {t.title}
+              <span className="text-emerald-600">#{t.id}</span> {t.title}
             </li>
           ))}
         </ul>
       </details>
       {qa.excluded.length > 0 ? (
         <details className="mt-1">
-          <summary className="cursor-pointer text-[12px] text-amber-200">Left out — not QA-verified ({qa.excluded.length})</summary>
-          <ul className="mt-1 max-h-32 space-y-0.5 overflow-auto text-[11px] text-white/75">
+          <summary className="cursor-pointer text-[12px] text-amber-700">Left out — not QA-verified ({qa.excluded.length})</summary>
+          <ul className="mt-1 max-h-32 space-y-0.5 overflow-auto text-[11px] text-gray-700">
             {qa.excluded.map((t) => (
               <li key={t.id} className="truncate">
-                <span className="text-amber-300">#{t.id}</span> {t.title}
+                <span className="text-amber-600">#{t.id}</span> {t.title}
               </li>
             ))}
           </ul>
         </details>
       ) : null}
-      <p className="mt-1.5 text-[10px] text-white/45">
+      <p className="mt-1.5 text-[10px] text-gray-400">
         Source: {qa.fileName} · updated {fmtDate(qa.uploadedAt)}
         {qa.byEmail ? ` by ${qa.byEmail}` : ""}. Also listed in deployment-checklist.txt.
       </p>

@@ -237,7 +237,8 @@ async function applyQaFilter(
   tasks: AzureWorkItem[],
   signal: AbortSignal,
 ): Promise<{ kept: AzureWorkItem[]; qa: QaFilterSummary }> {
-  const res = await fetch("/api/azure-tasks/qa-sheet", { credentials: "include", signal })
+  // fresh=1: a Google Sheets source is re-read now, so QA's latest edits apply.
+  const res = await fetch("/api/azure-tasks/qa-sheet?fresh=1", { credentials: "include", signal })
   const body = (await res.json().catch(() => ({}))) as {
     sheet?: { fileName: string; uploadedAt: string; byEmail: string | null; taskIds: number[] } | null
     setupRequired?: boolean
@@ -245,7 +246,7 @@ async function applyQaFilter(
   }
   if (!res.ok) throw new Error(body.error ?? `Couldn't load the QA sheet (${res.status}). Export stopped.`)
   if (body.setupRequired) throw new Error("QA sheet storage isn't set up yet (database migration pending). Export stopped.")
-  if (!body.sheet) throw new Error("Upload the QA sheet first — only QA-verified tasks can be exported.")
+  if (!body.sheet) throw new Error("Add the QA sheet first (link the Google Sheet or upload a file) — only QA-verified tasks can be exported.")
 
   const passed = new Set(body.sheet.taskIds)
   const kept = tasks.filter((t) => passed.has(t.id))
