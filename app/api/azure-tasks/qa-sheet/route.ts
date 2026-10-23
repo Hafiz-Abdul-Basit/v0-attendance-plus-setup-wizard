@@ -5,8 +5,9 @@
  * GET  — the active (latest) upload:
  *          { sheet: { fileName, uploadedAt, byEmail, taskIds, rowCount } | null,
  *            setupRequired?: true }   (setupRequired = migration not applied)
- * POST — multipart form with `file` (.xlsx). Reads only the "Att Plus"
- *        sheet's "Azure Task No" column (lib/qa-sheet.ts), stores the IDs
+ * POST — multipart form with `file` (.xlsx workbook, or .csv export of the
+ *        "Att Plus" sheet). Reads only the "Att Plus" sheet's "Azure Task
+ *        No" column (lib/qa-sheet.ts), stores the IDs
  *        and returns the new sheet. 400 with a plain message when the file
  *        doesn't have that sheet / column.
  *
@@ -16,7 +17,7 @@
 import { NextResponse } from "next/server"
 
 import { requireAzureTasksAccess } from "@/lib/auth"
-import { parseQaSheet, QaSheetError } from "@/lib/qa-sheet"
+import { parseQaFile, QaSheetError } from "@/lib/qa-sheet"
 import { getClientIp, rateLimit, tooManyRequests } from "@/lib/rate-limit"
 import { getSupabaseAdmin } from "@/lib/supabase"
 
@@ -78,15 +79,18 @@ export async function POST(request: Request) {
   } catch {
     /* handled below */
   }
-  if (!file) return NextResponse.json({ error: "Choose the QA workbook (.xlsx) to upload." }, { status: 400 })
-  if (!/\.xlsx$/i.test(file.name)) {
-    return NextResponse.json({ error: "Upload the workbook as .xlsx (in OneDrive: File → Download a copy)." }, { status: 400 })
+  if (!file) return NextResponse.json({ error: "Choose the QA sheet (.xlsx or .csv) to upload." }, { status: 400 })
+  if (!/\.(xlsx|csv)$/i.test(file.name)) {
+    return NextResponse.json(
+      { error: "Upload the QA sheet as .xlsx or .csv (in OneDrive: File → Download a copy, or Export → CSV)." },
+      { status: 400 },
+    )
   }
   if (file.size > MAX_BYTES) return NextResponse.json({ error: "The file is larger than 10 MB." }, { status: 400 })
 
   let parsed
   try {
-    parsed = await parseQaSheet(await file.arrayBuffer())
+    parsed = await parseQaFile(file.name, await file.arrayBuffer())
   } catch (err) {
     if (err instanceof QaSheetError) return NextResponse.json({ error: err.message }, { status: 400 })
     console.error("[azure-tasks/qa-sheet] parse:", err)

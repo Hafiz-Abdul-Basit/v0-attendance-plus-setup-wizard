@@ -899,7 +899,7 @@ function QaSheetCard({ qa }: { qa: ReturnType<typeof useQaSheet> }) {
           ) : (
             <>
               <span className="block font-semibold text-amber-100">No QA sheet yet</span>
-              <span className="block text-[11px] text-amber-100/70">Upload the workbook to export.</span>
+              <span className="block text-[11px] text-amber-100/70">Upload the .xlsx or .csv to export.</span>
             </>
           )}
         </span>
@@ -915,14 +915,14 @@ function QaSheetCard({ qa }: { qa: ReturnType<typeof useQaSheet> }) {
         <input
           ref={inputRef}
           type="file"
-          accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+          accept=".xlsx,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv"
           className="hidden"
           onChange={(e) => void onFile(e.target.files?.[0])}
         />
       </div>
       <p className="mt-2 text-[11px] leading-snug text-white/55">
         Only tasks whose ID is in the <b className="text-white/75">Att Plus</b> sheet's{" "}
-        <b className="text-white/75">Azure Task No</b> column are exported. In OneDrive: File → Download a copy, then upload it here.
+        <b className="text-white/75">Azure Task No</b> column are exported. Upload the workbook (.xlsx) or the Att Plus sheet as .csv.
       </p>
       {message ? (
         <p className={cn("mt-1.5 text-[11px]", message.kind === "ok" ? "text-emerald-300" : "text-red-300")}>{message.text}</p>
